@@ -1,0 +1,9 @@
+{
+  "name": "railway-report-intelligence-platform",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": { "dev": "vite --host 127.0.0.1", "build": "tsc -b && vite build", "preview": "vite preview --host 127.0.0.1" },
+  "dependencies": { "@hookform/resolvers": "^5.1.1", "@tanstack/react-query": "^5.81.5", "@tanstack/react-table": "^8.21.3", "class-variance-authority": "^0.7.1", "clsx": "^2.1.1", "framer-motion": "^12.19.2", "lucide-react": "^0.468.0", "react": "^19.0.0", "react-dom": "^19.0.0", "react-hook-form": "^7.58.1", "react-router-dom": "^7.6.2", "tailwind-merge": "^2.6.0", "tailwindcss-animate": "^1.0.7", "zod": "^3.25.67" },
+  "devDependencies": { "@types/node": "^22.10.2", "@types/react": "^19.0.1", "@types/react-dom": "^19.0.2", "@vitejs/plugin-react": "^4.3.4", "autoprefixer": "^10.4.20", "postcss": "^8.4.49", "tailwindcss": "^3.4.17", "typescript": "~5.7.2", "vite": "^6.0.5" }
+}
