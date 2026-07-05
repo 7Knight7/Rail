@@ -1,0 +1,158 @@
+# Railway Report Platform - Backend
+
+FastAPI backend for the Railway Report Intelligence Platform.
+
+## Setup
+
+### Prerequisites
+- Python 3.12+
+- PostgreSQL 16+
+- Redis 7+
+
+### Installation
+
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Copy environment file
+cp .env.example .env
+```
+
+### Database Setup
+
+```bash
+# Start PostgreSQL (via Docker or local installation)
+docker compose up -d postgres
+
+# Run migrations
+alembic upgrade head
+```
+
+### Running
+
+```bash
+# Development with auto-reload
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+
+# Production
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+## Project Structure
+
+```
+backend/
+├── app/
+│   ├── api/               # API routes
+│   │   └── v1/           # API version 1
+│   │       └── router.py # Route aggregation
+│   ├── core/              # Core configuration
+│   │   ├── config.py     # Settings management
+│   │   ├── security/     # Security utilities
+│   │   ├── logging.py    # Logging setup
+│   │   ├── exceptions.py # Custom exceptions
+│   │   ├── error_handlers.py
+│   │   └── middleware.py
+│   ├── features/          # Feature modules
+│   │   ├── auth/         # Authentication
+│   │   ├── workflows/    # Workflow management
+│   │   ├── uploads/      # File uploads
+│   │   └── health/       # Health checks
+│   ├── domain/            # Domain layer
+│   │   ├── entities/     # Domain entities
+│   │   └── interfaces/   # Repository interfaces
+│   └── infrastructure/    # Infrastructure layer
+│       ├── database/     # Database configuration
+│       ├── repositories/ # Repository implementations
+│       └── seed/         # Data seeders
+├── alembic/               # Database migrations
+├── tests/                 # Test suite
+├── uploads/               # Uploaded files (gitignored)
+├── requirements.txt
+├── pyproject.toml         # Ruff config, pytest config
+└── Dockerfile
+```
+
+## Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=app
+
+# Run specific test file
+pytest tests/features/workflows/test_controller.py
+```
+
+## Linting
+
+```bash
+# Check code
+ruff check .
+
+# Fix auto-fixable issues
+ruff check --fix .
+
+# Format code
+ruff format .
+
+# CI script (check + test)
+python scripts/ci.ps1  # On Windows
+```
+
+## API Documentation
+
+- Swagger UI: http://127.0.0.1:8000/docs
+- ReDoc: http://127.0.0.1:8000/redoc
+- OpenAPI JSON: http://127.0.0.1:8000/openapi.json
+
+## Database Migrations
+
+```bash
+# Generate migration
+alembic revision --autogenerate -m "description"
+
+# Apply migrations
+alembic upgrade head
+
+# Rollback one migration
+alembic downgrade -1
+
+# View migration history
+alembic history
+```
+
+## Feature Development
+
+Each feature follows this structure:
+
+```
+features/
+└── feature_name/
+    ├── __init__.py
+    ├── controller.py    # API endpoints
+    ├── service.py       # Business logic
+    ├── repository.py    # Data access
+    ├── schemas.py       # Pydantic schemas
+    ├── validation.py    # Input validation
+    └── dependencies.py  # FastAPI dependencies
+```
+
+## Environment Variables
+
+See `.env.example` for all configuration options.
+
+### Required for Production
+- `DATABASE_URL` - PostgreSQL connection string
+- `REDIS_URL` - Redis connection string
+- `JWT_SECRET_KEY` - Min 32 characters, cryptographically random
+- `CSRF_SECRET_KEY` - Cryptographically random
+- `COOKIE_SECURE=true` - Enable for HTTPS
+- `ENVIRONMENT=production`

@@ -1,0 +1,107 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: railway-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-railway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-railway}
+      POSTGRES_DB: ${POSTGRES_DB:-railway}
+    ports:
+      - "5432:5432"
+    volumes:
+      - railway_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U railway -d railway"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - railway-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: railway-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - railway_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - railway-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: railway-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://railway:railway@postgres:5432/railway
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret-key-change-in-production-min-32}
+      - CSRF_SECRET_KEY=${CSRF_SECRET_KEY:-dev-csrf-secret-key-change-this}
+      - AUTOMATION_ENGINE_URL=http://automation-engine:8003
+      - AUTOMATION_SERVICE_TOKEN=${AUTOMATION_SERVICE_TOKEN:-dev-automation-service-token-change-in-production}
+      - AUTOMATION_DOWNLOADS_DIR=/app/downloads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      automation-engine:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+      - automation_downloads:/app/downloads
+    networks:
+      - railway-network
+
+  automation-engine:
+    build:
+      context: ./automation-engine
+      dockerfile: Dockerfile
+    container_name: railway-automation-engine
+    ports:
+      - "8003:8003"
+    environment:
+      - SERVICE_TOKEN=${AUTOMATION_SERVICE_TOKEN:-dev-automation-service-token-change-in-production}
+      - BACKEND_URL=http://backend:8000
+      - BACKEND_API_PREFIX=/api/v1
+      - DOWNLOADS_ROOT=/app/downloads
+      - DEMO_MODE=${AUTOMATION_DEMO_MODE:-true}
+      - LOG_LEVEL=INFO
+    volumes:
+      - automation_downloads:/app/downloads
+      - automation_screenshots:/app/screenshots
+    networks:
+      - railway-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: railway-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - railway-network
+
+volumes:
+  railway_postgres_data:
+  railway_redis_data:
+  backend_uploads:
+  automation_downloads:
+  automation_screenshots:
+
+networks:
+  railway-network:
+    driver: bridge
