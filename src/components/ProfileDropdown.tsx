@@ -13,8 +13,8 @@ import {
 import { cn } from "@/utils/cn";
 
 const roleColors: Record<string, string> = {
-  admin: "bg-purple-100 text-purple-700",
-  officer: "bg-blue-100 text-blue-700",
+  admin: "bg-primary-muted text-primary",
+  officer: "bg-primary/10 text-primary",
   viewer: "bg-slate-100 text-slate-700",
 };
 
@@ -54,12 +54,12 @@ export function ProfileDropdown() {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            "flex items-center gap-2 rounded-full p-1 pr-3",
-            "hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+            "flex items-center gap-2 rounded-xl p-1 pr-3 transition-all duration-200",
+            "hover:bg-surface focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
             "transition-colors",
           )}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white">
             {initials}
           </div>
           <span className="hidden text-sm font-medium text-slate-700 sm:inline">

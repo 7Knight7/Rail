@@ -67,9 +67,9 @@ export function AutomationDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <PageHeader
-          title="Automation Dashboard"
-          description="RailMadad report downloads via standalone Playwright service"
-          breadcrumbs={[{ label: "Admin" }, { label: "Automation" }]}
+          title="Report Generation"
+          description="Manage and monitor daily RailMadad report generation"
+          breadcrumbs={[{ label: "Admin" }, { label: "Report Generation" }]}
         />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={() => void refresh()} disabled={acting}>
@@ -108,7 +108,7 @@ export function AutomationDashboardPage() {
         <Card>
           <CardBody className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/5 text-primary">
                 <Zap className="h-5 w-5" />
               </div>
               <div>
@@ -198,7 +198,7 @@ export function AutomationDashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Run History</CardTitle>
-            <CardDescription>Recent automation executions</CardDescription>
+            <CardDescription>Recent report generation runs</CardDescription>
           </CardHeader>
           <CardBody>
             {history.length === 0 ? (
@@ -227,7 +227,7 @@ export function AutomationDashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Logs</CardTitle>
-            <CardDescription>Live automation output</CardDescription>
+            <CardDescription>Live report generation output</CardDescription>
           </CardHeader>
           <CardBody>
             <div className="max-h-80 overflow-y-auto rounded-lg bg-slate-950 p-4 font-mono text-xs">

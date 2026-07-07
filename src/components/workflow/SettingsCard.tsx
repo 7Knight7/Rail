@@ -24,7 +24,7 @@ interface SettingsCardProps {
 
 export function SettingsCard({
   title = "Settings",
-  description = "Configure workflow parameters",
+  description = "Configure report parameters",
   fields,
   onChange,
   disabled = false,
@@ -36,17 +36,21 @@ export function SettingsCard({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Settings2 className="h-4 w-4 text-slate-500" />
-          <div>
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
+    <Card className={title ? "hover:shadow-premium" : "border-0 shadow-none"}>
+      {title ? (
+        <CardHeader className="border-b border-rail-line">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface">
+              <Settings2 className="h-4 w-4 text-rail-muted" />
+            </div>
+            <div>
+              <CardTitle>{title}</CardTitle>
+              {description ? <CardDescription>{description}</CardDescription> : null}
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardBody>
+        </CardHeader>
+      ) : null}
+      <CardBody className={title ? undefined : "pt-0"}>
         <div className="grid gap-4 sm:grid-cols-2">
           {fields.map((field) => (
             <div key={field.id} className="space-y-1.5">

@@ -10,7 +10,7 @@ interface StatusBadgeProps extends HTMLAttributes<HTMLSpanElement> {
 
 const variantStyles: Record<StatusVariant, string> = {
   neutral: "bg-slate-100 text-slate-700 border-slate-200",
-  info: "bg-blue-50 text-blue-700 border-blue-200",
+  info: "bg-primary-muted text-primary border-primary/20",
   success: "bg-green-50 text-green-700 border-green-200",
   warning: "bg-amber-50 text-amber-700 border-amber-200",
   error: "bg-red-50 text-red-700 border-red-200",

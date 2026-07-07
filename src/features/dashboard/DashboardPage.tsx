@@ -1,262 +1,162 @@
-import {
-  FileText,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Calendar,
-  TrendingUp,
-  Activity,
-} from "lucide-react";
+import type { ReactNode } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { StatusBadge } from "@/components/ui/StatusBadge";
 import { PageHeader } from "@/components/PageHeader";
+import { cn } from "@/utils/cn";
 
-interface StatCardProps {
+interface MetricCardProps {
   title: string;
   value: string | number;
-  icon: typeof FileText;
-  trend?: string;
-  variant?: "default" | "success" | "warning";
+  subtitle?: string;
 }
 
-function StatCard({ title, value, icon: Icon, trend, variant = "default" }: StatCardProps) {
-  const bgColors = {
-    default: "bg-slate-100",
-    success: "bg-green-100",
-    warning: "bg-amber-100",
-  };
-  const iconColors = {
-    default: "text-slate-600",
-    success: "text-green-600",
-    warning: "text-amber-600",
-  };
-
+function MetricCard({ title, value, subtitle }: MetricCardProps) {
   return (
-    <Card>
-      <CardBody className="p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500">{title}</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
-            {trend && (
-              <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
-                <TrendingUp className="h-3 w-3" />
-                {trend}
-              </p>
-            )}
-          </div>
-          <div className={`rounded-lg p-2.5 ${bgColors[variant]}`}>
-            <Icon className={`h-5 w-5 ${iconColors[variant]}`} />
-          </div>
-        </div>
+    <Card className="hover:shadow-card">
+      <CardBody className="p-6">
+        <p className="text-xs font-medium text-slate-500">{title}</p>
+        <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-slate-900">
+          {value}
+        </p>
+        {subtitle && <p className="mt-1.5 text-xs text-slate-400">{subtitle}</p>}
       </CardBody>
     </Card>
   );
 }
 
-const mockStats = {
-  todayStatus: "Operational",
-  reportsGenerated: 47,
-  pendingReports: 3,
-  lastAutomation: "Today, 14:32",
-};
+function AnalyticsSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Card className="hover:shadow-card">
+      <CardHeader className="pb-1">
+        <CardTitle className="text-base font-semibold text-slate-900">{title}</CardTitle>
+      </CardHeader>
+      <CardBody className="pt-2">{children}</CardBody>
+    </Card>
+  );
+}
 
-const mockRecentActivity = [
-  {
-    id: "1",
-    action: "Division Report Generated",
-    user: "Officer Singh",
-    time: "2 minutes ago",
-    status: "success" as const,
-  },
-  {
-    id: "2",
-    action: "Merging Report Uploaded",
-    user: "Officer Kumar",
-    time: "15 minutes ago",
-    status: "success" as const,
-  },
-  {
-    id: "3",
-    action: "SCR Train Analysis Started",
-    user: "Officer Reddy",
-    time: "1 hour ago",
-    status: "pending" as const,
-  },
-  {
-    id: "4",
-    action: "Summary Generation Failed",
-    user: "System",
-    time: "2 hours ago",
-    status: "error" as const,
-  },
-  {
-    id: "5",
-    action: "Types Report Downloaded",
-    user: "Officer Patel",
-    time: "3 hours ago",
-    status: "success" as const,
-  },
-];
-
-const mockQuickActions = [
-  { label: "Generate Merging Report", path: "/workflows/merging" },
-  { label: "Generate Division Report", path: "/workflows/division" },
-  { label: "Generate Summary", path: "/workflows/summary" },
-];
+const mockBar = (items: { label: string; value: number }[]) => (
+  <div className="space-y-4">
+    {items.map((item) => (
+      <div key={item.label}>
+        <div className="mb-1.5 flex justify-between text-sm">
+          <span className="text-slate-600">{item.label}</span>
+          <span className="font-medium tabular-nums text-slate-900">{item.value}</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-500"
+            style={{ width: `${Math.min(100, (item.value / 1500) * 100)}%` }}
+          />
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 export function DashboardPage() {
   return (
-    <div>
+    <div className="space-y-10">
       <PageHeader
         title="Dashboard"
-        description="Overview of railway report generation and system status"
+        description="Complaint analytics and performance insights from today's reports."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Today's Status"
-          value={mockStats.todayStatus}
-          icon={Activity}
-          variant="success"
-        />
-        <StatCard
-          title="Reports Generated"
-          value={mockStats.reportsGenerated}
-          icon={FileText}
-          trend="+12% from yesterday"
-        />
-        <StatCard
-          title="Pending Reports"
-          value={mockStats.pendingReports}
-          icon={Clock}
-          variant={mockStats.pendingReports > 5 ? "warning" : "default"}
-        />
-        <StatCard
-          title="Last Automation Run"
-          value={mockStats.lastAutomation}
-          icon={Calendar}
-        />
-      </div>
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard title="Today's Complaints" value={1284} subtitle="+5% vs yesterday" />
+        <MetricCard title="Open Cases" value={89} subtitle="Pending resolution" />
+        <MetricCard title="Resolution Rate" value="87%" subtitle="Last 7 days" />
+        <MetricCard title="Feedback Score" value="4.1 / 5" subtitle="Average rating" />
+      </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-slate-500" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardBody>
-            <div className="space-y-4">
-              {mockRecentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center gap-4 border-b border-slate-100 pb-4 last:border-0 last:pb-0"
-                >
-                  <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                      activity.status === "success"
-                        ? "bg-green-100"
-                        : activity.status === "error"
-                          ? "bg-red-100"
-                          : "bg-amber-100"
-                    }`}
-                  >
-                    {activity.status === "success" ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    ) : activity.status === "error" ? (
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                    ) : (
-                      <Clock className="h-4 w-4 text-amber-600" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900">{activity.action}</p>
-                    <p className="text-xs text-slate-500">{activity.user}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500">{activity.time}</p>
-                    <StatusBadge
-                      variant={
-                        activity.status === "success"
-                          ? "success"
-                          : activity.status === "error"
-                            ? "error"
-                            : "warning"
-                      }
-                    >
-                      {activity.status === "success"
-                        ? "Completed"
-                        : activity.status === "error"
-                          ? "Failed"
-                          : "Pending"}
-                    </StatusBadge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <AnalyticsSection title="Complaint Trends">
+          {mockBar([
+            { label: "Mon", value: 420 },
+            { label: "Tue", value: 380 },
+            { label: "Wed", value: 510 },
+            { label: "Thu", value: 465 },
+            { label: "Fri", value: 312 },
+          ])}
+        </AnalyticsSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-slate-500" />
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardBody>
-            <div className="space-y-2">
-              {mockQuickActions.map((action, index) => (
-                <a
-                  key={index}
-                  href={action.path}
-                  className="block rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
-                >
-                  {action.label}
-                </a>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-      </div>
+        <AnalyticsSection title="Complaint Categories">
+          {mockBar([
+            { label: "Cleanliness", value: 340 },
+            { label: "Punctuality", value: 290 },
+            { label: "Staff Behaviour", value: 210 },
+            { label: "Facilities", value: 180 },
+            { label: "Other", value: 95 },
+          ])}
+        </AnalyticsSection>
+      </section>
 
-      <div className="mt-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>System Information</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Platform Version
+      <section className="grid gap-6 lg:grid-cols-3">
+        <AnalyticsSection title="Top Zones">
+          {mockBar([
+            { label: "Secunderabad", value: 1250 },
+            { label: "Hyderabad", value: 1180 },
+            { label: "Vijayawada", value: 1050 },
+          ])}
+        </AnalyticsSection>
+
+        <AnalyticsSection title="Top Divisions">
+          {mockBar([
+            { label: "SC", value: 890 },
+            { label: "HYB", value: 780 },
+            { label: "BZA", value: 650 },
+          ])}
+        </AnalyticsSection>
+
+        <AnalyticsSection title="Top Trains">
+          {mockBar([
+            { label: "12759", value: 142 },
+            { label: "12723", value: 128 },
+            { label: "17229", value: 115 },
+          ])}
+        </AnalyticsSection>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <AnalyticsSection title="Feedback Analysis">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            {[
+              { label: "Positive", value: "62%", color: "text-emerald-600" },
+              { label: "Negative", value: "18%", color: "text-red-600" },
+              { label: "Neutral", value: "20%", color: "text-slate-600" },
+              { label: "Responses", value: "432", color: "text-slate-900" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-lg bg-surface p-4">
+                <p className="text-slate-500">{item.label}</p>
+                <p className={`mt-1 text-xl font-semibold tracking-tight ${item.color}`}>
+                  {item.value}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">v1.0.0</p>
               </div>
-              <div className="rounded-lg bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Database Status
-                </p>
-                <p className="mt-1 text-sm font-semibold text-green-600">Connected</p>
+            ))}
+          </div>
+        </AnalyticsSection>
+
+        <AnalyticsSection title="Resolution Statistics">
+          <div className="space-y-4 text-sm">
+            {[
+              { label: "Avg. resolution time", value: "4.2 days" },
+              { label: "Resolved today", value: "156" },
+              { label: "Escalated", value: "23" },
+              { label: "Closed this week", value: "891" },
+            ].map((row, i, arr) => (
+              <div
+                key={row.label}
+                className={cn(
+                  "flex justify-between py-1",
+                  i < arr.length - 1 && "border-b border-rail-line pb-4",
+                )}
+              >
+                <span className="text-slate-600">{row.label}</span>
+                <span className="font-medium tabular-nums text-slate-900">{row.value}</span>
               </div>
-              <div className="rounded-lg bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Report Engine
-                </p>
-                <p className="mt-1 text-sm font-semibold text-green-600">Active</p>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Last Backup
-                </p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">Today, 06:00</p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </AnalyticsSection>
+      </section>
     </div>
   );
 }

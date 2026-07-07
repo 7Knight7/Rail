@@ -81,7 +81,7 @@ export function OutputCard({
 
         {status === "processing" && (
           <div className="flex flex-col items-center justify-center py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
             <p className="mt-4 text-sm text-slate-600">Processing your file...</p>
           </div>
         )}

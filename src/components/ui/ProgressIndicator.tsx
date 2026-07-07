@@ -37,7 +37,7 @@ export function ProgressIndicator({
       )}
       <div className={cn("overflow-hidden rounded-full bg-slate-200", sizeStyles[size])}>
         <div
-          className="h-full bg-blue-600 transition-all duration-300"
+          className="h-full bg-primary transition-all duration-300"
           style={{ width: `${percentage}%` }}
           role="progressbar"
           aria-valuenow={value}

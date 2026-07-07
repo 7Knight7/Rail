@@ -178,7 +178,7 @@ export function PromptListPage() {
                       <td className="py-3">
                         <Link
                           to={`/admin/prompts/${template.id}/edit`}
-                          className="font-medium text-slate-900 hover:text-blue-600"
+                          className="font-medium text-slate-900 hover:text-primary"
                         >
                           {template.name}
                         </Link>

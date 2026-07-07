@@ -4,8 +4,12 @@ import { AppShell } from "@/layouts/AppShell";
 import { ProtectedLayout } from "@/layouts/ProtectedLayout";
 import { WorkflowLayout } from "@/layouts/WorkflowLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
+import { RequireAdmin } from "@/components/RequireRole";
 import { LoginPage } from "@/features/auth/LoginPage";
+import { HomePage } from "@/features/home";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
+import { AutomationPage } from "@/features/automation";
+import { GeneratedReportsPage } from "@/features/reports";
 import {
   MergingPage,
   DivisionPage,
@@ -17,9 +21,8 @@ import {
 } from "@/features/workflows";
 import { TemplateListPage, TemplateEditorPage } from "@/features/admin/templates";
 import { PromptListPage, PromptEditorPage } from "@/features/admin/prompts";
-import { AutomationDashboardPage } from "@/features/admin/automation";
 import { SettingsPage } from "@/features/settings/SettingsPage";
-import { LogsPage } from "@/features/logs/LogsPage";
+import { ActivityLogPage } from "@/features/logs/ActivityLogPage";
 import { NotFoundPage } from "@/features/errors/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -39,11 +42,27 @@ export const router = createBrowserRouter([
             children: [
               {
                 index: true,
-                element: <Navigate to="/dashboard" replace />,
+                element: <Navigate to="/home" replace />,
+              },
+              {
+                path: "home",
+                element: <HomePage />,
               },
               {
                 path: "dashboard",
                 element: <DashboardPage />,
+              },
+              {
+                path: "reports",
+                element: <GeneratedReportsPage />,
+              },
+              {
+                path: "automation",
+                element: (
+                  <RequireAdmin>
+                    <AutomationPage />
+                  </RequireAdmin>
+                ),
               },
               {
                 element: <WorkflowLayout />,
@@ -107,7 +126,7 @@ export const router = createBrowserRouter([
                   },
                   {
                     path: "admin/automation",
-                    element: <AutomationDashboardPage />,
+                    element: <Navigate to="/automation" replace />,
                   },
                   {
                     path: "settings",
@@ -115,7 +134,7 @@ export const router = createBrowserRouter([
                   },
                   {
                     path: "logs",
-                    element: <LogsPage />,
+                    element: <ActivityLogPage />,
                   },
                 ],
               },

@@ -297,7 +297,7 @@ export function RuleListPage() {
                         <div>
                           <Link
                             to={`/admin/rules/${rule.id}/edit`}
-                            className="font-medium text-gray-900 hover:text-blue-600"
+                            className="font-medium text-gray-900 hover:text-primary"
                           >
                             {rule.name}
                           </Link>

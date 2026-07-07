@@ -69,13 +69,13 @@ export function InputConfigSection({ data, onChange }: InputConfigSectionProps) 
               {data.accepted_file_types.map((type) => (
                 <span
                   key={type}
-                  className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1 text-sm text-blue-700"
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
                 >
                   {type}
                   <button
                     type="button"
                     onClick={() => removeFileType(type)}
-                    className="ml-1 rounded-full hover:bg-blue-200"
+                    className="ml-1 rounded-full hover:bg-primary/15"
                   >
                     <X className="h-3 w-3" />
                   </button>
