@@ -88,6 +88,16 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
+    # Default admin seed (set via .env only — no credentials in source)
+    default_admin_username: str | None = Field(
+        default=None,
+        description="Username for the default admin account created on first startup",
+    )
+    default_admin_password: str | None = Field(
+        default=None,
+        description="Password for the default admin account (set via .env only)",
+    )
+
     @field_validator("jwt_secret_key")
     @classmethod
     def validate_jwt_secret(cls, v: str) -> str:

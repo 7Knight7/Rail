@@ -149,6 +149,21 @@ features/
 
 See `.env.example` for all configuration options.
 
+### Default Admin Account
+
+On startup, the backend can create a default admin user if one does not already exist. Configure credentials in `backend/.env` (copy from `backend/.env.example`):
+
+```env
+DEFAULT_ADMIN_USERNAME=admin
+DEFAULT_ADMIN_PASSWORD=Admin@123456
+```
+
+- Set both variables to your own local dev credentials before first run.
+- The user is created with the `admin` role; email is derived as `{username}@railway.local`.
+- Seeding is **idempotent**: if the username already exists, nothing is changed (password is not overwritten).
+- If either variable is missing or blank, seeding is skipped and a warning is logged.
+- Sign in via the normal login endpoint (`POST /api/v1/auth/login`); no auth bypass is used.
+
 ### Required for Production
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_URL` - Redis connection string

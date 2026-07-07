@@ -53,10 +53,12 @@ docker compose up -d postgres redis
 3. **Configure environment**
 
 ```bash
-# Copy example env file
+# Copy example env files
 cp .env.example .env
+cp backend/.env.example backend/.env
 
-# Update secrets for local development
+# Update secrets and default admin credentials for local development
+# See backend/README.md#default-admin-account
 ```
 
 4. **Run database migrations**

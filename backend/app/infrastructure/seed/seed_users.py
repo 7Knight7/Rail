@@ -1,39 +1,42 @@
 import logging
 import uuid
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.security.password import password_hasher
-from app.infrastructure.database.models import UserModel
+from app.domain.entities.user import UserRole
+from app.features.auth.repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_ADMIN_USERNAME = "admin"
-DEFAULT_ADMIN_EMAIL = "admin@railway.gov.in"
-DEFAULT_ADMIN_PASSWORD = "Admin@123456"
+
+def _admin_email(username: str) -> str:
+    return f"{username.lower()}@railway.local"
 
 
 async def seed_admin_user(session: AsyncSession) -> None:
-    existing = await session.execute(
-        select(UserModel).where(UserModel.username == DEFAULT_ADMIN_USERNAME).limit(1)
-    )
-    if existing.scalar_one_or_none():
-        logger.info("Admin user already exists, skipping")
+    username = (settings.default_admin_username or "").strip()
+    password = settings.default_admin_password or ""
+
+    if not username or not password:
+        logger.warning(
+            "DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD not set; skipping admin seed"
+        )
         return
 
-    logger.info("Creating default admin user")
-    admin = UserModel(
-        id=str(uuid.uuid4()),
-        username=DEFAULT_ADMIN_USERNAME,
-        email=DEFAULT_ADMIN_EMAIL,
-        password_hash=password_hasher.hash(DEFAULT_ADMIN_PASSWORD),
-        role="admin",
-        is_active=True,
+    user_repo = UserRepository(session)
+    existing = await user_repo.get_by_username(username)
+    if existing:
+        logger.info("Admin user %r already exists, skipping", username)
+        return
+
+    logger.info("Creating default admin user %r", username)
+    await user_repo.create(
+        user_id=str(uuid.uuid4()),
+        username=username,
+        email=_admin_email(username),
+        password_hash=password_hasher.hash(password),
+        role=UserRole.ADMIN,
     )
-    session.add(admin)
-    await session.commit()
-    logger.warning(
-        "Default admin user created with password: %s - CHANGE THIS IMMEDIATELY IN PRODUCTION!",
-        DEFAULT_ADMIN_PASSWORD,
-    )
+    logger.info("Default admin user %r created successfully", username)
