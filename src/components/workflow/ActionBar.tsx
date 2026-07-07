@@ -1,10 +1,11 @@
-import { Play, RotateCcw, Download } from "lucide-react";
+import { Play, RotateCcw, Download, Save } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface ActionBarProps {
   onGenerate?: () => void;
   onReset?: () => void;
   onDownload?: () => void;
+  onSave?: () => void;
   generateDisabled?: boolean;
   resetDisabled?: boolean;
   downloadDisabled?: boolean;
@@ -15,31 +16,30 @@ export function ActionBar({
   onGenerate,
   onReset,
   onDownload,
+  onSave,
   generateDisabled = false,
   resetDisabled = false,
   downloadDisabled = true,
   isProcessing = false,
 }: ActionBarProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <Button
-        variant="primary"
-        onClick={onGenerate}
-        disabled={generateDisabled || isProcessing}
-      >
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-rail-line bg-white p-4 shadow-card transition-all duration-200 hover:shadow-premium">
+      <Button variant="primary" onClick={onGenerate} disabled={generateDisabled || isProcessing}>
         <Play className="mr-2 h-4 w-4" />
-        {isProcessing ? "Processing..." : "Generate Report"}
+        {isProcessing ? "Generating…" : "Generate Report"}
       </Button>
+      {onSave && (
+        <Button variant="secondary" onClick={onSave} disabled={isProcessing}>
+          <Save className="mr-2 h-4 w-4" />
+          Save Configuration
+        </Button>
+      )}
       <Button variant="secondary" onClick={onReset} disabled={resetDisabled || isProcessing}>
         <RotateCcw className="mr-2 h-4 w-4" />
         Reset
       </Button>
       <div className="flex-1" />
-      <Button
-        variant="secondary"
-        onClick={onDownload}
-        disabled={downloadDisabled || isProcessing}
-      >
+      <Button variant="secondary" onClick={onDownload} disabled={downloadDisabled || isProcessing}>
         <Download className="mr-2 h-4 w-4" />
         Download
       </Button>

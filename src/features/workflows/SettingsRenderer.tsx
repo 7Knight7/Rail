@@ -108,7 +108,7 @@ function SettingControl({ setting, value, onChange }: SettingControlProps) {
             type="checkbox"
             checked={Boolean(value)}
             onChange={(e) => onChange(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
             aria-describedby={describedBy}
           />
           <span className="text-slate-700">Enable</span>
@@ -133,7 +133,7 @@ function SettingControl({ setting, value, onChange }: SettingControlProps) {
             onClick={() => onChange(option.value)}
             className={`h-10 rounded-md border px-4 text-sm font-medium ${
               value === option.value
-                ? "border-blue-600 bg-blue-600 text-white"
+                ? "border-primary bg-primary text-white"
                 : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
@@ -164,7 +164,7 @@ function SettingControl({ setting, value, onChange }: SettingControlProps) {
               }
               className={`rounded-md px-3 py-2 text-sm font-medium ${
                 isSelected
-                  ? "bg-blue-600 text-white"
+                  ? "bg-primary text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >

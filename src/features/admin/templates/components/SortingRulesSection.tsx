@@ -74,7 +74,7 @@ export function SortingRulesSection({ data, columns, onChange }: SortingRulesSec
                 key={index}
                 className="flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-700">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
                   {rule.priority}
                 </div>
 

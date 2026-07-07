@@ -18,7 +18,7 @@ export function LoadingOverlay({
           <div className="w-48">
             <div className="h-2 overflow-hidden rounded-full bg-slate-200">
               <div
-                className="h-full bg-blue-600 transition-all duration-300"
+                className="h-full bg-primary transition-all duration-300"
                 style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
               />
             </div>

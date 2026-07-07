@@ -42,10 +42,10 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     setActing(true);
     try {
       const res = await automationApi.run();
-      showToast("success", "Automation started", res.message);
+      showToast("success", "Report generation started", res.message);
       await refresh();
     } catch {
-      showToast("error", "Failed to start automation");
+      showToast("error", "Failed to start report generation");
     } finally {
       setActing(false);
     }
@@ -55,7 +55,7 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     setActing(true);
     try {
       await automationApi.stop();
-      showToast("warning", "Automation stopped");
+      showToast("warning", "Report generation stopped");
       await refresh();
     } catch {
       showToast("error", "Failed to stop");
@@ -68,7 +68,7 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     setActing(true);
     try {
       await automationApi.pause();
-      showToast("info", "Automation paused");
+      showToast("info", "Report generation paused");
       await refresh();
     } catch {
       showToast("error", "Failed to pause");
@@ -81,7 +81,7 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     setActing(true);
     try {
       await automationApi.resume();
-      showToast("success", "Automation resumed");
+      showToast("success", "Report generation resumed");
       await refresh();
     } catch {
       showToast("error", "Failed to resume");

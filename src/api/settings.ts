@@ -84,7 +84,7 @@ export const SETTINGS_CATEGORY_META: Record<
     description: "AI prompt selection and output style",
   },
   automation: {
-    label: "Automation Settings",
+    label: "Report Generation",
     description: "Schedules, retries, and download paths",
   },
   security: {

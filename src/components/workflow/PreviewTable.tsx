@@ -1,6 +1,7 @@
 import { Table, Eye } from "lucide-react";
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { cn } from "@/utils/cn";
 
 interface Column {
   key: string;
@@ -29,16 +30,18 @@ export function PreviewTable({
   const hasMore = data.length > maxRows;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Eye className="h-4 w-4 text-slate-500" />
+    <Card className="hover:shadow-premium">
+      <CardHeader className="border-b border-rail-line">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface">
+            <Eye className="h-4 w-4 text-rail-muted" />
+          </div>
           <div>
             <CardTitle>{title}</CardTitle>
             <CardDescription>
               {description}
               {data.length > 0 && (
-                <span className="ml-2 text-slate-500">
+                <span className="ml-1">
                   ({displayData.length} of {data.length} rows)
                 </span>
               )}
@@ -46,22 +49,24 @@ export function PreviewTable({
           </div>
         </div>
       </CardHeader>
-      <CardBody>
+      <CardBody className="p-0">
         {data.length === 0 ? (
-          <EmptyState
-            icon={Table}
-            title="No data available"
-            description={emptyMessage}
-          />
+          <div className="p-6">
+            <EmptyState
+              icon={Table}
+              title="No data available"
+              description={emptyMessage}
+            />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
+              <thead className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm">
+                <tr className="border-b border-rail-line">
                   {columns.map((col) => (
                     <th
                       key={col.key}
-                      className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-600"
+                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-rail-muted"
                       style={{ width: col.width }}
                     >
                       {col.header}
@@ -69,15 +74,22 @@ export function PreviewTable({
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {displayData.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="hover:bg-slate-50">
+                  <tr
+                    key={rowIndex}
+                    className={cn(
+                      "border-b border-rail-line/60 transition-colors duration-200 last:border-0",
+                      rowIndex % 2 === 0 ? "bg-white" : "bg-surface/40",
+                      "hover:bg-primary/[0.03]",
+                    )}
+                  >
                     {columns.map((col) => (
                       <td
                         key={col.key}
-                        className="whitespace-nowrap px-3 py-2 text-slate-700"
+                        className="whitespace-nowrap px-5 py-3 text-rail-ink"
                       >
-                        {row[col.key] ?? "-"}
+                        {row[col.key] ?? "—"}
                       </td>
                     ))}
                   </tr>
@@ -85,7 +97,7 @@ export function PreviewTable({
               </tbody>
             </table>
             {hasMore && (
-              <p className="mt-3 text-center text-xs text-slate-500">
+              <p className="border-t border-rail-line py-3 text-center text-xs text-rail-muted">
                 Showing first {maxRows} rows. {data.length - maxRows} more rows hidden.
               </p>
             )}

@@ -70,7 +70,7 @@ export function TabsTrigger({ value, children, className, disabled }: TabsTrigge
       onClick={() => context.onValueChange(value)}
       className={cn(
         "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         "disabled:pointer-events-none disabled:opacity-50",
         isActive
           ? "bg-white text-slate-900 shadow-sm"
@@ -132,16 +132,16 @@ export function SimpleTabs({ tabs, active, onChange }: SimpleTabsProps) {
               onClick={() => onChange(tab)}
               className={cn(
                 "relative px-4 py-2.5 text-sm font-medium",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 isActive
-                  ? "text-blue-600"
+                  ? "text-primary"
                   : "text-slate-500 hover:text-slate-700",
               )}
             >
               {tab}
               {isActive ? (
                 <span
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
                   aria-hidden="true"
                 />
               ) : null}

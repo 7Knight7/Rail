@@ -127,7 +127,7 @@ export function UploadCard({
             className={cn(
               "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 transition-colors",
               isDragging
-                ? "border-blue-500 bg-blue-50"
+                ? "border-primary bg-primary/5"
                 : "border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100",
               disabled && "cursor-not-allowed opacity-50",
             )}
@@ -137,7 +137,7 @@ export function UploadCard({
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-slate-700">
-                Drop your file here or <span className="text-blue-600">browse</span>
+                Drop your file here or <span className="text-primary">browse</span>
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 Accepted: {acceptedFormats.join(", ")} (Max {maxSizeMB}MB)

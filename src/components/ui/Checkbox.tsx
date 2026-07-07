@@ -13,7 +13,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         className={cn(
           "flex cursor-pointer items-center gap-3 rounded-md border border-slate-200 bg-white px-4 py-3",
           "hover:bg-slate-50",
-          "focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-1",
+          "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1",
           disabled && "cursor-not-allowed opacity-50 hover:bg-white",
           className,
         )}
@@ -24,8 +24,8 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           id={id}
           disabled={disabled}
           className={cn(
-            "h-4 w-4 rounded border-slate-300 text-blue-600",
-            "focus:ring-blue-500 focus:ring-offset-0",
+            "h-4 w-4 rounded border-slate-300 text-primary",
+            "focus:ring-primary focus:ring-offset-0",
           )}
           {...props}
         />

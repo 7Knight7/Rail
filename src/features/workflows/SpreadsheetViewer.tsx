@@ -114,7 +114,7 @@ export function SpreadsheetViewer({
                     <button
                       type="button"
                       onClick={header.column.getToggleSortingHandler()}
-                      className="hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      className="hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </button>

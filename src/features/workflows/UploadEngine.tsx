@@ -80,16 +80,16 @@ export function UploadEngine({
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        className={`flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+        className={`flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-10 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
           isDragging
-            ? "border-blue-400 bg-blue-50"
-            : "border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50"
+            ? "border-primary/40 bg-primary/5"
+            : "border-rail-line bg-white hover:border-slate-300 hover:bg-slate-50"
         }`}
         aria-describedby="upload-help"
       >
         <div
           className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full ${
-            isDragging ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500"
+            isDragging ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500"
           }`}
           aria-hidden="true"
         >

@@ -14,39 +14,39 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, breadcrumbs }: PageHeaderProps) {
   return (
-    <div className="mb-6">
+    <div className="mb-8">
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav aria-label="Breadcrumb" className="mb-3">
+        <nav aria-label="Breadcrumb" className="mb-4">
           <ol className="flex items-center gap-1 text-sm">
             <li>
               <Link
-                to="/dashboard"
-                className="flex items-center text-slate-500 hover:text-slate-700"
+                to="/home"
+                className="flex items-center text-slate-400 transition-colors hover:text-slate-600"
               >
-                <Home className="h-4 w-4" />
+                <Home className="h-3.5 w-3.5" />
               </Link>
             </li>
             {breadcrumbs.map((crumb, index) => (
               <li key={index} className="flex items-center gap-1">
-                <ChevronRight className="h-4 w-4 text-slate-400" />
+                <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
                 {crumb.href ? (
                   <Link
                     to={crumb.href}
-                    className="text-slate-500 hover:text-slate-700"
+                    className="text-slate-500 transition-colors hover:text-slate-700"
                   >
                     {crumb.label}
                   </Link>
                 ) : (
-                  <span className="font-medium text-slate-900">{crumb.label}</span>
+                  <span className="font-medium text-slate-700">{crumb.label}</span>
                 )}
               </li>
             ))}
           </ol>
         </nav>
       )}
-      <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
       {description && (
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
+        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-500">{description}</p>
       )}
     </div>
   );

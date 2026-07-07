@@ -1,4 +1,5 @@
 import { WorkflowPageLayout } from "@/components/workflow/WorkflowPageLayout";
+import { COMMON_ADVANCED_FIELDS, EXPORT_FORMAT_FIELD } from "@/features/workflows/reportConfigFields";
 
 const settingsFields = [
   {
@@ -17,59 +18,37 @@ const settingsFields = [
       { value: "secunderabad", label: "Secunderabad" },
       { value: "hyderabad", label: "Hyderabad" },
       { value: "vijayawada", label: "Vijayawada" },
-      { value: "guntakal", label: "Guntakal" },
-      { value: "guntur", label: "Guntur" },
-      { value: "nanded", label: "Nanded" },
     ],
   },
   {
-    id: "mergeType",
-    label: "Merge Type",
+    id: "reportType",
+    label: "Report Type",
     type: "select" as const,
-    value: "standard",
+    value: "complaints",
     options: [
-      { value: "standard", label: "Standard Merge" },
-      { value: "consolidated", label: "Consolidated" },
-      { value: "detailed", label: "Detailed" },
+      { value: "complaints", label: "Complaints" },
+      { value: "feedback", label: "Feedback" },
+      { value: "both", label: "Complaints & Feedback" },
     ],
   },
-  {
-    id: "outputFormat",
-    label: "Output Format",
-    type: "select" as const,
-    value: "xlsx",
-    options: [
-      { value: "xlsx", label: "Excel (.xlsx)" },
-      { value: "csv", label: "CSV" },
-      { value: "pdf", label: "PDF" },
-    ],
-  },
+  EXPORT_FORMAT_FIELD,
 ];
 
 const previewColumns = [
-  { key: "sno", header: "S.No", width: "60px" },
-  { key: "trainNo", header: "Train No" },
-  { key: "division", header: "Division" },
-  { key: "date", header: "Date" },
-  { key: "status", header: "Status" },
-];
-
-const mockPreviewData = [
-  { sno: 1, trainNo: "12345", division: "Secunderabad", date: "2026-07-04", status: "Completed" },
-  { sno: 2, trainNo: "12346", division: "Hyderabad", date: "2026-07-04", status: "Pending" },
-  { sno: 3, trainNo: "12347", division: "Vijayawada", date: "2026-07-04", status: "Completed" },
-  { sno: 4, trainNo: "12348", division: "Guntakal", date: "2026-07-04", status: "Completed" },
-  { sno: 5, trainNo: "12349", division: "Guntur", date: "2026-07-04", status: "Pending" },
+  { key: "zone", header: "Zone" },
+  { key: "complaints", header: "Complaints" },
+  { key: "feedback", header: "Feedback" },
+  { key: "total", header: "Total" },
 ];
 
 export function MergingPage() {
   return (
     <WorkflowPageLayout
-      title="Merging"
-      description="Merge multiple report files into a consolidated output"
+      title="Zone Wise Report"
+      description="Configure and generate the zone-wise complaints and feedback report"
       settingsFields={settingsFields}
+      advancedFields={COMMON_ADVANCED_FIELDS}
       previewColumns={previewColumns}
-      mockPreviewData={mockPreviewData}
     />
   );
 }

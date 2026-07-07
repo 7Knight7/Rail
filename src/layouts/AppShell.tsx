@@ -2,256 +2,225 @@ import { useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
-  Layers,
-  Building2,
-  TrainFront,
-  Tags,
-  Route,
-  MapPin,
-  FileText,
   Settings,
   ScrollText,
-  Menu,
   X,
-  Bot,
-  Zap,
+  Home,
+  ChevronDown,
+  SlidersHorizontal,
+  FolderOpen,
 } from "lucide-react";
-import { ProfileDropdown } from "@/components/ProfileDropdown";
+import { RailMadadLogo } from "@/components/branding/RailMadadLogo";
 import { Button } from "@/components/ui/Button";
+import { TopBar } from "@/layouts/TopBar";
 import { cn } from "@/utils/cn";
 import { usePermissions } from "@/hooks/usePermissions";
 
-const SIDEBAR_WIDTH = 260;
+const SIDEBAR_W = 252;
 
-interface NavItem {
-  id: string;
-  label: string;
-  path: string;
-  icon: typeof LayoutDashboard;
-  visible?: boolean;
+const REPORT_CONFIG_ITEMS = [
+  { id: "merging", label: "Zone Wise Report", path: "/workflows/merging" },
+  { id: "division", label: "Division (Bottom 25)", path: "/workflows/division" },
+  { id: "train-no", label: "Top 20 Trains", path: "/workflows/train-no" },
+  { id: "types", label: "Cause Wise Analysis", path: "/workflows/types" },
+  { id: "scr-train", label: "SCR Train Report", path: "/workflows/scr-train" },
+  { id: "scr-station", label: "SCR Station Report", path: "/workflows/scr-station" },
+];
+
+const PAGE_TITLES: Record<string, string> = {
+  "/home": "Operations Center",
+  "/automation": "Generate Reports",
+  "/dashboard": "Dashboard",
+  "/reports": "Generated Reports",
+  "/logs": "Activity Log",
+  "/settings": "Settings",
+  "/workflows/merging": "Zone Wise Report",
+  "/workflows/division": "Division (Bottom 25)",
+  "/workflows/train-no": "Top 20 Trains",
+  "/workflows/types": "Cause Wise Analysis",
+  "/workflows/scr-train": "SCR Train Report",
+  "/workflows/scr-station": "SCR Station Report",
+  "/workflows/summary": "Summary Report",
+};
+
+function resolvePageTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  if (pathname.startsWith("/admin/templates")) return "Templates";
+  if (pathname.startsWith("/admin/prompts")) return "Prompts";
+  if (pathname.startsWith("/workflows/")) return "Report Configuration";
+  return "RailMadad Report Center";
 }
 
-const mainNavItems: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-];
-
-const workflowNavItems: NavItem[] = [
-  { id: "merging", label: "Merging", path: "/workflows/merging", icon: Layers },
-  { id: "division", label: "Division (Top 25)", path: "/workflows/division", icon: Building2 },
-  { id: "train-no", label: "Train No (Top 20)", path: "/workflows/train-no", icon: TrainFront },
-  { id: "types", label: "Types (Top 10)", path: "/workflows/types", icon: Tags },
-  { id: "scr-train", label: "SCR Train", path: "/workflows/scr-train", icon: Route },
-  { id: "scr-station", label: "SCR Station", path: "/workflows/scr-station", icon: MapPin },
-  { id: "summary", label: "Summary Generation", path: "/workflows/summary", icon: FileText },
-];
-
-const adminNavItems: NavItem[] = [
-  { id: "templates", label: "Templates", path: "/admin/templates", icon: FileText },
-  { id: "prompts", label: "AI Prompts", path: "/admin/prompts", icon: Bot },
-  { id: "automation", label: "Automation", path: "/admin/automation", icon: Zap },
-  { id: "settings", label: "Settings", path: "/settings", icon: Settings },
-  { id: "logs", label: "Logs", path: "/logs", icon: ScrollText },
-];
-
-function useVisibleAdminNavItems(): NavItem[] {
-  const { canManageTemplates, canManageSettings, canViewLogs, isAdmin } = usePermissions();
-
-  const visibility: Record<string, boolean> = {
-    templates: canManageTemplates,
-    prompts: canManageTemplates,
-    automation: isAdmin,
-    settings: canManageSettings,
-    logs: canViewLogs,
-  };
-
-  return adminNavItems.filter((item) => visibility[item.id] ?? false);
-}
-
-function NavItemComponent({
-  item,
-  index,
-  showIndex,
+function NavLinkItem({
+  to,
+  label,
+  icon: Icon,
   onNavigate,
+  indent = false,
 }: {
-  item: NavItem;
-  index?: number;
-  showIndex?: boolean;
+  to: string;
+  label: string;
+  icon?: typeof Home;
   onNavigate?: () => void;
+  indent?: boolean;
 }) {
-  const Icon = item.icon;
-
   return (
     <NavLink
-      to={item.path}
+      to={to}
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          "flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+          "flex min-h-[38px] items-center gap-3 rounded-xl px-3 py-2 text-[13px] transition-all duration-200",
+          indent && "pl-9",
           isActive
-            ? "bg-blue-50 font-medium text-blue-700"
-            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+            ? "bg-primary/10 font-medium text-primary shadow-soft"
+            : "text-rail-muted hover:bg-surface hover:text-rail-ink",
         )
       }
     >
-      {showIndex && index !== undefined && (
-        <span
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-slate-200 text-xs font-medium text-slate-600"
+      {Icon && (
+        <Icon
+          size={17}
+          className="shrink-0 opacity-80"
+          strokeWidth={1.75}
           aria-hidden="true"
-        >
-          {index + 1}
-        </span>
+        />
       )}
-      <Icon size={18} className="shrink-0" aria-hidden="true" />
-      <span className="truncate">{item.label}</span>
+      <span className="truncate">{label}</span>
     </NavLink>
   );
 }
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
-  const visibleAdminItems = useVisibleAdminNavItems();
+  const { canManageSettings, canViewLogs, canViewReports } = usePermissions();
+  const location = useLocation();
+  const isReportConfigActive = location.pathname.startsWith("/workflows/");
+  const [configOpen, setConfigOpen] = useState(isReportConfigActive);
 
   return (
-    <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-4">
-      <div className="mb-6">
-        <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Main
-        </p>
-        <ul className="space-y-1" role="list">
-          {mainNavItems.map((item) => (
-            <li key={item.id}>
-              <NavItemComponent item={item} onNavigate={onNavigate} />
-            </li>
-          ))}
-        </ul>
-      </div>
+    <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin">
+      <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-rail-muted/80">
+        Menu
+      </p>
+      <ul className="space-y-0.5" role="list">
+        <li>
+          <NavLinkItem to="/home" label="Home" icon={Home} onNavigate={onNavigate} />
+        </li>
+        <li>
+          <NavLinkItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} onNavigate={onNavigate} />
+        </li>
 
-      <div className="mb-6">
-        <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Reports
-        </p>
-        <ul className="space-y-1" role="list">
-          {workflowNavItems.map((item, index) => (
-            <li key={item.id}>
-              <NavItemComponent
-                item={item}
-                index={index}
-                showIndex
-                onNavigate={onNavigate}
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
+        <li className="pt-3">
+          <button
+            type="button"
+            onClick={() => setConfigOpen((o) => !o)}
+            className={cn(
+              "flex w-full min-h-[38px] items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-200",
+              isReportConfigActive
+                ? "text-primary"
+                : "text-rail-muted hover:bg-surface hover:text-rail-ink",
+            )}
+          >
+            <SlidersHorizontal size={17} strokeWidth={1.75} className="shrink-0 opacity-80" />
+            <span className="flex-1 truncate text-left">Report Configuration</span>
+            <ChevronDown
+              size={14}
+              className={cn("opacity-50 transition-transform duration-200", configOpen && "rotate-180")}
+            />
+          </button>
+          {configOpen && (
+            <ul className="mt-1 space-y-0.5" role="list">
+              {REPORT_CONFIG_ITEMS.map((item) => (
+                <li key={item.id}>
+                  <NavLinkItem to={item.path} label={item.label} onNavigate={onNavigate} indent />
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
 
-      {visibleAdminItems.length > 0 && (
-        <div>
-          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            System
-          </p>
-          <ul className="space-y-1" role="list">
-            {visibleAdminItems.map((item) => (
-              <li key={item.id}>
-                <NavItemComponent item={item} onNavigate={onNavigate} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {canViewReports && (
+          <li className="pt-2">
+            <NavLinkItem to="/reports" label="Generated Reports" icon={FolderOpen} onNavigate={onNavigate} />
+          </li>
+        )}
+        {canViewLogs && (
+          <li>
+            <NavLinkItem to="/logs" label="Activity Log" icon={ScrollText} onNavigate={onNavigate} />
+          </li>
+        )}
+        {canManageSettings && (
+          <li>
+            <NavLinkItem to="/settings" label="Settings" icon={Settings} onNavigate={onNavigate} />
+          </li>
+        )}
+      </ul>
     </nav>
   );
 }
 
-function SidebarHeader() {
+function SidebarPanel({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4">
-      <div
-        className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white"
-        aria-hidden="true"
-      >
-        <TrainFront size={20} />
+    <>
+      <div className="shrink-0 border-b border-rail-line px-4 py-5">
+        <RailMadadLogo size="sm" showWordmark />
       </div>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-slate-900">Railway Reports</p>
-        <p className="text-xs text-slate-500">Intelligence Platform</p>
-      </div>
-    </div>
+      <SidebarNav onNavigate={onNavigate} />
+    </>
   );
-}
-
-function getPageTitle(pathname: string, adminItems: NavItem[]): string {
-  const allItems = [...mainNavItems, ...workflowNavItems, ...adminItems];
-  const item = allItems.find((i) => i.path === pathname);
-  return item?.label ?? "Railway Reports";
 }
 
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const visibleAdminItems = useVisibleAdminNavItems();
-  const pageTitle = getPageTitle(location.pathname, visibleAdminItems);
+  const isHome = location.pathname === "/home";
+  const pageTitle = resolvePageTitle(location.pathname);
 
   return (
-    <div className="min-h-screen bg-white">
-      <aside
-        className="fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-slate-200 bg-white lg:flex"
-        style={{ width: SIDEBAR_WIDTH }}
-        aria-label="Main navigation"
+    <div className="min-h-screen bg-surface">
+      {/* Floating desktop sidebar */}
+      <div
+        className="fixed bottom-4 left-4 top-4 z-30 hidden lg:block"
+        style={{ width: SIDEBAR_W }}
       >
-        <SidebarHeader />
-        <SidebarNav />
-      </aside>
+        <aside
+          className="flex h-full flex-col overflow-hidden rounded-2xl border border-rail-line bg-white shadow-float"
+          aria-label="Main navigation"
+        >
+          <SidebarPanel />
+        </aside>
+      </div>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
           <div
-            className="fixed inset-0 bg-slate-900/50"
+            className="fixed inset-0 bg-rail-ink/20 backdrop-blur-sm"
             aria-hidden="true"
             onClick={() => setMobileOpen(false)}
           />
-          <aside
-            className="fixed inset-y-0 left-0 flex w-72 flex-col bg-white shadow-xl"
-            style={{ maxWidth: SIDEBAR_WIDTH + 20 }}
-          >
-            <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-                  <TrainFront size={20} />
-                </div>
-                <span className="text-sm font-semibold text-slate-900">Railway Reports</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-label="Close navigation menu"
-                onClick={() => setMobileOpen(false)}
-              >
-                <X size={20} />
+          <aside className="fixed bottom-4 left-4 top-4 flex w-[min(280px,calc(100%-2rem))] flex-col overflow-hidden rounded-2xl border border-rail-line bg-white shadow-float">
+            <div className="flex items-center justify-end border-b border-rail-line px-3 py-2">
+              <Button variant="ghost" size="sm" aria-label="Close menu" onClick={() => setMobileOpen(false)}>
+                <X size={18} />
               </Button>
             </div>
-            <SidebarNav onNavigate={() => setMobileOpen(false)} />
+            <SidebarPanel onNavigate={() => setMobileOpen(false)} />
           </aside>
         </div>
       )}
 
-      <div className="lg:pl-[260px]">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b border-slate-200 bg-white px-4 lg:px-6">
-          <Button
-            className="lg:hidden"
-            variant="ghost"
-            size="sm"
-            aria-label="Open navigation menu"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu size={20} />
-          </Button>
-          <h1 className="flex-1 text-sm font-medium text-slate-700">{pageTitle}</h1>
-          <ProfileDropdown />
-        </header>
+      <div className="lg:pl-[calc(252px+2rem)]">
+        <div className="mx-auto max-w-[1280px] px-4 pb-8 lg:px-6">
+          <TopBar
+            pageTitle={pageTitle}
+            showTitle={!isHome}
+            onMenuClick={() => setMobileOpen(true)}
+          />
 
-        <main className="p-4 lg:p-6" id="main-content" tabIndex={-1}>
-          <Outlet />
-        </main>
+          <main className="animate-fade-in" id="main-content" tabIndex={-1}>
+            <Outlet />
+          </main>
+        </div>
       </div>
     </div>
   );

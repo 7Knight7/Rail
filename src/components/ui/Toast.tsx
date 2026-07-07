@@ -37,8 +37,8 @@ const toastConfig = {
   },
   info: {
     icon: Info,
-    styles: "border-blue-200 bg-blue-50 text-blue-800",
-    iconStyles: "text-blue-600",
+    styles: "border-primary/20 bg-primary-muted text-primary",
+    iconStyles: "text-primary",
   },
 };
 
