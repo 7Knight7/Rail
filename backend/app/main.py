@@ -13,6 +13,7 @@ from app.infrastructure.database.session import SessionLocal
 from app.infrastructure.seed.seed_app_settings import seed_app_settings
 from app.infrastructure.seed.seed_automation_profiles import seed_automation_profiles
 from app.infrastructure.seed.seed_prompt_templates import seed_prompt_templates
+from app.infrastructure.seed.seed_report_datasets import seed_report_datasets
 from app.infrastructure.seed.seed_users import seed_admin_user
 from app.infrastructure.seed.seed_workflows import seed_workflows
 
@@ -23,6 +24,7 @@ async def lifespan(_: FastAPI):
     async with SessionLocal() as session:
         await seed_workflows(session)
         await seed_admin_user(session)
+        await seed_report_datasets(session)
         await seed_prompt_templates(session)
         await seed_app_settings(session)
         await seed_automation_profiles(session)

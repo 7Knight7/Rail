@@ -27,6 +27,7 @@ const previewColumns = [
 export function TrainNoPage() {
   return (
     <WorkflowPageLayout
+      reportId="train-no"
       title="Top 20 Trains"
       description="Configure and generate the top 20 complaint trains report"
       settingsFields={settingsFields}

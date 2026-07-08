@@ -46,6 +46,7 @@ const mockPreviewData = [
 export function DivisionPage() {
   return (
     <WorkflowPageLayout
+      reportId="division"
       title="Division (Bottom 25)"
       description="Configure and generate the division-wise bottom 25 report"
       settingsFields={settingsFields}

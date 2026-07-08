@@ -794,3 +794,25 @@ class AutomationArtifactModel(Base):
     run: Mapped["AutomationRunModel"] = relationship(
         "AutomationRunModel", back_populates="artifacts"
     )
+
+
+class ReportDatasetModel(Base):
+    """Cached metadata for original RailMadad source datasets per report."""
+
+    __tablename__ = "report_datasets"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=generate_uuid
+    )
+    report_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    source_filename: Mapped[str] = mapped_column(String(256), nullable=False)
+    source_file_path: Mapped[str | None] = mapped_column(String(1024))
+    header_row: Mapped[int] = mapped_column(Integer, default=1)
+    row_count: Mapped[int] = mapped_column(Integer, default=0)
+    columns_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    parsed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

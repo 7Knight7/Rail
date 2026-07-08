@@ -8,6 +8,7 @@ from app.features.rules.controller import router as rules_router
 from app.features.settings.controller import router as settings_router
 from app.features.summary.controller import router as summary_router
 from app.features.templates.controller import router as templates_router
+from app.features.datasets.controller import router as datasets_router
 from app.features.uploads.controller import router as uploads_router
 from app.features.workflows.controller import router as workflows_router
 
@@ -16,6 +17,7 @@ api_router.include_router(health_router)
 api_router.include_router(auth_router)
 api_router.include_router(workflows_router)
 api_router.include_router(uploads_router)
+api_router.include_router(datasets_router)
 api_router.include_router(templates_router)
 api_router.include_router(rules_router)
 api_router.include_router(summary_router)

@@ -16,6 +16,7 @@ import { FilteringRulesSection } from "./components/FilteringRulesSection";
 import { RowRulesSection } from "./components/RowRulesSection";
 import { HighlightRulesSection } from "./components/HighlightRulesSection";
 import { OutputConfigSection } from "./components/OutputConfigSection";
+import { useDatasetMetadata } from "@/features/report-config";
 
 type FormData = CreateTemplateRequest;
 
@@ -71,6 +72,12 @@ export function TemplateEditorPage() {
     warnings: string[];
   } | null>(null);
   const [activeTab, setActiveTab] = useState("general");
+  const reportId = formData.source_report_id || "";
+  const {
+    metadata: datasetMetadata,
+    loading: datasetLoading,
+    error: datasetError,
+  } = useDatasetMetadata(reportId, { enabled: Boolean(reportId) });
 
   const loadTemplate = useCallback(async () => {
     if (isNew || !id) return;
@@ -298,7 +305,13 @@ export function TemplateEditorPage() {
         <TabsContent value="filtering">
           <FilteringRulesSection
             data={formData.filtering_rules || []}
-            columns={formData.column_mappings?.map((m) => m.internal_field) || []}
+            columns={datasetMetadata?.columns ?? []}
+            loading={datasetLoading}
+            error={
+              !reportId
+                ? "Select a source report in the General tab to load original dataset columns."
+                : datasetError
+            }
             onChange={(data) => updateFormData("filtering_rules", data)}
           />
         </TabsContent>
