@@ -48,6 +48,32 @@ async def test_apply_filters_select_field():
 
 
 @pytest.mark.asyncio
+async def test_apply_filters_sets_hidden_required_date_field():
+    service = FilterService()
+    root = MagicMock()
+    locator = MagicMock()
+    locator.count = AsyncMock(return_value=1)
+    locator.is_visible = AsyncMock(return_value=False)
+    locator.evaluate = AsyncMock()
+    root.locator.return_value.first = locator
+
+    fields = [
+        FilterFieldDefinition(
+            name="fromDate",
+            selector="#fromDate",
+            field_type="date",
+            value="today_iso",
+            label="From Date",
+        )
+    ]
+
+    applied = await service.apply_filters(root, fields)
+
+    assert applied["fromDate"]
+    locator.evaluate.assert_awaited()
+
+
+@pytest.mark.asyncio
 async def test_get_report_root_falls_back_to_main_page():
     page = MagicMock()
     page.wait_for_selector = AsyncMock()

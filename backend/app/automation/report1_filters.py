@@ -24,9 +24,10 @@ class FilterFieldDefinition:
 
 def resolve_filter_value(value_key: str, date_format: str = "%d/%m/%Y") -> str:
     """Resolve symbolic filter values such as 'today'."""
-    today = datetime.now().strftime(date_format)
     if value_key == "today":
-        return today
+        return datetime.now().strftime(date_format)
+    if value_key == "today_iso":
+        return datetime.now().strftime("%Y-%m-%d")
     if value_key == "today_range":
         return "Current Day"
     return value_key
@@ -88,7 +89,6 @@ def build_filters_from_discovery(
     normalized = [normalize_discovered_field(field) for field in discovered]
     filters: list[FilterFieldDefinition] = []
     seen: set[str] = set()
-    has_date_range = any(field.get("field_id") == "dateRange" for field in normalized)
 
     for field in normalized:
         tag = str(field.get("tag", "")).lower()
@@ -96,9 +96,6 @@ def build_filters_from_discovery(
             continue
 
         field_id = str(field.get("field_id") or "")
-        if has_date_range and field_id in {"fromDate", "toDate"}:
-            continue
-
         field_label = str(field.get("field_label") or "").strip()
         field_name = str(field.get("field_name") or field_id or "").strip()
         label_lower = field_label.lower()
@@ -119,13 +116,13 @@ def build_filters_from_discovery(
             token in label_lower or token in name_lower
             for token in ("from date", "fromdate", "frmdate", "from_date")
         ):
-            value = "today"
+            value = "today_iso" if _looks_like_iso_date(current_value) else "today"
             required = True
         elif field_type in ("text", "date") and any(
             token in label_lower or token in name_lower
             for token in ("to date", "todate", "to_date")
         ):
-            value = "today"
+            value = "today_iso" if _looks_like_iso_date(current_value) else "today"
             required = True
         elif field.get("required"):
             value = current_value
@@ -147,6 +144,13 @@ def build_filters_from_discovery(
         )
 
     return filters if filters else list(REPORT_1_FILTERS)
+
+
+def _looks_like_iso_date(value: str) -> bool:
+    """Return True for date strings shaped like YYYY-MM-DD."""
+    if len(value) != 10:
+        return False
+    return value[4] == "-" and value[7] == "-"
 
 
 # Report 1 renders filters on the main admin page (not an iframe).

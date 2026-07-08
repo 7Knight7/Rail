@@ -24,11 +24,12 @@ async def test_generate_report_clicks_visible_button():
 
     table = MagicMock()
     table.count = AsyncMock(return_value=1)
+    table.is_visible = AsyncMock(return_value=True)
     table.wait_for = AsyncMock()
     table.first = table
 
     def locator_side_effect(selector):
-        if any(token in selector for token in ("loading", "loader", "spinner", "Loader")):
+        if any(token in selector for token in ("loading", "loader", "spinner", "Loader", "Loading")):
             empty = MagicMock()
             empty.count = AsyncMock(return_value=0)
             return empty
@@ -61,6 +62,46 @@ async def test_generate_report_raises_when_no_button():
 
 
 @pytest.mark.asyncio
+async def test_find_generate_button_prefers_report_submit_over_navigation_search():
+    service = ReportGeneratorService()
+    root = MagicMock()
+
+    submit_button = MagicMock()
+    submit_button.is_visible = AsyncMock(return_value=True)
+    submit_button.inner_text = AsyncMock(return_value="")
+    submit_button.get_attribute = AsyncMock(
+        side_effect=lambda name: {"id": "submitbtn", "type": "submit"}.get(name)
+    )
+
+    nav_button = MagicMock()
+    nav_button.is_visible = AsyncMock(return_value=True)
+    nav_button.inner_text = AsyncMock(return_value="Search Complaint")
+    nav_button.get_attribute = AsyncMock(return_value="")
+
+    empty_locator = MagicMock()
+    empty_locator.count = AsyncMock(return_value=0)
+
+    submit_locator = MagicMock()
+    submit_locator.count = AsyncMock(return_value=1)
+    submit_locator.nth.return_value = submit_button
+
+    nav_locator = MagicMock()
+    nav_locator.count = AsyncMock(return_value=1)
+    nav_locator.nth.return_value = nav_button
+
+    def locator_side_effect(selector):
+        if selector == "#submitbtn":
+            return submit_locator
+        if selector == "button:has-text('Search')":
+            return nav_locator
+        return empty_locator
+
+    root.locator.side_effect = locator_side_effect
+
+    assert await service._find_generate_button(root) is submit_button
+
+
+@pytest.mark.asyncio
 async def test_count_rows():
     service = ReportGeneratorService()
     root = MagicMock()
@@ -70,15 +111,11 @@ async def test_count_rows():
 
     rows = MagicMock()
     rows.count = AsyncMock(return_value=5)
+    table.locator.return_value = rows
 
     table_wrapper = MagicMock()
     table_wrapper.first = table
 
-    def locator_side_effect(selector):
-        if selector.endswith("tbody tr"):
-            return rows
-        return table_wrapper
-
-    root.locator.side_effect = locator_side_effect
+    root.locator.return_value = table_wrapper
 
     assert await service.count_rows(root) == 5

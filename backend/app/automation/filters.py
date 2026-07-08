@@ -270,6 +270,16 @@ class FilterService:
         return value
 
     async def _apply_text_or_date(self, locator: Locator, value: str) -> None:
+        if not await locator.is_visible():
+            await locator.evaluate(
+                """(el, value) => {
+                    el.value = value;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }""",
+                value,
+            )
+            return
         try:
             await locator.fill(value)
         except Exception:

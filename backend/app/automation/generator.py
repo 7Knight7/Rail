@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from pathlib import Path
 
@@ -19,6 +20,7 @@ PHASE5_BEFORE_SCREENSHOT = "phase5_before_generate.png"
 PHASE5_AFTER_SCREENSHOT = "phase5_report_loaded.png"
 
 EXPORT_KEYWORDS = ("export", "download", "excel", "pdf", "xlsx")
+NON_REPORT_BUTTON_KEYWORDS = ("search complaint", "register complaint", "dashboard", "logout")
 GENERATE_BUTTON_TEXTS = (
     "Submit",
     "Generate",
@@ -35,6 +37,7 @@ LOADING_SELECTORS = (
     "[class*='Loader']",
     "#loading",
     "#loader",
+    "text=/Loading\\.?\\.?/i",
 )
 
 
@@ -77,38 +80,26 @@ class ReportGeneratorService:
         await self._wait_for_report_loaded(root, page)
 
     async def _wait_for_report_loaded(self, root: ReportRoot, page: Page) -> None:
-        timeout_ms = min(config.timeout * 1000, 90_000)
+        timeout_ms = config.timeout * 1000
 
         try:
             await page.wait_for_load_state("networkidle", timeout=timeout_ms)
         except PlaywrightTimeoutError:
             logger.warning("networkidle timeout after generate click; continuing")
 
-        await self._wait_for_loading_indicators(root, timeout_ms)
-
-        table = root.locator(selectors.report1_table).first
-        grid = root.locator(selectors.report1_grid).first
-
-        table_visible = False
-        for target in (table, grid):
-            if await target.count() == 0:
-                continue
-            try:
-                await target.wait_for(state="visible", timeout=timeout_ms)
-                table_visible = True
-                break
-            except PlaywrightTimeoutError:
-                continue
-
-        if not table_visible:
-            rows = root.locator(f"{selectors.report1_table} tbody tr, {selectors.report1_grid} tr")
-            if await rows.count() > 0:
-                table_visible = True
-
-        if not table_visible:
+        if not await self._wait_until_report_surface_exists(root, timeout_ms):
             raise ReportGenerationError(
                 "Report table/grid did not become visible after generate"
             )
+
+    async def _wait_until_report_surface_exists(self, root: ReportRoot, timeout_ms: int) -> bool:
+        deadline = asyncio.get_running_loop().time() + (timeout_ms / 1000)
+        while asyncio.get_running_loop().time() < deadline:
+            await self._wait_for_loading_indicators(root, min(timeout_ms, 30_000))
+            if await self.verify_report_displayed(root):
+                return True
+            await asyncio.sleep(1)
+        return False
 
     async def _wait_for_loading_indicators(self, root: ReportRoot, timeout_ms: int) -> None:
         for selector in LOADING_SELECTORS:
@@ -122,6 +113,11 @@ class ReportGeneratorService:
 
     async def _find_generate_button(self, root: ReportRoot):
         candidates = [
+            root.locator("#submitbtn"),
+            root.locator("[name='submitbtn']"),
+            root.locator("form:has(#dateRange) #submitbtn"),
+            root.locator("form:has(#fromDate) input[type='submit']"),
+            root.locator("form:has(#fromDate) button[type='submit']"),
             root.locator(selectors.report1_generate),
         ]
         for text in GENERATE_BUTTON_TEXTS:
@@ -140,6 +136,8 @@ class ReportGeneratorService:
             ]
         )
 
+        best_candidate = None
+        best_score = -1
         for locator in candidates:
             count = await locator.count()
             for index in range(count):
@@ -148,8 +146,35 @@ class ReportGeneratorService:
                     continue
                 if await self._is_export_button(candidate):
                     continue
-                return candidate
-        return None
+                if await self._is_non_report_button(candidate):
+                    continue
+                score = await self._button_score(candidate)
+                if score > best_score:
+                    best_score = score
+                    best_candidate = candidate
+        return best_candidate
+
+    async def _button_score(self, locator) -> int:
+        score = 0
+        label = (await self._button_label(locator)).lower()
+        try:
+            element_id = (await locator.get_attribute("id") or "").lower()
+            element_name = (await locator.get_attribute("name") or "").lower()
+            element_type = (await locator.get_attribute("type") or "").lower()
+        except Exception:
+            element_id = ""
+            element_name = ""
+            element_type = ""
+
+        if element_id == "submitbtn" or element_name == "submitbtn":
+            score += 100
+        if element_type == "submit":
+            score += 30
+        if any(text.lower() == label for text in GENERATE_BUTTON_TEXTS):
+            score += 20
+        if any(text.lower() in label for text in GENERATE_BUTTON_TEXTS):
+            score += 10
+        return score
 
     async def _button_label(self, locator) -> str:
         try:
@@ -172,6 +197,18 @@ class ReportGeneratorService:
             pass
         return any(keyword in combined for keyword in EXPORT_KEYWORDS)
 
+    async def _is_non_report_button(self, locator) -> bool:
+        label = (await self._button_label(locator)).lower()
+        try:
+            element_id = (await locator.get_attribute("id") or "").lower()
+            element_name = (await locator.get_attribute("name") or "").lower()
+        except Exception:
+            element_id = ""
+            element_name = ""
+        if element_id == "submitbtn" or element_name == "submitbtn":
+            return False
+        return any(keyword in label for keyword in NON_REPORT_BUTTON_KEYWORDS)
+
     async def count_rows(self, root: ReportRoot) -> int:
         """Best-effort count of rows in the report results table."""
         table = root.locator(selectors.report1_table).first
@@ -179,9 +216,9 @@ class ReportGeneratorService:
             table = root.locator(selectors.report1_grid).first
         if await table.count() == 0:
             return 0
-        rows = root.locator(f"{selectors.report1_table} tbody tr, {selectors.report1_grid} tbody tr")
+        rows = table.locator("tbody tr")
         if await rows.count() == 0:
-            rows = root.locator(f"{selectors.report1_table} tr, {selectors.report1_grid} tr")
+            rows = table.locator("tr")
         return await rows.count()
 
     async def verify_report_displayed(self, root: ReportRoot) -> bool:
