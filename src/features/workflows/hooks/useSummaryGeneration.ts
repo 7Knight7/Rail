@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   summaryApi,
   SUMMARY_TYPE_LABELS,
@@ -6,17 +6,17 @@ import {
   type PromptTemplateListItem,
   type SummaryType,
 } from "@/api/summary";
+import { fetchGeneratedReports } from "@/api/outputs";
+import { previewProcessedDataset } from "@/api/processing";
+import { fetchSavedReportConfig } from "@/api/reportConfigs";
 import { useToast } from "@/components/ui/Toast";
 import { useWorkflowSession } from "@/context/WorkflowSessionContext";
+import {
+  REPORT_ID_TO_SOURCE,
+  SUMMARY_REPORT_OPTIONS,
+} from "@/features/workflows/reportSourceMap";
+import type { ReportId } from "@/features/report-config/types";
 import type { GeneratedSummary, ReportSourceId } from "@/types/workflow";
-
-const REPORT_OPTIONS: { id: ReportSourceId; label: string }[] = [
-  { id: "division", label: "Division Report" },
-  { id: "train", label: "Train Report" },
-  { id: "types", label: "Type Report" },
-  { id: "scr-train", label: "SCR Train" },
-  { id: "scr-station", label: "SCR Station" },
-];
 
 const SUMMARY_TYPES: SummaryType[] = [
   "executive",
@@ -25,56 +25,6 @@ const SUMMARY_TYPES: SummaryType[] = [
   "daily_highlights",
   "key_observations",
 ];
-
-function buildSampleDataset(): Record<string, unknown>[] {
-  return [
-    {
-      division: "SCR",
-      train_number: "12724",
-      complaint_type: "Electrical Equipment",
-      complaint_count: 45,
-      status: "Resolved",
-      resolved_count: 38,
-      unsatisfactory_count: 3,
-    },
-    {
-      division: "SCR",
-      train_number: "12616",
-      complaint_type: "Water Supply",
-      complaint_count: 32,
-      status: "Pending",
-      resolved_count: 20,
-      unsatisfactory_count: 5,
-    },
-    {
-      division: "HYB",
-      train_number: "17233",
-      complaint_type: "Cleanliness",
-      complaint_count: 28,
-      status: "Resolved",
-      resolved_count: 25,
-      unsatisfactory_count: 2,
-    },
-    {
-      division: "SC",
-      train_number: "12704",
-      complaint_type: "Electrical Equipment",
-      complaint_count: 22,
-      status: "Closed",
-      resolved_count: 22,
-      unsatisfactory_count: 1,
-    },
-    {
-      division: "SCR",
-      train_number: "12713",
-      complaint_type: "Food Quality",
-      complaint_count: 15,
-      status: "Pending",
-      resolved_count: 8,
-      unsatisfactory_count: 4,
-    },
-  ];
-}
 
 function mapResultToSection(
   summaries: Partial<Record<SummaryType, GeneratedSummaryResult>>,
@@ -93,12 +43,39 @@ function mapResultToSection(
   };
 }
 
+async function buildDatasetForReports(
+  selected: ReportSourceId[],
+): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = [];
+
+  for (const sourceId of selected) {
+    const option = SUMMARY_REPORT_OPTIONS.find((item) => item.id === sourceId);
+    if (!option) continue;
+
+    const saved = await fetchSavedReportConfig(option.reportId);
+    const processed = await previewProcessedDataset({
+      reportId: option.reportId,
+      configuration: saved?.configuration,
+    });
+
+    for (const row of processed.rows) {
+      rows.push({
+        ...row,
+        _sourceReport: option.label,
+      });
+    }
+  }
+
+  return rows;
+}
+
 export function useSummaryGeneration() {
-  const { completedReports, generatedSummary, setGeneratedSummary } =
+  const { completedReports, generatedSummary, setGeneratedSummary, markReportComplete } =
     useWorkflowSession();
   const { showToast } = useToast();
 
   const [selected, setSelected] = useState<ReportSourceId[]>([]);
+  const [apiCompleted, setApiCompleted] = useState<Set<ReportSourceId>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
   const [templates, setTemplates] = useState<PromptTemplateListItem[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
@@ -108,6 +85,11 @@ export function useSummaryGeneration() {
     Partial<Record<SummaryType, GeneratedSummaryResult>>
   >({});
 
+  const effectiveCompleted = useMemo(
+    () => new Set<ReportSourceId>([...completedReports, ...apiCompleted]),
+    [apiCompleted, completedReports],
+  );
+
   useEffect(() => {
     summaryApi
       .listTemplates({ is_enabled: true })
@@ -116,40 +98,56 @@ export function useSummaryGeneration() {
   }, []);
 
   useEffect(() => {
+    fetchGeneratedReports()
+      .then((response) => {
+        const completed = new Set<ReportSourceId>();
+        for (const report of response.reports) {
+          const sourceId = REPORT_ID_TO_SOURCE[report.reportId as ReportId];
+          if (sourceId) {
+            completed.add(sourceId);
+            markReportComplete(sourceId);
+          }
+        }
+        setApiCompleted(completed);
+      })
+      .catch(() => {});
+  }, [markReportComplete]);
+
+  useEffect(() => {
     setSelected((current) => {
-      const fromSession = REPORT_OPTIONS.filter((o) =>
-        completedReports.has(o.id),
-      ).map((o) => o.id);
+      const fromSession = SUMMARY_REPORT_OPTIONS.filter((option) =>
+        effectiveCompleted.has(option.id),
+      ).map((option) => option.id);
       const merged = new Set([
-        ...current.filter((id) => completedReports.has(id)),
+        ...current.filter((id) => effectiveCompleted.has(id)),
         ...fromSession,
       ]);
       return Array.from(merged);
     });
-  }, [completedReports]);
+  }, [effectiveCompleted]);
 
   const toggleReport = useCallback(
     (id: ReportSourceId) => {
-      if (!completedReports.has(id)) return;
+      if (!effectiveCompleted.has(id)) return;
       setSelected((current) =>
         current.includes(id)
           ? current.filter((item) => item !== id)
           : [...current, id],
       );
     },
-    [completedReports],
+    [effectiveCompleted],
   );
 
   const generateOne = useCallback(
-    async (summaryType: SummaryType, regenerate = false) => {
+    async (summaryType: SummaryType, dataset: Record<string, unknown>[], regenerate = false) => {
       const reportNames = selected
-        .map((id) => REPORT_OPTIONS.find((o) => o.id === id)?.label ?? id)
+        .map((id) => SUMMARY_REPORT_OPTIONS.find((option) => option.id === id)?.label ?? id)
         .join(", ");
 
       const payload = {
         summary_type: summaryType,
         prompt_template_id: selectedTemplateId || undefined,
-        dataset: buildSampleDataset(),
+        dataset,
         metadata: {
           report_name: "Railway Intelligence Summary",
           report_period: new Date().toISOString().split("T")[0],
@@ -171,6 +169,12 @@ export function useSummaryGeneration() {
 
     setIsGenerating(true);
     try {
+      const dataset = await buildDatasetForReports(selected);
+      if (dataset.length === 0) {
+        showToast("warning", "No data", "Selected reports have no processed rows.");
+        return;
+      }
+
       const typesToGenerate = selectedTemplateId
         ? [selectedSummaryType]
         : SUMMARY_TYPES;
@@ -178,7 +182,7 @@ export function useSummaryGeneration() {
       const results: Partial<Record<SummaryType, GeneratedSummaryResult>> = {};
 
       for (const type of typesToGenerate) {
-        const result = await generateOne(type);
+        const result = await generateOne(type, dataset);
         results[type] = result;
       }
 
@@ -204,7 +208,8 @@ export function useSummaryGeneration() {
     async (summaryType: SummaryType) => {
       setIsGenerating(true);
       try {
-        const result = await generateOne(summaryType, true);
+        const dataset = await buildDatasetForReports(selected);
+        const result = await generateOne(summaryType, dataset, true);
         setSectionResults((prev) => {
           const next = { ...prev, [summaryType]: result };
           setGeneratedSummary(mapResultToSection(next));
@@ -217,14 +222,14 @@ export function useSummaryGeneration() {
         setIsGenerating(false);
       }
     },
-    [generateOne, setGeneratedSummary, showToast],
+    [generateOne, selected, setGeneratedSummary, showToast],
   );
 
   const handleReset = useCallback(() => {
-    setSelected(Array.from(completedReports));
+    setSelected(Array.from(effectiveCompleted));
     setGeneratedSummary(null);
     setSectionResults({});
-  }, [completedReports, setGeneratedSummary]);
+  }, [effectiveCompleted, setGeneratedSummary]);
 
   const handleCopy = useCallback(
     async (text: string) => {
@@ -270,9 +275,9 @@ export function useSummaryGeneration() {
   }, [generatedSummary, handleDownload]);
 
   return {
-    reportOptions: REPORT_OPTIONS,
+    reportOptions: SUMMARY_REPORT_OPTIONS,
     selected,
-    completedReports,
+    completedReports: effectiveCompleted,
     generatedSummary,
     sectionResults,
     isGenerating,

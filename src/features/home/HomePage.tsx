@@ -7,7 +7,7 @@ import { HomeRecentActivity } from "@/features/home/components/HomeRecentActivit
 import { HomeReportsGrid } from "@/features/home/components/HomeReportsGrid";
 import { HomeStatsGrid } from "@/features/home/components/HomeStatsGrid";
 import { HomeWelcomeSection } from "@/features/home/components/HomeWelcomeSection";
-import { STATUS_METRICS } from "@/features/home/homeData";
+import { useHomeOverview } from "@/features/home/hooks/useHomeOverview";
 import { useAutomationPage } from "@/features/automation/hooks/useAutomationPage";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -23,6 +23,7 @@ function pipelineStepFromProgress(percent: number, isRunning: boolean): number {
 export function HomePage() {
   const { isAdmin } = usePermissions();
   const generation = useAutomationPage();
+  const { data: overview, metrics, loading: overviewLoading } = useHomeOverview();
 
   const isGenerating =
     generation.isBusy ||
@@ -91,11 +92,14 @@ export function HomePage() {
         disabled={generation.selectedReportIds.length === 0}
       />
 
-      <HomeStatsGrid metrics={STATUS_METRICS} />
+      <HomeStatsGrid metrics={metrics} loading={overviewLoading} />
 
-      <HomeReportsGrid />
+      <HomeReportsGrid reports={overview?.reports ?? []} loading={overviewLoading} />
 
-      <HomeRecentActivity />
+      <HomeRecentActivity
+        items={overview?.recentActivity ?? []}
+        loading={overviewLoading}
+      />
 
       <HomeQuickActions />
     </div>

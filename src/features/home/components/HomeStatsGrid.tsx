@@ -12,9 +12,24 @@ interface StatMetric {
 
 interface HomeStatsGridProps {
   metrics: StatMetric[];
+  loading?: boolean;
 }
 
-export function HomeStatsGrid({ metrics }: HomeStatsGridProps) {
+export function HomeStatsGrid({ metrics, loading }: HomeStatsGridProps) {
+  if (loading) {
+    return (
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index}>
+            <CardBody className="p-6">
+              <p className="text-sm text-rail-muted">Loading...</p>
+            </CardBody>
+          </Card>
+        ))}
+      </section>
+    );
+  }
+
   return (
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {metrics.map((metric) => {

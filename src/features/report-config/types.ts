@@ -5,6 +5,9 @@ export interface ColumnMetadata {
   fieldName: string;
   displayName: string;
   dataType: ColumnDataType;
+  nullable: boolean;
+  uniqueValues: Array<string | number | boolean | null>;
+  uniqueValueCount: number;
   filterable: boolean;
   sortable: boolean;
 }

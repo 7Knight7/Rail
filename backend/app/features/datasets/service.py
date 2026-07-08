@@ -7,7 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError, ValidationError
-from app.core.spreadsheet.parser import SpreadsheetParser
+from app.core.spreadsheet.excel_reader import ExcelReader
+from app.core.spreadsheet.metadata_service import DatasetMetadataService
 from app.features.datasets.schemas import ColumnMetadata, DatasetMetadataResponse
 from app.features.uploads.service import UploadService
 from app.infrastructure.database.models import ReportDatasetModel
@@ -71,7 +72,8 @@ class DatasetService:
     def __init__(self, session: AsyncSession, upload_service: UploadService | None = None) -> None:
         self._repository = DatasetRepository(session)
         self._upload_service = upload_service or UploadService()
-        self._parser = SpreadsheetParser()
+        self._excel_reader = ExcelReader()
+        self._metadata_service = DatasetMetadataService()
 
     def _validate_report_id(self, report_id: str) -> None:
         if report_id not in SUPPORTED_REPORT_IDS:
@@ -87,6 +89,17 @@ class DatasetService:
             columns=[ColumnMetadata.model_validate(item) for item in columns_data],
             parsedAt=model.parsed_at.isoformat(),
         )
+
+    async def get_source_file_path(self, report_id: str) -> Path:
+        self._validate_report_id(report_id)
+        model = await self._repository.get_by_report_id(report_id)
+        if not model or not model.source_file_path:
+            raise NotFoundError("Dataset source file", report_id)
+
+        file_path = Path(model.source_file_path)
+        if not file_path.exists():
+            raise NotFoundError("Dataset source file", str(file_path))
+        return file_path
 
     async def get_metadata(self, report_id: str) -> DatasetMetadataResponse:
         self._validate_report_id(report_id)
@@ -114,34 +127,14 @@ class DatasetService:
         else:
             raise NotFoundError("Upload", upload_id)
 
-        parsed_columns = self._parser.parse_file(
-            file_path,
-            header_row=header_row,
-            sheet_name=sheet_name,
-        )
-        columns = [
-            ColumnMetadata(
-                id=column.id,
-                fieldName=column.field_name,
-                displayName=column.display_name,
-                dataType=column.data_type,
-                filterable=column.filterable,
-                sortable=column.sortable,
-            )
-            for column in parsed_columns
-        ]
-
-        row_count = self._count_rows(file_path, header_row=header_row)
-        model = await self._repository.upsert(
+        dataset = self._excel_reader.read(file_path, header_row=header_row, sheet_name=sheet_name)
+        return await self._persist_dataset(
             report_id=report_id,
+            dataset=dataset,
             source_filename=file_path.name,
             source_file_path=str(file_path),
             header_row=header_row,
-            row_count=row_count,
-            columns=columns,
         )
-        logger.info("Ingested dataset metadata for report %s (%s columns)", report_id, len(columns))
-        return self._to_response(model)
 
     async def ingest_file(
         self,
@@ -154,45 +147,58 @@ class DatasetService:
     ) -> DatasetMetadataResponse:
         self._validate_report_id(report_id)
 
-        parsed_columns = self._parser.parse_file(
-            file_path,
+        dataset = self._excel_reader.read(file_path, header_row=header_row, sheet_name=sheet_name)
+        return await self._persist_dataset(
+            report_id=report_id,
+            dataset=dataset,
+            source_filename=source_filename,
+            source_file_path=str(file_path),
             header_row=header_row,
-            sheet_name=sheet_name,
         )
+
+    async def _persist_dataset(
+        self,
+        *,
+        report_id: str,
+        dataset,
+        source_filename: str,
+        source_file_path: str,
+        header_row: int,
+    ) -> DatasetMetadataResponse:
+        generated = self._metadata_service.generate(dataset)
         columns = [
             ColumnMetadata(
                 id=column.id,
-                fieldName=column.field_name,
-                displayName=column.display_name,
+                fieldName=column.name,
+                displayName=column.name,
                 dataType=column.data_type,
+                nullable=column.nullable,
+                uniqueValues=column.unique_values,
+                uniqueValueCount=column.unique_value_count,
                 filterable=column.filterable,
                 sortable=column.sortable,
             )
-            for column in parsed_columns
+            for column in generated.columns
         ]
-        row_count = self._count_rows(file_path, header_row=header_row)
 
         model = await self._repository.upsert(
             report_id=report_id,
             source_filename=source_filename,
-            source_file_path=str(file_path),
+            source_file_path=source_file_path,
             header_row=header_row,
-            row_count=row_count,
+            row_count=generated.row_count,
             columns=columns,
         )
+        logger.info("Ingested dataset metadata for report %s (%s columns)", report_id, len(columns))
         return self._to_response(model)
 
-    def _count_rows(self, file_path: Path, *, header_row: int) -> int:
-        suffix = file_path.suffix.lower()
-        if suffix == ".csv":
-            with file_path.open(encoding="utf-8-sig") as handle:
-                return max(sum(1 for _ in handle) - header_row, 0)
-
-        from openpyxl import load_workbook
-
-        book = load_workbook(file_path, read_only=True, data_only=True)
-        try:
-            rows = book.active.max_row or 0
-            return max(rows - header_row, 0)
-        finally:
-            book.close()
+    def read_with_metadata(
+        self,
+        file_path: Path,
+        *,
+        header_row: int = 1,
+        sheet_name: str | None = None,
+    ):
+        """Read an Excel file and return rows separately from generated metadata."""
+        dataset = self._excel_reader.read(file_path, header_row=header_row, sheet_name=sheet_name)
+        return self._metadata_service.split(dataset)

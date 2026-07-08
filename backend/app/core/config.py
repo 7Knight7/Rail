@@ -51,6 +51,7 @@ class Settings(BaseSettings):
         description="Allowed file extensions for upload",
     )
     upload_directory: str = "uploads"
+    exports_directory: str = "exports"
 
     # CORS
     cors_origins: list[str] = ["http://127.0.0.1:5173", "http://localhost:5173"]

@@ -6,6 +6,7 @@ import { WorkflowLayout } from "@/layouts/WorkflowLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 import { RequireAdmin } from "@/components/RequireRole";
 import { LoginPage } from "@/features/auth/LoginPage";
+import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage";
 import { HomePage } from "@/features/home";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { AutomationPage } from "@/features/automation";
@@ -21,6 +22,7 @@ import {
 } from "@/features/workflows";
 import { TemplateListPage, TemplateEditorPage } from "@/features/admin/templates";
 import { PromptListPage, PromptEditorPage } from "@/features/admin/prompts";
+import { RuleListPage, RuleEditorPage } from "@/features/admin/rules";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { ActivityLogPage } from "@/features/logs/ActivityLogPage";
 import { NotFoundPage } from "@/features/errors/NotFoundPage";
@@ -32,6 +34,10 @@ export const router = createBrowserRouter([
       {
         path: "/login",
         element: <LoginPage />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPasswordPage />,
       },
       {
         path: "/",
@@ -123,6 +129,18 @@ export const router = createBrowserRouter([
                   {
                     path: "admin/prompts/:id/edit",
                     element: <PromptEditorPage />,
+                  },
+                  {
+                    path: "admin/rules",
+                    element: <RuleListPage />,
+                  },
+                  {
+                    path: "admin/rules/new",
+                    element: <RuleEditorPage />,
+                  },
+                  {
+                    path: "admin/rules/:id/edit",
+                    element: <RuleEditorPage />,
                   },
                   {
                     path: "admin/automation",

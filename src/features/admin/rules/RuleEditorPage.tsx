@@ -1,33 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, Play, AlertTriangle, CheckCircle } from "lucide-react";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { ArrowLeft, Save } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
+import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Textarea } from "@/components/ui/Textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Switch } from "@/components/ui/Switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Select } from "@/components/ui/Select";
 import { Spinner } from "@/components/ui/Spinner";
-import { PageHeader } from "@/components/PageHeader";
 import { useToast } from "@/components/ui/Toast";
-
 import {
   rulesApi,
   RULE_TYPES_BY_CATEGORY,
-  type Rule,
-  type RuleCategory,
   type CreateRuleRequest,
-  type ValidationResult,
-  type ConditionGroup,
+  type RuleCategory,
 } from "@/api/rules";
-import { ConditionBuilder } from "./components/ConditionBuilder";
-import { RuleConfigForm } from "./components/RuleConfigForm";
-import { RuleTester } from "./components/RuleTester";
 
-const CATEGORIES = [
+const CATEGORIES: { value: RuleCategory; label: string }[] = [
   { value: "column", label: "Column Rules" },
   { value: "conditional", label: "Conditional Rules" },
   { value: "sorting", label: "Sorting Rules" },
@@ -38,167 +28,122 @@ const CATEGORIES = [
   { value: "merge", label: "Merge Rules" },
 ];
 
-interface FormData {
+interface FormState {
   name: string;
   description: string;
-  template_id: string;
+  templateId: string;
   category: RuleCategory;
-  rule_type: string;
-  config: Record<string, unknown>;
+  ruleType: string;
+  configJson: string;
   priority: number;
-  group_id: string;
-  is_enabled: boolean;
-  is_global: boolean;
-  conditions: ConditionGroup | null;
+  groupId: string;
+  isEnabled: boolean;
+  isGlobal: boolean;
 }
 
-const defaultFormData: FormData = {
+const defaultFormState: FormState = {
   name: "",
   description: "",
-  template_id: "",
+  templateId: "",
   category: "column",
-  rule_type: "rename",
-  config: {},
+  ruleType: "rename",
+  configJson: "{}",
   priority: 0,
-  group_id: "",
-  is_enabled: true,
-  is_global: false,
-  conditions: null,
+  groupId: "",
+  isEnabled: true,
+  isGlobal: false,
 };
 
 export function RuleEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const isNew = !id;
+  const isNew = !id || id === "new";
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState("general");
-  const [formData, setFormData] = useState<FormData>(defaultFormData);
-  const [validation, setValidation] = useState<ValidationResult | null>(null);
+  const [form, setForm] = useState<FormState>(defaultFormState);
 
   useEffect(() => {
-    if (!isNew && id) {
-      loadRule(id);
-    }
-  }, [id, isNew]);
+    if (isNew || !id) return;
 
-  async function loadRule(ruleId: string) {
+    let cancelled = false;
     setLoading(true);
-    try {
-      const rule = await rulesApi.get(ruleId);
-      setFormData({
-        name: rule.name,
-        description: rule.description || "",
-        template_id: rule.template_id || "",
-        category: rule.category,
-        rule_type: rule.rule_type,
-        config: rule.config,
-        priority: rule.priority,
-        group_id: rule.group_id || "",
-        is_enabled: rule.is_enabled,
-        is_global: rule.is_global,
-        conditions: rule.conditions || null,
+    rulesApi
+      .get(id)
+      .then((rule) => {
+        if (cancelled) return;
+        setForm({
+          name: rule.name,
+          description: rule.description ?? "",
+          templateId: rule.template_id ?? "",
+          category: rule.category,
+          ruleType: rule.rule_type,
+          configJson: JSON.stringify(rule.config, null, 2),
+          priority: rule.priority,
+          groupId: rule.group_id ?? "",
+          isEnabled: rule.is_enabled,
+          isGlobal: rule.is_global,
+        });
+      })
+      .catch(() => {
+        showToast("error", "Failed to load rule");
+        navigate("/admin/rules");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-    } catch (error) {
-      showToast({
-        type: "error",
-        message: "Failed to load rule",
-      });
-      navigate("/admin/rules");
-    } finally {
-      setLoading(false);
-    }
-  }
 
-  function updateFormData<K extends keyof FormData>(key: K, value: FormData[K]) {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    setValidation(null);
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isNew, navigate, showToast]);
 
-  function handleCategoryChange(category: RuleCategory) {
-    const types = RULE_TYPES_BY_CATEGORY[category];
-    updateFormData("category", category);
-    updateFormData("rule_type", types[0]?.value || "");
-    updateFormData("config", {});
-  }
+  const ruleTypes = RULE_TYPES_BY_CATEGORY[form.category] ?? [];
 
-  async function handleValidate() {
-    try {
-      const result = await rulesApi.validate(
-        formData.category,
-        formData.rule_type,
-        formData.config
-      );
-      setValidation(result);
-      return result.is_valid;
-    } catch (error) {
-      showToast({
-        type: "error",
-        message: "Validation failed",
-      });
-      return false;
-    }
+  function updateForm<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
   async function handleSave() {
-    if (!formData.name.trim()) {
-      showToast({
-        type: "error",
-        message: "Rule name is required",
-      });
+    if (!form.name.trim()) {
+      showToast("error", "Rule name is required");
       return;
     }
 
-    const isValid = await handleValidate();
-    if (!isValid) {
-      showToast({
-        type: "error",
-        message: "Please fix validation errors before saving",
-      });
-      setActiveTab("config");
+    let config: Record<string, unknown>;
+    try {
+      config = JSON.parse(form.configJson) as Record<string, unknown>;
+    } catch {
+      showToast("error", "Invalid JSON configuration");
       return;
     }
+
+    const payload: CreateRuleRequest = {
+      name: form.name.trim(),
+      description: form.description.trim() || undefined,
+      template_id: form.templateId.trim() || undefined,
+      category: form.category,
+      rule_type: form.ruleType,
+      config,
+      priority: form.priority,
+      group_id: form.groupId.trim() || undefined,
+      is_enabled: form.isEnabled,
+      is_global: form.isGlobal,
+    };
 
     setSaving(true);
     try {
-      const payload: CreateRuleRequest = {
-        name: formData.name,
-        description: formData.description || undefined,
-        template_id: formData.template_id || undefined,
-        category: formData.category,
-        rule_type: formData.rule_type,
-        config: formData.config,
-        priority: formData.priority,
-        group_id: formData.group_id || undefined,
-        is_enabled: formData.is_enabled,
-        is_global: formData.is_global,
-        conditions: formData.conditions || undefined,
-      };
-
       if (isNew) {
         await rulesApi.create(payload);
-        showToast({
-          type: "success",
-          message: "Rule created successfully",
-        });
+        showToast("success", "Rule created");
       } else {
         await rulesApi.update(id!, payload);
-        showToast({
-          type: "success",
-          message: "Rule updated successfully",
-        });
+        showToast("success", "Rule updated");
       }
       navigate("/admin/rules");
-    } catch (error) {
-      showToast({
-        type: "error",
-        message: `Failed to ${isNew ? "create" : "update"} rule`,
-      });
+    } catch {
+      showToast("error", `Failed to ${isNew ? "create" : "update"} rule`);
     } finally {
       setSaving(false);
     }
@@ -212,275 +157,153 @@ export function RuleEditorPage() {
     );
   }
 
-  const ruleTypes = RULE_TYPES_BY_CATEGORY[formData.category] || [];
-
   return (
     <div className="space-y-6">
       <PageHeader
         title={isNew ? "Create Rule" : "Edit Rule"}
-        description={isNew ? "Create a new business rule" : `Editing: ${formData.name}`}
-        action={
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/admin/rules")}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        }
+        description={isNew ? "Create a new business rule" : `Editing: ${form.name}`}
+        breadcrumbs={[
+          { label: "Administration" },
+          { label: "Business Rules", href: "/admin/rules" },
+          { label: isNew ? "Create" : "Edit" },
+        ]}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
-          <TabsTrigger value="conditions">Conditions</TabsTrigger>
-          <TabsTrigger value="test">Test</TabsTrigger>
-        </TabsList>
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={() => navigate("/admin/rules")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <Button variant="primary" onClick={() => void handleSave()} disabled={saving}>
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Saving..." : "Save"}
+        </Button>
+      </div>
 
-        <TabsContent value="general" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>General Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Rule Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => updateFormData("name", e.target.value)}
-                    placeholder="Enter rule name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="priority">Priority</Label>
-                  <Input
-                    id="priority"
-                    type="number"
-                    min={0}
-                    value={formData.priority}
-                    onChange={(e) =>
-                      updateFormData("priority", parseInt(e.target.value) || 0)
-                    }
-                    placeholder="0"
-                  />
-                  <p className="text-sm text-gray-500">
-                    Lower numbers execute first
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => updateFormData("description", e.target.value)}
-                  placeholder="Describe what this rule does"
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) =>
-                      handleCategoryChange(value as RuleCategory)
-                    }
-                  >
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="rule_type">Rule Type *</Label>
-                  <Select
-                    value={formData.rule_type}
-                    onValueChange={(value) => {
-                      updateFormData("rule_type", value);
-                      updateFormData("config", {});
-                    }}
-                  >
-                    <SelectTrigger id="rule_type">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ruleTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="group_id">Group ID</Label>
-                  <Input
-                    id="group_id"
-                    value={formData.group_id}
-                    onChange={(e) => updateFormData("group_id", e.target.value)}
-                    placeholder="Optional group identifier"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="template_id">Template ID</Label>
-                  <Input
-                    id="template_id"
-                    value={formData.template_id}
-                    onChange={(e) => updateFormData("template_id", e.target.value)}
-                    placeholder="Leave empty for global rules"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-8">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="is_enabled"
-                    checked={formData.is_enabled}
-                    onCheckedChange={(checked) =>
-                      updateFormData("is_enabled", checked)
-                    }
-                  />
-                  <Label htmlFor="is_enabled">Enabled</Label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="is_global"
-                    checked={formData.is_global}
-                    onCheckedChange={(checked) =>
-                      updateFormData("is_global", checked)
-                    }
-                  />
-                  <Label htmlFor="is_global">Global Rule</Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="config" className="mt-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Rule Configuration</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleValidate}>
-                  Validate
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {validation && (
-                <div
-                  className={`mb-6 rounded-lg p-4 ${
-                    validation.is_valid
-                      ? "bg-green-50 text-green-800"
-                      : "bg-red-50 text-red-800"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {validation.is_valid ? (
-                      <CheckCircle className="h-5 w-5" />
-                    ) : (
-                      <AlertTriangle className="h-5 w-5" />
-                    )}
-                    <span className="font-medium">
-                      {validation.is_valid
-                        ? "Configuration is valid"
-                        : "Configuration has errors"}
-                    </span>
-                  </div>
-                  {validation.errors.length > 0 && (
-                    <ul className="mt-2 list-inside list-disc">
-                      {validation.errors.map((error, i) => (
-                        <li key={i}>{error}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {validation.warnings.length > 0 && (
-                    <ul className="mt-2 list-inside list-disc text-yellow-700">
-                      {validation.warnings.map((warning, i) => (
-                        <li key={i}>{warning}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )}
-
-              <RuleConfigForm
-                category={formData.category}
-                ruleType={formData.rule_type}
-                config={formData.config}
-                onChange={(config) => updateFormData("config", config)}
+      <Card>
+        <CardBody className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="name">Rule Name</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(event) => updateForm("name", event.target.value)}
+                placeholder="Enter rule name"
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="conditions" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Apply Conditions</CardTitle>
-              <p className="text-sm text-gray-500">
-                Define when this rule should be applied (optional)
-              </p>
-            </CardHeader>
-            <CardContent>
-              <ConditionBuilder
-                conditions={formData.conditions}
-                onChange={(conditions) => updateFormData("conditions", conditions)}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Input
+                id="priority"
+                type="number"
+                min={0}
+                value={form.priority}
+                onChange={(event) => updateForm("priority", Number(event.target.value) || 0)}
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </div>
 
-        <TabsContent value="test" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Test Rule</CardTitle>
-              <p className="text-sm text-gray-500">
-                Test this rule against sample data
-              </p>
-            </CardHeader>
-            <CardContent>
-              <RuleTester
-                ruleConfig={{
-                  name: formData.name,
-                  category: formData.category,
-                  rule_type: formData.rule_type,
-                  config: formData.config,
-                  conditions: formData.conditions || undefined,
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={form.description}
+              onChange={(event) => updateForm("description", event.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                id="category"
+                value={form.category}
+                onChange={(event) => {
+                  const category = event.target.value as RuleCategory;
+                  const types = RULE_TYPES_BY_CATEGORY[category];
+                  updateForm("category", category);
+                  updateForm("ruleType", types[0]?.value ?? "");
+                  updateForm("configJson", "{}");
                 }}
+              >
+                {CATEGORIES.map((category) => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ruleType">Rule Type</Label>
+              <Select
+                id="ruleType"
+                value={form.ruleType}
+                onChange={(event) => {
+                  updateForm("ruleType", event.target.value);
+                  updateForm("configJson", "{}");
+                }}
+              >
+                {ruleTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="groupId">Group ID</Label>
+              <Input
+                id="groupId"
+                value={form.groupId}
+                onChange={(event) => updateForm("groupId", event.target.value)}
               />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="templateId">Template ID</Label>
+              <Input
+                id="templateId"
+                value={form.templateId}
+                onChange={(event) => updateForm("templateId", event.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-6">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.isEnabled}
+                onChange={(event) => updateForm("isEnabled", event.target.checked)}
+              />
+              Enabled
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={form.isGlobal}
+                onChange={(event) => updateForm("isGlobal", event.target.checked)}
+              />
+              Global rule
+            </label>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="configJson">Configuration (JSON)</Label>
+            <Textarea
+              id="configJson"
+              value={form.configJson}
+              onChange={(event) => updateForm("configJson", event.target.value)}
+              rows={12}
+              className="font-mono text-xs"
+            />
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 }

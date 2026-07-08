@@ -1,22 +1,23 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Plus,
-  Search,
-  MoreVertical,
-  Edit,
   Copy,
-  Trash2,
+  Edit,
+  MoreVertical,
+  Settings2,
   ToggleLeft,
   ToggleRight,
-  Settings2,
+  Trash2,
 } from "lucide-react";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { PageHeader } from "@/components/PageHeader";
+import { AdminListToolbar } from "@/components/admin/AdminListToolbar";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { DuplicateNameDialog } from "@/components/admin/DuplicateNameDialog";
+import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
+import { Select } from "@/components/ui/Select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,37 +25,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/Dialog";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Spinner } from "@/components/ui/Spinner";
-import { PageHeader } from "@/components/PageHeader";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useToast } from "@/components/ui/Toast";
-
-import { rulesApi, type RuleListItem, type RuleCategory } from "@/api/rules";
+import { rulesApi, type RuleListItem } from "@/api/rules";
 
 const CATEGORY_OPTIONS = [
   { value: "all", label: "All Categories" },
-  { value: "column", label: "Column Rules" },
-  { value: "conditional", label: "Conditional Rules" },
-  { value: "sorting", label: "Sorting Rules" },
-  { value: "filter", label: "Filter Rules" },
-  { value: "top", label: "Top/Limit Rules" },
-  { value: "highlight", label: "Highlight Rules" },
-  { value: "calculation", label: "Calculation Rules" },
-  { value: "merge", label: "Merge Rules" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "all", label: "All Status" },
-  { value: "enabled", label: "Enabled" },
-  { value: "disabled", label: "Disabled" },
+  { value: "column", label: "Column" },
+  { value: "conditional", label: "Conditional" },
+  { value: "sorting", label: "Sorting" },
+  { value: "filter", label: "Filter" },
+  { value: "top", label: "Top/Limit" },
+  { value: "highlight", label: "Highlight" },
+  { value: "calculation", label: "Calculation" },
+  { value: "merge", label: "Merge" },
 ];
 
 export function RuleListPage() {
@@ -65,193 +49,131 @@ export function RuleListPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "enabled" | "disabled">("all");
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [ruleToDelete, setRuleToDelete] = useState<RuleListItem | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; rule: RuleListItem | null }>({
+    open: false,
+    rule: null,
+  });
+  const [duplicateDialog, setDuplicateDialog] = useState<{
+    open: boolean;
+    rule: RuleListItem | null;
+    newName: string;
+  }>({
+    open: false,
+    rule: null,
+    newName: "",
+  });
+  const [acting, setActing] = useState(false);
 
-  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [ruleToDuplicate, setRuleToDuplicate] = useState<RuleListItem | null>(null);
-  const [duplicateName, setDuplicateName] = useState("");
-  const [isDuplicating, setIsDuplicating] = useState(false);
-
-  useEffect(() => {
-    loadRules();
-  }, [categoryFilter, statusFilter]);
-
-  async function loadRules() {
+  const loadRules = useCallback(async () => {
     setLoading(true);
     try {
       const params: { category?: string; is_enabled?: boolean } = {};
-      if (categoryFilter !== "all") {
-        params.category = categoryFilter;
-      }
-      if (statusFilter === "enabled") {
-        params.is_enabled = true;
-      } else if (statusFilter === "disabled") {
-        params.is_enabled = false;
-      }
+      if (categoryFilter !== "all") params.category = categoryFilter;
+      if (statusFilter === "enabled") params.is_enabled = true;
+      if (statusFilter === "disabled") params.is_enabled = false;
 
       const response = await rulesApi.list(params);
       setRules(response.rules);
-    } catch (error) {
-      showToast({
-        type: "error",
-        message: "Failed to load rules",
-      });
+    } catch {
+      showToast("error", "Failed to load rules");
     } finally {
       setLoading(false);
     }
-  }
+  }, [categoryFilter, showToast, statusFilter]);
 
-  const filteredRules = rules.filter((rule) => {
-    if (!searchQuery) return true;
+  useEffect(() => {
+    void loadRules();
+  }, [loadRules]);
+
+  const filteredRules = useMemo(() => {
+    if (!searchQuery) return rules;
     const query = searchQuery.toLowerCase();
-    return (
-      rule.name.toLowerCase().includes(query) ||
-      rule.description?.toLowerCase().includes(query) ||
-      rule.rule_type.toLowerCase().includes(query)
+    return rules.filter(
+      (rule) =>
+        rule.name.toLowerCase().includes(query) ||
+        rule.description?.toLowerCase().includes(query) ||
+        rule.rule_type.toLowerCase().includes(query),
     );
-  });
+  }, [rules, searchQuery]);
 
-  async function handleToggle(rule: RuleListItem) {
+  const handleToggle = async (rule: RuleListItem) => {
     try {
       await rulesApi.toggle(rule.id);
-      showToast({
-        type: "success",
-        message: `Rule ${rule.is_enabled ? "disabled" : "enabled"}`,
-      });
-      loadRules();
-    } catch (error) {
-      showToast({
-        type: "error",
-        message: "Failed to toggle rule",
-      });
+      showToast("success", `Rule ${rule.is_enabled ? "disabled" : "enabled"}`);
+      await loadRules();
+    } catch {
+      showToast("error", "Failed to toggle rule");
     }
-  }
+  };
 
-  async function handleDelete() {
-    if (!ruleToDelete) return;
-
-    setIsDeleting(true);
+  const handleDelete = async () => {
+    if (!deleteDialog.rule) return;
+    setActing(true);
     try {
-      await rulesApi.delete(ruleToDelete.id);
-      showToast({
-        type: "success",
-        message: "Rule deleted",
-      });
-      setDeleteDialogOpen(false);
-      setRuleToDelete(null);
-      loadRules();
-    } catch (error) {
-      showToast({
-        type: "error",
-        message: "Failed to delete rule",
-      });
+      await rulesApi.delete(deleteDialog.rule.id);
+      showToast("success", "Rule deleted");
+      setDeleteDialog({ open: false, rule: null });
+      await loadRules();
+    } catch {
+      showToast("error", "Failed to delete rule");
     } finally {
-      setIsDeleting(false);
+      setActing(false);
     }
-  }
+  };
 
-  async function handleDuplicate() {
-    if (!ruleToDuplicate || !duplicateName.trim()) return;
-
-    setIsDuplicating(true);
+  const handleDuplicate = async () => {
+    if (!duplicateDialog.rule || !duplicateDialog.newName.trim()) return;
+    setActing(true);
     try {
-      const newRule = await rulesApi.duplicate(ruleToDuplicate.id, duplicateName.trim());
-      showToast({
-        type: "success",
-        message: "Rule duplicated",
-      });
-      setDuplicateDialogOpen(false);
-      setRuleToDuplicate(null);
-      setDuplicateName("");
-      navigate(`/admin/rules/${newRule.id}/edit`);
-    } catch (error) {
-      showToast({
-        type: "error",
-        message: "Failed to duplicate rule",
-      });
+      const created = await rulesApi.duplicate(
+        duplicateDialog.rule.id,
+        duplicateDialog.newName.trim(),
+      );
+      showToast("success", "Rule duplicated");
+      setDuplicateDialog({ open: false, rule: null, newName: "" });
+      navigate(`/admin/rules/${created.id}/edit`);
+    } catch {
+      showToast("error", "Failed to duplicate rule");
     } finally {
-      setIsDuplicating(false);
+      setActing(false);
     }
-  }
-
-  function openDuplicateDialog(rule: RuleListItem) {
-    setRuleToDuplicate(rule);
-    setDuplicateName(`${rule.name} (Copy)`);
-    setDuplicateDialogOpen(true);
-  }
-
-  function getCategoryLabel(category: string): string {
-    const option = CATEGORY_OPTIONS.find((c) => c.value === category);
-    return option?.label || category;
-  }
-
-  function formatRuleType(type: string): string {
-    return type
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  }
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Business Rules"
         description="Configure and manage data processing rules"
-        action={
-          <Link to="/admin/rules/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              New Rule
-            </Button>
-          </Link>
+        breadcrumbs={[{ label: "Administration" }, { label: "Business Rules" }]}
+      />
+
+      <AdminListToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search rules..."
+        createLabel="New Rule"
+        onCreate={() => navigate("/admin/rules/new")}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        filterSlot={
+          <Select
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+            className="w-44"
+          >
+            {CATEGORY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
         }
       />
 
       <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Search rules..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex gap-3">
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardBody>
           {loading ? (
             <div className="flex justify-center py-12">
               <Spinner size="lg" />
@@ -266,88 +188,74 @@ export function RuleListPage() {
                   : "Create your first business rule to get started"
               }
               action={
-                !searchQuery && (
-                  <Link to="/admin/rules/new">
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Rule
-                    </Button>
-                  </Link>
-                )
+                !searchQuery ? (
+                  <Button variant="primary" onClick={() => navigate("/admin/rules/new")}>
+                    Create Rule
+                  </Button>
+                ) : undefined
               }
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-sm text-gray-500">
+                  <tr className="border-b text-left text-slate-500">
                     <th className="pb-3 font-medium">Name</th>
                     <th className="pb-3 font-medium">Category</th>
                     <th className="pb-3 font-medium">Type</th>
                     <th className="pb-3 font-medium">Priority</th>
                     <th className="pb-3 font-medium">Status</th>
-                    <th className="pb-3 font-medium">Global</th>
-                    <th className="pb-3 font-medium text-right">Actions</th>
+                    <th className="pb-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRules.map((rule) => (
                     <tr key={rule.id} className="border-b last:border-0">
                       <td className="py-4">
-                        <div>
-                          <Link
-                            to={`/admin/rules/${rule.id}/edit`}
-                            className="font-medium text-gray-900 hover:text-primary"
-                          >
-                            {rule.name}
-                          </Link>
-                          {rule.description && (
-                            <p className="text-sm text-gray-500 line-clamp-1">
-                              {rule.description}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4">
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
-                          {getCategoryLabel(rule.category)}
-                        </span>
-                      </td>
-                      <td className="py-4 text-sm text-gray-600">
-                        {formatRuleType(rule.rule_type)}
-                      </td>
-                      <td className="py-4 text-sm text-gray-600">{rule.priority}</td>
-                      <td className="py-4">
-                        <StatusBadge
-                          variant={rule.is_enabled ? "success" : "secondary"}
+                        <button
+                          type="button"
+                          className="font-medium text-slate-900 hover:text-primary"
+                          onClick={() => navigate(`/admin/rules/${rule.id}/edit`)}
                         >
+                          {rule.name}
+                        </button>
+                        {rule.description && (
+                          <p className="line-clamp-1 text-slate-500">{rule.description}</p>
+                        )}
+                      </td>
+                      <td className="py-4 capitalize text-slate-600">{rule.category}</td>
+                      <td className="py-4 text-slate-600">{rule.rule_type}</td>
+                      <td className="py-4 text-slate-600">{rule.priority}</td>
+                      <td className="py-4">
+                        <StatusBadge variant={rule.is_enabled ? "success" : "neutral"}>
                           {rule.is_enabled ? "Enabled" : "Disabled"}
                         </StatusBadge>
-                      </td>
-                      <td className="py-4">
-                        {rule.is_global && (
-                          <StatusBadge variant="info">Global</StatusBadge>
-                        )}
                       </td>
                       <td className="py-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="sm">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => navigate(`/admin/rules/${rule.id}/edit`)}
-                            >
+                            <DropdownMenuItem onClick={() => navigate(`/admin/rules/${rule.id}/edit`)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openDuplicateDialog(rule)}>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                setDuplicateDialog({
+                                  open: true,
+                                  rule,
+                                  newName: `${rule.name} (Copy)`,
+                                })
+                              }
+                            >
                               <Copy className="mr-2 h-4 w-4" />
                               Duplicate
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggle(rule)}>
+                            <DropdownMenuItem onClick={() => void handleToggle(rule)}>
                               {rule.is_enabled ? (
                                 <>
                                   <ToggleLeft className="mr-2 h-4 w-4" />
@@ -362,10 +270,7 @@ export function RuleListPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => {
-                                setRuleToDelete(rule);
-                                setDeleteDialogOpen(true);
-                              }}
+                              onClick={() => setDeleteDialog({ open: true, rule })}
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -380,71 +285,35 @@ export function RuleListPage() {
               </table>
             </div>
           )}
-        </CardContent>
+        </CardBody>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Rule</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete &ldquo;{ruleToDelete?.name}&rdquo;? This
-              action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, rule: null })}
+        title="Delete Rule"
+        description={
+          <>
+            Are you sure you want to delete &ldquo;{deleteDialog.rule?.name}&rdquo;? This action
+            cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        onConfirm={() => void handleDelete()}
+        destructive
+      />
 
-      {/* Duplicate Dialog */}
-      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Duplicate Rule</DialogTitle>
-            <DialogDescription>
-              Enter a name for the duplicated rule.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={duplicateName}
-              onChange={(e) => setDuplicateName(e.target.value)}
-              placeholder="New rule name"
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDuplicateDialogOpen(false)}
-              disabled={isDuplicating}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDuplicate}
-              disabled={isDuplicating || !duplicateName.trim()}
-            >
-              {isDuplicating ? "Duplicating..." : "Duplicate"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DuplicateNameDialog
+        open={duplicateDialog.open}
+        onOpenChange={(open) =>
+          setDuplicateDialog({ open, rule: null, newName: "" })
+        }
+        sourceName={duplicateDialog.rule?.name}
+        name={duplicateDialog.newName}
+        onNameChange={(newName) => setDuplicateDialog((current) => ({ ...current, newName }))}
+        onConfirm={() => void handleDuplicate()}
+        title="Duplicate Rule"
+      />
     </div>
   );
 }

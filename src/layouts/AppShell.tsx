@@ -9,6 +9,9 @@ import {
   ChevronDown,
   SlidersHorizontal,
   FolderOpen,
+  FileText,
+  MessageSquare,
+  Settings2,
 } from "lucide-react";
 import { RailMadadLogo } from "@/components/branding/RailMadadLogo";
 import { Button } from "@/components/ui/Button";
@@ -47,6 +50,7 @@ function resolvePageTitle(pathname: string): string {
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
   if (pathname.startsWith("/admin/templates")) return "Templates";
   if (pathname.startsWith("/admin/prompts")) return "Prompts";
+  if (pathname.startsWith("/admin/rules")) return "Business Rules";
   if (pathname.startsWith("/workflows/")) return "Report Configuration";
   return "RailMadad Report Center";
 }
@@ -92,10 +96,13 @@ function NavLinkItem({
 }
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
-  const { canManageSettings, canViewLogs, canViewReports } = usePermissions();
+  const { canManageSettings, canViewLogs, canViewReports, canManageTemplates, canManageRules } =
+    usePermissions();
   const location = useLocation();
   const isReportConfigActive = location.pathname.startsWith("/workflows/");
+  const isAdminActive = location.pathname.startsWith("/admin/");
   const [configOpen, setConfigOpen] = useState(isReportConfigActive);
+  const [adminOpen, setAdminOpen] = useState(isAdminActive);
 
   return (
     <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-3 py-2 scrollbar-thin">
@@ -144,6 +151,66 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             <NavLinkItem to="/reports" label="Generated Reports" icon={FolderOpen} onNavigate={onNavigate} />
           </li>
         )}
+
+        {(canManageTemplates || canManageRules) && (
+          <li className="pt-3">
+            <button
+              type="button"
+              onClick={() => setAdminOpen((open) => !open)}
+              className={cn(
+                "flex w-full min-h-[38px] items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-200",
+                isAdminActive
+                  ? "text-primary"
+                  : "text-rail-muted hover:bg-surface hover:text-rail-ink",
+              )}
+            >
+              <Settings2 size={17} strokeWidth={1.75} className="shrink-0 opacity-80" />
+              <span className="flex-1 truncate text-left">Administration</span>
+              <ChevronDown
+                size={14}
+                className={cn("opacity-50 transition-transform duration-200", adminOpen && "rotate-180")}
+              />
+            </button>
+            {adminOpen && (
+              <ul className="mt-1 space-y-0.5" role="list">
+                {canManageTemplates && (
+                  <>
+                    <li>
+                      <NavLinkItem
+                        to="/admin/templates"
+                        label="Templates"
+                        icon={FileText}
+                        onNavigate={onNavigate}
+                        indent
+                      />
+                    </li>
+                    <li>
+                      <NavLinkItem
+                        to="/admin/prompts"
+                        label="Prompts"
+                        icon={MessageSquare}
+                        onNavigate={onNavigate}
+                        indent
+                      />
+                    </li>
+                  </>
+                )}
+                {canManageRules && (
+                  <li>
+                    <NavLinkItem
+                      to="/admin/rules"
+                      label="Business Rules"
+                      icon={Settings2}
+                      onNavigate={onNavigate}
+                      indent
+                    />
+                  </li>
+                )}
+              </ul>
+            )}
+          </li>
+        )}
+
         {canViewLogs && (
           <li>
             <NavLinkItem to="/logs" label="Activity Log" icon={ScrollText} onNavigate={onNavigate} />

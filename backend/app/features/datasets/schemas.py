@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -6,6 +8,9 @@ class ColumnMetadata(BaseModel):
     field_name: str = Field(alias="fieldName")
     display_name: str = Field(alias="displayName")
     data_type: str = Field(alias="dataType")
+    nullable: bool = False
+    unique_values: list[Any] = Field(default_factory=list, alias="uniqueValues")
+    unique_value_count: int = Field(default=0, alias="uniqueValueCount")
     filterable: bool = True
     sortable: bool = True
 

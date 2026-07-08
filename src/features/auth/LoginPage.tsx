@@ -114,7 +114,7 @@ export function LoginPage() {
                   <input type="checkbox" className="rounded border-slate-300 text-primary" {...register("remember_me")} />
                   Remember me
                 </label>
-                <Link to="/login" className="text-primary transition-colors hover:text-primary-hover">
+                <Link to="/forgot-password" className="text-primary transition-colors hover:text-primary-hover">
                   Forgot password?
                 </Link>
               </div>
