@@ -7,7 +7,14 @@ from app.automation.config import AutomationConfig
 
 
 def test_defaults(monkeypatch: pytest.MonkeyPatch):
-    for key in ("CHROME_DEBUG_URL", "DOWNLOAD_FOLDER", "TIMEOUT", "RETRY_COUNT", "RAILMADAD_URL"):
+    for key in (
+        "CHROME_DEBUG_URL",
+        "DOWNLOAD_FOLDER",
+        "TIMEOUT",
+        "RETRY_COUNT",
+        "RAILMADAD_URL",
+        "SCREENSHOTS_DIR",
+    ):
         monkeypatch.delenv(key, raising=False)
 
     cfg = AutomationConfig(_env_file=None)
@@ -16,6 +23,7 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
     assert cfg.timeout == 300
     assert cfg.retry_count == 3
     assert cfg.railmadad_url == "https://railmadad.indianrail.gov.in"
+    assert cfg.screenshots_dir == "storage/automation-screenshots"
 
 
 def test_reads_from_environment(monkeypatch: pytest.MonkeyPatch):

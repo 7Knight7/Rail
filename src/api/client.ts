@@ -9,6 +9,26 @@ export class ApiError extends Error {
 }
 
 const API_BASE = "/api/v1";
+export const API_TIMEOUT_MS = 15_000;
+export const AUTOMATION_START_TIMEOUT_MS = 180_000;
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  timeoutMs = API_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 let csrfToken: string | null = null;
 let isRefreshing = false;
@@ -30,7 +50,7 @@ async function tryRefreshToken(): Promise<boolean> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      const response = await fetch(`${API_BASE}/auth/refresh`, {
+      const response = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -61,6 +81,7 @@ export async function apiRequest<T>(
   path: string,
   init?: RequestInit,
   skipAuthRetry = false,
+  timeoutMs = API_TIMEOUT_MS,
 ): Promise<T> {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -79,16 +100,16 @@ export async function apiRequest<T>(
     headers["X-CSRF-Token"] = csrfToken;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetchWithTimeout(`${API_BASE}${path}`, {
     credentials: "include",
     ...init,
     headers,
-  });
+  }, timeoutMs);
 
   if (response.status === 401 && !skipAuthRetry && !path.includes("/auth/login") && !path.includes("/auth/refresh")) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
-      return apiRequest(path, init, true);
+      return apiRequest(path, init, true, timeoutMs);
     }
     
     window.dispatchEvent(new window.CustomEvent("auth:session-expired"));

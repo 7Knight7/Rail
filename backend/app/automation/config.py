@@ -34,6 +34,23 @@ class AutomationConfig(BaseSettings):
         default="https://railmadad.indianrail.gov.in",
         description="RailMadad portal base URL",
     )
+    screenshots_dir: str = Field(
+        default="storage/automation-screenshots",
+        description="Directory for automation failure screenshots",
+    )
+    debug_screenshots_dir: str = Field(
+        default="storage/debug",
+        description="Directory for Phase 4 debug verification screenshots",
+    )
+    filter_interaction_delay_ms: int = Field(
+        default=500,
+        ge=0,
+        description="Delay between filter field interactions in milliseconds",
+    )
+    date_format: str = Field(
+        default="%d/%m/%Y",
+        description="strftime format for portal date fields",
+    )
 
 
 config = AutomationConfig()

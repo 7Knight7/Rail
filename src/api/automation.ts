@@ -2,7 +2,7 @@
  * Automation orchestration API client
  */
 
-import { apiRequest } from "./client";
+import { apiRequest, AUTOMATION_START_TIMEOUT_MS } from "./client";
 
 export interface AutomationRunSummary {
   id: string;
@@ -51,6 +51,15 @@ export interface AutomationProfile {
   is_enabled: boolean;
 }
 
+export interface AutomationStartResult {
+  success: boolean;
+  connected: boolean;
+  tab_found: boolean;
+  url: string | null;
+  title: string | null;
+  error?: string | null;
+}
+
 export const automationApi = {
   async getStatus(): Promise<AutomationStatus> {
     return apiRequest<AutomationStatus>("/automation/status");
@@ -70,6 +79,18 @@ export const automationApi = {
       method: "POST",
       body: JSON.stringify({ profile_id: profileId ?? null }),
     });
+  },
+
+  async start(): Promise<AutomationStartResult> {
+    return apiRequest<AutomationStartResult>(
+      "/automation/start",
+      {
+        method: "POST",
+        body: JSON.stringify({}),
+      },
+      false,
+      AUTOMATION_START_TIMEOUT_MS,
+    );
   },
 
   async stop(): Promise<{ success: boolean; status: string; message: string }> {

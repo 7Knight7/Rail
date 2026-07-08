@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/Spinner";
 import { HomeGenerationProgress } from "@/features/home/components/HomeGenerationProgress";
 import { HomeGenerationTimeline } from "@/features/home/components/HomeGenerationTimeline";
 import { HomeQuickActions } from "@/features/home/components/HomeQuickActions";
@@ -35,14 +34,6 @@ export function HomePage() {
     generation.progressPercent,
     isGenerating,
   );
-
-  if (generation.loading && isAdmin) {
-    return (
-      <div className="flex justify-center py-32">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
 
   if (showProgress && isAdmin) {
     return (

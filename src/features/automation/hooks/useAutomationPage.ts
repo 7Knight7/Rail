@@ -23,7 +23,7 @@ export function useAutomationPage(): UseAutomationPageReturn {
     isRunning,
     isPaused,
     logs: apiLogs,
-    runNow,
+    startInProcess,
     stop,
     pause,
     resume,
@@ -31,7 +31,7 @@ export function useAutomationPage(): UseAutomationPageReturn {
   } = useAutomationDashboard(2000);
 
   const runState = useAutomationRunState();
-  const { state, prepareRun, appendActivityLog, handlePlaywrightEvent } = runState;
+  const { state, appendActivityLog, handlePlaywrightEvent } = runState;
 
   const activityLog = useMemo(
     () => mergeActivityLogs(state.activityLog, apiLogs),
@@ -47,29 +47,28 @@ export function useAutomationPage(): UseAutomationPageReturn {
   const onStart = useCallback(async () => {
     if (state.selectedReportIds.length === 0 || isBusy) return;
 
-    prepareRun(state.selectedReportIds);
     appendActivityLog({
       level: "info",
-      message: "Report generation started",
-      source: "pipeline",
+      message: "Connecting to RailMadad via Playwright…",
+      source: "playwright",
     });
 
-    try {
-      await runNow();
-    } catch {
-      handlePlaywrightEvent({
-        type: "run_failed",
-        message: "Report generation could not be started",
+    const result = await startInProcess();
+    if (result?.success) {
+      appendActivityLog({
+        level: "success",
+        message: `RailMadad tab activated: ${result.title ?? result.url ?? "connected"}`,
+        source: "playwright",
       });
+      return;
     }
-  }, [
-    appendActivityLog,
-    handlePlaywrightEvent,
-    isBusy,
-    prepareRun,
-    runNow,
-    state.selectedReportIds,
-  ]);
+
+    appendActivityLog({
+      level: "error",
+      message: result?.error ?? "Playwright could not connect to RailMadad",
+      source: "playwright",
+    });
+  }, [appendActivityLog, isBusy, startInProcess, state.selectedReportIds.length]);
 
   const onStop = useCallback(async () => {
     try {

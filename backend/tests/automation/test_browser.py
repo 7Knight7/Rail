@@ -4,13 +4,24 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.automation.browser import DEFAULT_CDP_URL, BrowserConnectionError, BrowserManager
+from app.automation.browser import (
+    DEFAULT_CDP_URL,
+    BrowserConnectionError,
+    BrowserManager,
+    _log_browser_state,
+)
 
 
 def _mock_playwright_stack(*, connect_side_effect=None):
     """Build mocked async_playwright().start() returning playwright with chromium."""
+    mock_page = MagicMock()
+    mock_page.url = "https://example.com"
+
+    mock_context = MagicMock()
+    mock_context.pages = [mock_page]
+
     mock_browser = MagicMock()
-    mock_browser.contexts = []
+    mock_browser.contexts = [mock_context]
     mock_browser.close = AsyncMock()
 
     mock_chromium = MagicMock()
@@ -27,6 +38,23 @@ def _mock_playwright_stack(*, connect_side_effect=None):
     mock_starter.start = AsyncMock(return_value=mock_playwright)
 
     return mock_starter, mock_playwright, mock_chromium, mock_browser
+
+
+def test_log_browser_state_logs_contexts_and_urls(caplog: pytest.LogCaptureFixture):
+    mock_page = MagicMock()
+    mock_page.url = "https://railmadad.indianrail.gov.in/"
+
+    mock_context = MagicMock()
+    mock_context.pages = [mock_page]
+
+    mock_browser = MagicMock()
+    mock_browser.contexts = [mock_context]
+
+    with caplog.at_level("INFO"):
+        _log_browser_state(mock_browser, "test_stage")
+
+    assert "CDP browser state [test_stage]: 1 context(s), 1 page(s)" in caplog.text
+    assert "url=https://railmadad.indianrail.gov.in/" in caplog.text
 
 
 @pytest.mark.asyncio

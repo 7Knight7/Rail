@@ -3,8 +3,10 @@ import {
   automationApi,
   type AutomationLogEntry,
   type AutomationRunSummary,
+  type AutomationStartResult,
   type AutomationStatus,
 } from "@/api/automation";
+import { ApiError } from "@/api/client";
 import { useToast } from "@/components/ui/Toast";
 
 export function useAutomationDashboard(pollIntervalMs = 5000) {
@@ -50,6 +52,46 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
       setActing(false);
     }
   }, [refresh, showToast]);
+
+  const startInProcess = useCallback(async (): Promise<AutomationStartResult | null> => {
+    setActing(true);
+    try {
+      const result = await automationApi.start();
+      if (result.success) {
+        showToast(
+          "success",
+          "Connected to RailMadad",
+          result.title ?? result.url ?? undefined,
+        );
+      } else {
+        showToast(
+          "error",
+          "Playwright connection failed",
+          result.error ?? "Could not complete RailMadad automation",
+        );
+      }
+      return result;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        showToast("error", "Automation request failed", error.message);
+      } else if (error instanceof DOMException && error.name === "AbortError") {
+        showToast(
+          "error",
+          "Automation timed out",
+          "Report generation is still running in Chrome. Check backend logs.",
+        );
+      } else {
+        showToast(
+          "error",
+          "Failed to reach backend",
+          "Ensure the API server is running on http://127.0.0.1:8000",
+        );
+      }
+      return null;
+    } finally {
+      setActing(false);
+    }
+  }, [showToast]);
 
   const stop = useCallback(async () => {
     setActing(true);
@@ -104,6 +146,7 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     isRunning,
     isPaused,
     runNow,
+    startInProcess,
     stop,
     pause,
     resume,
