@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
+from app.api.automation import router as in_process_automation_router
 from app.features.auth.controller import router as auth_router
+from app.features.automation.controller import router as automation_router
 from app.features.health.controller import router as health_router
 from app.features.rules.controller import router as rules_router
-from app.features.automation.controller import router as automation_router
 from app.features.settings.controller import router as settings_router
 from app.features.summary.controller import router as summary_router
 from app.features.templates.controller import router as templates_router
@@ -20,3 +21,4 @@ api_router.include_router(rules_router)
 api_router.include_router(summary_router)
 api_router.include_router(settings_router)
 api_router.include_router(automation_router)
+api_router.include_router(in_process_automation_router)

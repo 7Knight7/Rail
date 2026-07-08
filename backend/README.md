@@ -19,6 +19,9 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
+# Install Playwright browser drivers (one-time, for automation)
+playwright install chromium
+
 # Copy environment file
 cp .env.example .env
 ```
@@ -163,6 +166,31 @@ DEFAULT_ADMIN_PASSWORD=Admin@123456
 - Seeding is **idempotent**: if the username already exists, nothing is changed (password is not overwritten).
 - If either variable is missing or blank, seeding is skipped and a warning is logged.
 - Sign in via the normal login endpoint (`POST /api/v1/auth/login`); no auth bypass is used.
+
+## In-Process Automation (`app/automation`)
+
+Playwright-based browser automation (separate from `features/automation`, which orchestrates the standalone automation-engine service):
+
+```
+app/automation/
+├── __init__.py
+├── browser.py       # CDP browser connection
+├── config.py        # Env-based settings
+├── session.py       # Session/tab management (Phase 3+)
+├── navigation.py    # Portal navigation (Phase 4+)
+├── downloader.py    # Report downloads (Phase 5+)
+├── reports.py       # Report catalog
+├── selectors.py     # Portal UI selectors
+├── utils.py         # Shared helpers
+└── run.py           # Smoke-test entrypoint
+```
+
+Verify Phase 1 setup:
+
+```bash
+pytest tests/automation/test_module_structure.py -v
+python -m app.automation.run   # requires Chrome with --remote-debugging-port=9222
+```
 
 ### Required for Production
 - `DATABASE_URL` - PostgreSQL connection string

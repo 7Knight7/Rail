@@ -10,8 +10,8 @@ from app.core.logging import setup_logging
 from app.core.middleware import RequestLoggingMiddleware
 from app.core.security.headers import SecurityHeadersMiddleware
 from app.infrastructure.database.session import SessionLocal
-from app.infrastructure.seed.seed_automation_profiles import seed_automation_profiles
 from app.infrastructure.seed.seed_app_settings import seed_app_settings
+from app.infrastructure.seed.seed_automation_profiles import seed_automation_profiles
 from app.infrastructure.seed.seed_prompt_templates import seed_prompt_templates
 from app.infrastructure.seed.seed_users import seed_admin_user
 from app.infrastructure.seed.seed_workflows import seed_workflows
@@ -32,9 +32,9 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     lifespan=lifespan,
-    docs_url="/docs" if not settings.is_production else None,
-    redoc_url="/redoc" if not settings.is_production else None,
-    openapi_url="/openapi.json" if not settings.is_production else None,
+    docs_url="/docs" if settings.enable_api_docs else None,
+    redoc_url="/redoc" if settings.enable_api_docs else None,
+    openapi_url="/openapi.json" if settings.enable_api_docs else None,
 )
 
 app.add_middleware(SecurityHeadersMiddleware)

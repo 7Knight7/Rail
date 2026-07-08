@@ -113,5 +113,10 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment == "production"
 
+    @property
+    def enable_api_docs(self) -> bool:
+        """Expose interactive API docs when DEBUG is enabled."""
+        return self.debug
+
 
 settings = Settings()
