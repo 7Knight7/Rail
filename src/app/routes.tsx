@@ -22,7 +22,7 @@ import {
 import { TemplateListPage, TemplateEditorPage } from "@/features/admin/templates";
 import { PromptListPage, PromptEditorPage } from "@/features/admin/prompts";
 import { SettingsPage } from "@/features/settings/SettingsPage";
-import { ActivityLogPage } from "@/features/logs/ActivityLogPage";
+import { LogsPage } from "@/features/logs";
 import { NotFoundPage } from "@/features/errors/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -134,7 +134,7 @@ export const router = createBrowserRouter([
                   },
                   {
                     path: "logs",
-                    element: <ActivityLogPage />,
+                    element: <LogsPage />,
                   },
                 ],
               },
