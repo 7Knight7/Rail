@@ -27,6 +27,7 @@ const previewColumns = [
 export function TypesPage() {
   return (
     <WorkflowPageLayout
+      reportId="types"
       title="Cause Wise Analysis"
       description="Configure and generate the cause-wise analysis report"
       settingsFields={settingsFields}

@@ -19,7 +19,7 @@ interface TopBarProps {
 
 export function TopBar({ pageTitle, showTitle = true, onMenuClick }: TopBarProps) {
   return (
-    <header className="sticky top-0 z-20 flex h-[60px] shrink-0 items-center gap-4 px-1 lg:px-2">
+    <header className="sticky top-0 z-30 -mx-4 flex h-[60px] shrink-0 items-center gap-4 border-b border-rail-line/60 bg-surface/95 px-4 backdrop-blur-md lg:-mx-6 lg:px-6">
       <Button
         className="lg:hidden"
         variant="ghost"

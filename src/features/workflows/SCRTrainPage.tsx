@@ -32,6 +32,7 @@ const previewColumns = [
 export function SCRTrainPage() {
   return (
     <WorkflowPageLayout
+      reportId="scr-train"
       title="SCR Train Report"
       description="Configure and generate the SCR train complaints report"
       settingsFields={settingsFields}

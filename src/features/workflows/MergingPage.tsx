@@ -44,6 +44,7 @@ const previewColumns = [
 export function MergingPage() {
   return (
     <WorkflowPageLayout
+      reportId="merging"
       title="Zone Wise Report"
       description="Configure and generate the zone-wise complaints and feedback report"
       settingsFields={settingsFields}
