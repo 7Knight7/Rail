@@ -1,0 +1,9 @@
+{
+  "success": false,
+  "connected": true,
+  "stopped_early": true,
+  "stop_reason": "MIS_SESSION_LOST",
+  "error": "No authenticated MIS admin page found in browser",
+  "error_code": "MIS_SESSION_LOST",
+  "reports": []
+}

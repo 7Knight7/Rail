@@ -1,0 +1,304 @@
+{
+  "url": "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report6&archiveFlag=N&Id=null&mobile=null&email=null",
+  "selects": [
+    {
+      "id": "dateRange",
+      "name": "",
+      "label": "Date Range",
+      "value": "PREV_DAY",
+      "options": [
+        "Previous Day",
+        "Last 7 Days",
+        "Current Month",
+        "Previous Month",
+        "Current Financial Year",
+        "Previous Financial Year",
+        "Current Day"
+      ]
+    },
+    {
+      "id": "refundInput",
+      "name": "",
+      "label": "Excluding Refund Cases",
+      "value": "Y",
+      "options": [
+        "YES",
+        "NO"
+      ]
+    },
+    {
+      "id": "inquiryInput",
+      "name": "",
+      "label": "Excluding Inquiry Cases",
+      "value": "Y",
+      "options": [
+        "Yes",
+        "No",
+        "Only Inquiry"
+      ]
+    },
+    {
+      "id": "complaintZoneInput",
+      "name": "",
+      "label": "Zone",
+      "value": "",
+      "options": [
+        "ALL",
+        "Central Railway",
+        "East Central Railway",
+        "East Coast Railway",
+        "Eastern Railway",
+        "IRCTC",
+        "Kolkata Metro",
+        "Konkan Railway",
+        "North Central Railway",
+        "North Eastern Railway",
+        "Northeast Frontier Railway",
+        "Northern Railway",
+        "North Western Railway",
+        "South East Central Railway",
+        "South Central Railway"
+      ]
+    },
+    {
+      "id": "complaintDivInput",
+      "name": "",
+      "label": "Division",
+      "value": "",
+      "options": [
+        "ALL"
+      ]
+    },
+    {
+      "id": "complaintDeptInput",
+      "name": "",
+      "label": "Department",
+      "value": "",
+      "options": [
+        "ALL",
+        "ACCOUNTS",
+        "COACHING",
+        "COMMERCIAL",
+        "CARRIAGE & WAGON",
+        "ELECTRICAL",
+        "ENGINEERING",
+        "IRCTC Online",
+        "IRCTC Catering",
+        "IRSDC",
+        "RAILWAY PROTECTION FORCE",
+        "SIGNAL & TELECOMMUNICATION"
+      ]
+    },
+    {
+      "id": "complaintModeInput",
+      "name": "",
+      "label": "Mode",
+      "value": "",
+      "options": [
+        "ALL",
+        "Station",
+        "Train"
+      ]
+    },
+    {
+      "id": "complaintTypeInput",
+      "name": "",
+      "label": "Type",
+      "value": "",
+      "options": [
+        "ALL",
+        "Medical Assistance- Station",
+        "Medical Assistance- Train",
+        "Security- Station",
+        "Security- Train",
+        "Divyangjan Facilities- Station",
+        "Divyangjan Facilities- Train",
+        "Facilities for Women with Special needs- Train",
+        "Facilities for Women with Special needs- Station",
+        "Unreserved Ticketing- Station",
+        "Electrical Equipment- Train",
+        "Coach - Cleanliness- Train",
+        "Luggage / Parcels - Station",
+        "Punctuality- Train",
+        "Reserved Ticketing- Station"
+      ]
+    },
+    {
+      "id": "complaintSubTypeInput",
+      "name": "",
+      "label": "Sub Type",
+      "value": "",
+      "options": [
+        "ALL"
+      ]
+    },
+    {
+      "id": "viewType",
+      "name": "",
+      "label": "View",
+      "value": "zonewise",
+      "options": [
+        "Zone Wise/ Dept. Wise",
+        "Complaint Type Wise",
+        "Division Wise"
+      ]
+    },
+    {
+      "id": "assistanceInput",
+      "name": "",
+      "label": "Excluding Assistance Cases",
+      "value": "Y",
+      "options": [
+        "No",
+        "Yes",
+        "Only Assistance"
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "idx": 0,
+      "headers": [
+        "S.No.",
+        "Organisation",
+        "Feedback Received",
+        "% Feedback",
+        "Excellent",
+        "Satisfactory",
+        "Unsatisfactory",
+        "% Unsatisfactory",
+        "1",
+        "HYDERABAD DIVISION",
+        "8",
+        "15.38",
+        "1",
+        "2",
+        "5",
+        "62.50",
+        "",
+        "Total",
+        "52",
+        "100%",
+        "15",
+        "11",
+        "26",
+        "50.00"
+      ],
+      "rows": [
+        [
+          "1",
+          "HYDERABAD DIVISION",
+          "8",
+          "15.38",
+          "1",
+          "2",
+          "5",
+          "62.50"
+        ],
+        [
+          "2",
+          "NANDED DIVISION",
+          "15",
+          "28.85",
+          "3",
+          "5",
+          "7",
+          "46.67"
+        ],
+        [
+          "3",
+          "SECUNDERABAD DIVISION",
+          "29",
+          "55.77",
+          "11",
+          "4",
+          "14",
+          "48.28"
+        ]
+      ],
+      "rowCount": 3
+    },
+    {
+      "idx": 1,
+      "headers": [
+        "S.No.",
+        "Organisation",
+        "Feedback Received",
+        "% Feedback",
+        "Excellent",
+        "Satisfactory",
+        "Unsatisfactory",
+        "% Unsatisfactory",
+        "1",
+        "CARRIAGE & WAGON",
+        "15",
+        "28.85",
+        "4",
+        "5",
+        "6",
+        "40.00",
+        "",
+        "Total",
+        "52",
+        "100%",
+        "15",
+        "11",
+        "26",
+        "50.00"
+      ],
+      "rows": [
+        [
+          "1",
+          "CARRIAGE & WAGON",
+          "15",
+          "28.85",
+          "4",
+          "5",
+          "6",
+          "40.00"
+        ],
+        [
+          "2",
+          "COACHING",
+          "22",
+          "42.31",
+          "2",
+          "4",
+          "16",
+          "72.73"
+        ],
+        [
+          "3",
+          "COMMERCIAL",
+          "7",
+          "13.46",
+          "3",
+          "0",
+          "4",
+          "57.14"
+        ],
+        [
+          "4",
+          "ELECTRICAL",
+          "4",
+          "7.69",
+          "3",
+          "1",
+          "0",
+          "0.00"
+        ],
+        [
+          "5",
+          "RAILWAY PROTECTION FORCE",
+          "4",
+          "7.69",
+          "3",
+          "1",
+          "0",
+          "0.00"
+        ]
+      ],
+      "rowCount": 5
+    }
+  ]
+}

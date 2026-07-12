@@ -1,0 +1,207 @@
+{
+  "url": "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report16&archiveFlag=N",
+  "selects": [
+    {
+      "id": "dateRange",
+      "name": "",
+      "label": "Date Range",
+      "options": [
+        "Previous Day",
+        "Last 7 Days",
+        "Current Month",
+        "Previous Month",
+        "Current Financial Year",
+        "Previous Financial Year",
+        "Current Day"
+      ]
+    },
+    {
+      "id": "complaintZoneInput",
+      "name": "",
+      "label": "Zone",
+      "options": [
+        "ALL",
+        "Central Railway",
+        "East Central Railway",
+        "East Coast Railway",
+        "Eastern Railway",
+        "IRCTC",
+        "Kolkata Metro",
+        "Konkan Railway",
+        "North Central Railway",
+        "North Eastern Railway"
+      ]
+    },
+    {
+      "id": "complaintDivInput",
+      "name": "",
+      "label": "Division",
+      "options": [
+        "ALL"
+      ]
+    },
+    {
+      "id": "complaintTypeInput",
+      "name": "",
+      "label": "Type",
+      "options": [
+        "ALL",
+        "Medical Assistance- Train",
+        "Security- Train",
+        "Divyangjan Facilities- Train",
+        "Facilities for Women with Special needs- Train",
+        "Electrical Equipment- Train",
+        "Coach - Cleanliness- Train",
+        "Punctuality- Train",
+        "Water Availability- Train",
+        "Coach - Maintenance- Train"
+      ]
+    },
+    {
+      "id": "complaintSubTypeInput",
+      "name": "",
+      "label": "Sub Type",
+      "options": [
+        "ALL"
+      ]
+    },
+    {
+      "id": "complaintDeptInput",
+      "name": "",
+      "label": "Department",
+      "options": [
+        "ALL",
+        "ACCOUNTS",
+        "COACHING",
+        "COMMERCIAL",
+        "CARRIAGE & WAGON",
+        "ELECTRICAL",
+        "ENGINEERING",
+        "IRCTC Online",
+        "IRCTC Catering",
+        "IRSDC"
+      ]
+    },
+    {
+      "id": "viewType",
+      "name": "",
+      "label": "View",
+      "options": [
+        "Train Type Wise",
+        "Train No Wise",
+        "Zone Wise",
+        "Division Wise",
+        "Depot Wise"
+      ]
+    },
+    {
+      "id": "coachId",
+      "name": "coachId",
+      "label": "Coach Type",
+      "options": [
+        "1A",
+        "2A",
+        "FC",
+        "3A",
+        "CC",
+        "SL",
+        "VS",
+        "2S",
+        "3E",
+        "CH"
+      ]
+    },
+    {
+      "id": "assistanceInput",
+      "name": "",
+      "label": "Excluding Assistance Cases",
+      "options": [
+        "No",
+        "Yes",
+        "Only Assistance"
+      ]
+    }
+  ],
+  "texts": [
+    "RailMadad",
+    "MIS Reports",
+    "1) Comprehensive (with drill down)",
+    "2) Cause Wise",
+    "3) SLA Breach",
+    "4) Cause Wise SLA",
+    "5) Channel Dept Wise",
+    "6) Feedback (with drill down)",
+    "7) Mode Wise Cause Wise",
+    "8) Station Profiling",
+    "9) Train Profiling",
+    "10) Zone/Train Type wise Report",
+    "11) Train Watering Complaint",
+    "12) Suggestion Comprehensive (with drill down)",
+    "13) Inquiry Wise 1",
+    "14) Inquiry Wise 2",
+    "15) FRT (with drill down)",
+    "16) ATR Status",
+    "17) Cause wise ATR Report",
+    "18) Vande Bharat Report",
+    "19) Head Subhead Change Report",
+    "22) Zone & Cause Wise Complaint/Feedback",
+    "23) Rail Anubhav Report",
+    "Train Watering Complaints",
+    "RailMadad Shield Reports",
+    "RailMadad Quarter Wise Data",
+    "RailMadad Financial Year Data",
+    "Search Complaint",
+    "Welcome: GM_SC",
+    "Logout",
+    "Change Password",
+    "Zone/Train Type wise Report",
+    "Date Range",
+    "Previous Day",
+    "Last 7 Days",
+    "Current Month",
+    "Previous Month",
+    "Current Financial Year",
+    "Previous Financial Year",
+    "Current Day",
+    "Zone",
+    "ALL",
+    "Central Railway",
+    "East Central Railway",
+    "East Coast Railway",
+    "Eastern Railway",
+    "IRCTC",
+    "Kolkata Metro",
+    "Konkan Railway",
+    "North Central Railway",
+    "North Eastern Railway",
+    "Northeast Frontier Railway",
+    "Northern Railway",
+    "North Western Railway",
+    "South East Central Railway",
+    "South Central Railway",
+    "South Eastern Railway",
+    "Southern Railway",
+    "South Western Railway",
+    "West Central Railway",
+    "Western Railway",
+    "South Coast Railway",
+    "Division",
+    "ALL",
+    "Type",
+    "ALL",
+    "Medical Assistance- Train",
+    "Security- Train",
+    "Divyangjan Facilities- Train",
+    "Facilities for Women with Special needs- Train",
+    "Electrical Equipment- Train",
+    "Coach - Cleanliness- Train",
+    "Punctuality- Train",
+    "Water Availability- Train",
+    "Coach - Maintenance- Train",
+    "Catering & Vending Services- Train",
+    "Staff Behaviour- Train",
+    "Corruption / Bribery- Train",
+    "Bed Roll- Train",
+    "Miscellaneous- Train"
+  ]
+}

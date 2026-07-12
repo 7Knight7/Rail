@@ -1,0 +1,5 @@
+phase=initial_navigation
+report_slug=session
+url=https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report1&archiveFlag=N
+error=Current page is public RailMadad portal
+timestamp=20260711_105621

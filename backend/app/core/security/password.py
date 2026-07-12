@@ -22,6 +22,11 @@ class PasswordHasher:
         except (VerifyMismatchError, InvalidHashError):
             return False
 
+    @staticmethod
+    def is_valid_hash_format(hashed: str) -> bool:
+        """Return True when stored hash looks like a supported Argon2 digest."""
+        return hashed.startswith("$argon2")
+
     def needs_rehash(self, hashed: str) -> bool:
         return self._hasher.check_needs_rehash(hashed)
 

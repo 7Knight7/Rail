@@ -34,6 +34,13 @@ export interface AutomationCompletionSummary {
   analyticsRefreshed: boolean;
   pdfsGenerated: number;
   executionTimeMs: number;
+  /** Successful reports with downloadable PDFs */
+  reportDownloads?: Array<{
+    slug: string;
+    datasetKey: string;
+    pdfDownloadUrl: string;
+    status: string;
+  }>;
 }
 
 export interface AutomationRunState {

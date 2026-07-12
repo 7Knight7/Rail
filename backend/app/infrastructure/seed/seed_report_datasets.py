@@ -52,6 +52,7 @@ REPORT_WORKBOOKS: dict[str, str] = {
     "types": "cause_wise_original.xlsx",
     "scr-train": "scr_train_original.xlsx",
     "scr-station": "scr_station_original.xlsx",
+    "report1": "zone_wise_original.xlsx",
 }
 
 
@@ -98,13 +99,17 @@ def _ensure_workbook(path: Path) -> None:
 
 
 async def seed_report_datasets(session: AsyncSession) -> None:
-    existing = await session.execute(select(ReportDatasetModel.report_id))
-    if existing.scalars().first():
+    existing_ids = set((await session.execute(select(ReportDatasetModel.report_id))).scalars().all())
+    if existing_ids and not any(
+        slug not in existing_ids for slug in REPORT_WORKBOOKS
+    ):
         logger.info("Report datasets already seeded, skipping")
         return
 
     service = DatasetService(session)
     for report_id, filename in REPORT_WORKBOOKS.items():
+        if report_id in existing_ids:
+            continue
         file_path = SAMPLE_DIR / filename
         _ensure_workbook(file_path)
         await service.ingest_file(

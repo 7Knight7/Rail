@@ -18,7 +18,8 @@ def test_resolve_filter_value_today():
 
 
 def test_resolve_filter_value_today_range():
-    assert resolve_filter_value("today_range") == "Current Day"
+    assert resolve_filter_value("today_range") == "Previous Day"
+    assert resolve_filter_value("previous_day_range") == "Previous Day"
 
 
 @pytest.mark.asyncio
@@ -28,7 +29,7 @@ async def test_apply_filters_select_field():
     locator = MagicMock()
     locator.count = AsyncMock(return_value=1)
     locator.select_option = AsyncMock()
-    locator.evaluate = AsyncMock(return_value="Today")
+    locator.evaluate = AsyncMock(return_value="Previous Day")
     root.locator.return_value.first = locator
 
     fields = [
@@ -43,8 +44,34 @@ async def test_apply_filters_select_field():
 
     applied = await service.apply_filters(root, fields)
 
-    assert applied["dateRange"] == "Current Day"
+    assert applied["dateRange"] == "Previous Day"
     locator.select_option.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_apply_filters_previous_day_literal():
+    service = FilterService()
+    root = MagicMock()
+    locator = MagicMock()
+    locator.count = AsyncMock(return_value=1)
+    locator.select_option = AsyncMock()
+    locator.evaluate = AsyncMock(return_value="Previous Day")
+    root.locator.return_value.first = locator
+
+    fields = [
+        FilterFieldDefinition(
+            name="dateRange",
+            selector="#dateRange",
+            field_type="select",
+            value="Previous Day",
+            label="Date Range",
+        )
+    ]
+
+    applied = await service.apply_filters(root, fields)
+
+    assert applied["dateRange"] == "Previous Day"
+    locator.select_option.assert_awaited_with(label="Previous Day")
 
 
 @pytest.mark.asyncio

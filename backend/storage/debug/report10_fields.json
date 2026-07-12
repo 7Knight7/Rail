@@ -1,0 +1,204 @@
+{
+  "fields": [
+    {
+      "tag": "button",
+      "field_id": "",
+      "field_name": "",
+      "field_type": "submit",
+      "field_label": "",
+      "selector": "button",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "select",
+      "field_id": "dateRange",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#dateRange",
+      "current_value": "Previous Day",
+      "required": false,
+      "options": [
+        {
+          "value": "PREV_DAY",
+          "label": "Previous Day"
+        },
+        {
+          "value": "WEEKLY",
+          "label": "Last 7 Days"
+        },
+        {
+          "value": "CURR_MONTH",
+          "label": "Current Month"
+        },
+        {
+          "value": "PREV_MONTH",
+          "label": "Previous Month"
+        },
+        {
+          "value": "CURR_YEAR",
+          "label": "Current Financial Year"
+        },
+        {
+          "value": "PREV_YEAR",
+          "label": "Previous Financial Year"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "field_id": "fromDate",
+      "field_name": "",
+      "field_type": "text",
+      "field_label": "",
+      "selector": "#fromDate",
+      "current_value": "2026-07-11",
+      "required": true,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "toDate",
+      "field_name": "",
+      "field_type": "text",
+      "field_label": "",
+      "selector": "#toDate",
+      "current_value": "2026-07-11",
+      "required": true,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "trainname",
+      "field_name": "trainno",
+      "field_type": "text",
+      "field_label": "",
+      "selector": "#trainname",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "select",
+      "field_id": "assistanceInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#assistanceInput",
+      "current_value": "Yes",
+      "required": false,
+      "options": [
+        {
+          "value": "N",
+          "label": "No"
+        },
+        {
+          "value": "Y",
+          "label": "Yes"
+        },
+        {
+          "value": "O",
+          "label": "Only Assistance"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "field_id": "archiveFlag",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#archiveFlag",
+      "current_value": "N",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "button",
+      "field_id": "submitbtn",
+      "field_name": "",
+      "field_type": "submit",
+      "field_label": "",
+      "selector": "#submitbtn",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "tempfrom",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#tempfrom",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "tempto",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#tempto",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "flag",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#flag",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "complaintTypeInput",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#complaintTypeInput",
+      "current_value": "",
+      "required": false,
+      "options": []
+    }
+  ],
+  "selects": [
+    {
+      "index": 0,
+      "id": "dateRange",
+      "name": "",
+      "label": "",
+      "optionCount": 6,
+      "options": [
+        "Previous Day",
+        "Last 7 Days",
+        "Current Month",
+        "Previous Month",
+        "Current Financial Year",
+        "Previous Financial Year"
+      ]
+    },
+    {
+      "index": 1,
+      "id": "assistanceInput",
+      "name": "",
+      "label": "",
+      "optionCount": 3,
+      "options": [
+        "No",
+        "Yes",
+        "Only Assistance"
+      ]
+    }
+  ],
+  "url": "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report10&archiveFlag=N&Id=null&mobile=null&email=null"
+}

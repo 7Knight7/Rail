@@ -8,6 +8,11 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128)
     remember_me: bool = Field(default=False)
 
+    @field_validator("username")
+    @classmethod
+    def normalize_username(cls, v: str) -> str:
+        return v.strip().lower()
+
 
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=64)
@@ -17,9 +22,15 @@ class RegisterRequest(BaseModel):
     @field_validator("username")
     @classmethod
     def validate_username(cls, v: str) -> str:
+        v = v.strip()
         if not re.match(r"^[a-zA-Z0-9_]+$", v):
             raise ValueError("Username can only contain letters, numbers, and underscores")
         return v.lower()
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
 
     @field_validator("password")
     @classmethod

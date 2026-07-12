@@ -24,6 +24,30 @@ class PortalSelectors:
     report1_grid: str = ".dataTables_wrapper table, .grid-table, [role='grid']"
     report1_from_date: str = ""
     report1_to_date: str = ""
+    report1_received_header: str = (
+        "table thead th:has-text('Received'), "
+        ".dataTables_wrapper th:has-text('Received')"
+    )
+    report1_export: str = (
+        "a:has-text('PDF'), button:has-text('PDF'), input[value*='PDF'], "
+        "a:has-text('Export to Excel'), button:has-text('Export to Excel'), "
+        "a:has-text('Export'), button:has-text('Export'), "
+        "a:has-text('Download'), button:has-text('Download'), "
+        "a:has-text('Excel'), button:has-text('Excel'), "
+        "input[value*='Export'], input[value*='Download'], input[value*='Excel'], "
+        "a[onclick*='export'], button[onclick*='export'], "
+        "a[onclick*='excel'], button[onclick*='excel'], "
+        "a[onclick*='pdf'], button[onclick*='pdf'], "
+        "a[href*='export'], a[href*='download'], a[href*='xlsx'], a[href*='pdf'], "
+        "#exportBtn, #downloadBtn, #pdfBtn, .export-btn, .download-btn"
+    )
+    report_print_button: str = (
+        "a:has-text('Print'), button:has-text('Print'), "
+        "input[value*='Print'], #printBtn, .print-btn, "
+        "a[onclick*='print'], button[onclick*='print'], "
+        "a:has-text('Print Report'), button:has-text('Print Report'), "
+        "a:has-text('Print Preview'), button:has-text('Print Preview')"
+    )
 
 
 selectors = PortalSelectors()

@@ -30,19 +30,59 @@ class AuthService:
         user_agent: str | None = None,
         remember_me: bool = False,
     ) -> tuple[TokenResponse, str, User]:
-        logger.info("Login attempt for user: %s", username)
+        normalized_username = username.strip().lower()
+        logger.info("Login attempt for user: %s", normalized_username)
 
-        user = await self._user_repo.get_by_username(username)
+        user = await self._user_repo.get_by_username(normalized_username)
+        user_found = user is not None
+        hash_format_valid = (
+            password_hasher.is_valid_hash_format(user.password_hash)
+            if user is not None
+            else False
+        )
+        password_verified = (
+            password_hasher.verify(password, user.password_hash)
+            if user is not None
+            else False
+        )
+        logger.info(
+            "Login diagnostics for user %s: user_found=%s hash_format_valid=%s password_verified=%s",
+            normalized_username,
+            user_found,
+            hash_format_valid,
+            password_verified,
+        )
+
         if not user:
-            audit_logger.log_login(username, ip_address, user_agent, success=False, failure_reason="User not found")
+            audit_logger.log_login(
+                normalized_username,
+                ip_address,
+                user_agent,
+                success=False,
+                failure_reason="User not found",
+            )
             raise AuthenticationError("Invalid username or password")
 
         if not user.is_active:
-            audit_logger.log_login(username, ip_address, user_agent, success=False, user_id=user.id, failure_reason="Account disabled")
+            audit_logger.log_login(
+                normalized_username,
+                ip_address,
+                user_agent,
+                success=False,
+                user_id=user.id,
+                failure_reason="Account disabled",
+            )
             raise AuthenticationError("Account is disabled")
 
-        if not password_hasher.verify(password, user.password_hash):
-            audit_logger.log_login(username, ip_address, user_agent, success=False, user_id=user.id, failure_reason="Invalid password")
+        if not password_verified:
+            audit_logger.log_login(
+                normalized_username,
+                ip_address,
+                user_agent,
+                success=False,
+                user_id=user.id,
+                failure_reason="Invalid password",
+            )
             raise AuthenticationError("Invalid username or password")
 
         access_token = jwt_handler.create_access_token(
@@ -131,13 +171,15 @@ class AuthService:
         password: str,
         ip_address: str | None = None,
     ) -> UserResponse:
-        logger.info("Registration attempt for: %s", username)
+        normalized_username = username.strip().lower()
+        normalized_email = email.strip().lower()
+        logger.info("Registration attempt for: %s", normalized_username)
 
-        existing = await self._user_repo.get_by_username(username)
+        existing = await self._user_repo.get_by_username(normalized_username)
         if existing:
             raise ValidationError("Username already exists", field="username")
 
-        existing_email = await self._user_repo.get_by_email(email)
+        existing_email = await self._user_repo.get_by_email(normalized_email)
         if existing_email:
             raise ValidationError("Email already registered", field="email")
 
@@ -146,8 +188,8 @@ class AuthService:
 
         user = await self._user_repo.create(
             user_id=user_id,
-            username=username,
-            email=email,
+            username=normalized_username,
+            email=normalized_email,
             password_hash=hashed,
             role=UserRole.VIEWER,
         )

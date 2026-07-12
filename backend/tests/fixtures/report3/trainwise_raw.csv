@@ -1,0 +1,24 @@
+S.No.,Train No.,Train Name,Owning Zone,Owning Division,Received
+1,12345,Rajdhani Express,Northern Railway,Delhi Division,150
+2,12346,Shatabdi Express,Northern Railway,Delhi Division,140
+3,12347,Duronto Express,Central Railway,Mumbai Division,130
+4,12348,Garib Rath,East Central Railway,Patna Division,125
+5,12349,Jan Shatabdi,South Central Railway,Secunderabad Division,120
+6,12350,Sampark Kranti,Western Railway,Mumbai Division,115
+7,12351,Superfast Express,Southern Railway,Chennai Division,110
+8,12352,Mail Express,Eastern Railway,Howrah Division,105
+9,12353,Passenger Train,North Western Railway,Jaipur Division,100
+10,12354,Local Express,South Eastern Railway,Kharagpur Division,95
+11,12355,Intercity Express,South Central Railway,Vijayawada Division,90
+12,12356,AC Express,Northeast Frontier Railway,Guwahati Division,85
+13,12357,Premium Train,East Coast Railway,Bhubaneswar Division,80
+14,12358,Humsafar Express,West Central Railway,Jabalpur Division,75
+15,12359,Tejas Express,North Central Railway,Allahabad Division,70
+16,12360,Vande Bharat,South Western Railway,Bangalore Division,65
+17,12361,Double Decker,Central Railway,Nagpur Division,60
+18,12362,Antyodaya Express,South Central Railway,Guntakal Division,55
+19,12363,Uday Express,Northern Railway,Lucknow Division,50
+20,12364,Clone Train,Western Railway,Ahmedabad Division,45
+21,12365,Holiday Special,Southern Railway,Trichy Division,40
+22,12366,Festival Train,Eastern Railway,Sealdah Division,35
+23,Total,,,Total,1780

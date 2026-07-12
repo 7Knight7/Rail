@@ -1,0 +1,9 @@
+Ref. No.,Complaint Date,Train/Station,Mode,Type,Sub Type,Department,Status
+REF001,2026-07-10,Rajdhani Express,Train,Coach Cleanliness,General,Operations,Pending
+REF002,2026-07-10,Shatabdi Express,Train,Bedroll,Missing,Housekeeping,Resolved
+REF003,2026-07-10,South Central Railway Train,Train,Water Availability,Not Available,Operations,Pending
+REF004,2026-07-10,Duronto Express,Train,Electrical,Fan Not Working,Maintenance,In Progress
+REF005,2026-07-10,Garib Rath,Train,Security,Theft,RPF,Closed
+REF006,2026-07-10,Jan Shatabdi,Train,Catering,Poor Quality,Catering,Pending
+REF007,2026-07-10,Express Train,Train,Coach Maintenance,AC Not Working,Maintenance,Resolved
+REF008,2026-07-10,SCR Express,Train,Cleanliness,Toilets,Housekeeping,Pending

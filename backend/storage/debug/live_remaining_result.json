@@ -1,0 +1,59 @@
+{
+  "success": true,
+  "connected": true,
+  "stopped_early": false,
+  "stop_reason": null,
+  "error": null,
+  "reports": [
+    {
+      "slug": "scr-train",
+      "status": "success",
+      "dataset_key": "scr-train",
+      "source_paths": [
+        "storage\\extracted\\scr-train\\scr-train_complaints_raw.csv"
+      ],
+      "source_csv_path": "storage\\extracted\\scr-train\\scr-train_complaints_raw.csv",
+      "source_row_count": 26,
+      "row_counts": {
+        "unsatisfactory": 26,
+        "expected": 26
+      },
+      "ingestion_success": true,
+      "excel_path": "storage\\output\\excel\\scr-train\\Rail_Madad_Report_5_SCR_Train_Unsatisfactory_11-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\scr-train\\Rail_Madad_Report_5_SCR_Train_Unsatisfactory_11-07-2026.pdf",
+      "pdf_download_url": "/api/v1/automation/reports/scr-train/pdf",
+      "archive_path": null,
+      "error": null,
+      "processing_attempted": true,
+      "processing_success": true,
+      "processor_used": "report5_scr_train_processor",
+      "input_row_count": 26,
+      "processed_row_count": 26
+    },
+    {
+      "slug": "scr-station",
+      "status": "success",
+      "dataset_key": "scr-station",
+      "source_paths": [
+        "storage\\extracted\\scr-station\\scr-station_complaints_raw.csv"
+      ],
+      "source_csv_path": "storage\\extracted\\scr-station\\scr-station_complaints_raw.csv",
+      "source_row_count": 1,
+      "row_counts": {
+        "unsatisfactory": 1,
+        "expected": 1
+      },
+      "ingestion_success": true,
+      "excel_path": "storage\\output\\excel\\scr-station\\Rail_Madad_Report_6_SCR_Station_Unsatisfactory_11-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\scr-station\\Rail_Madad_Report_6_SCR_Station_Unsatisfactory_11-07-2026.pdf",
+      "pdf_download_url": "/api/v1/automation/reports/scr-station/pdf",
+      "archive_path": null,
+      "error": null,
+      "processing_attempted": true,
+      "processing_success": true,
+      "processor_used": "report6_scr_station_processor",
+      "input_row_count": 1,
+      "processed_row_count": 1
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+type_name,csv_path,row_count
+Security,storage\extracted\types\report4_security_raw.csv,10
+Coach Cleanliness,storage\extracted\types\report4_coach_cleanliness_raw.csv,10
+Bedroll,storage\extracted\types\report4_bedroll_raw.csv,10
+Water Availability,storage\extracted\types\report4_water_availability_raw.csv,10
+Electrical Equipment,storage\extracted\types\report4_electrical_equipment_raw.csv,10
+Catering and Vending Services,storage\extracted\types\report4_catering_and_vending_services_raw.csv,10
+Coach Maintenance,storage\extracted\types\report4_coach_maintenance_raw.csv,10

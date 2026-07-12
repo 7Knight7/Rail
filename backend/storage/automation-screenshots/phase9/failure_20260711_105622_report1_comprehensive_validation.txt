@@ -1,0 +1,5 @@
+phase=comprehensive_validation
+report_slug=report1
+url=https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report1&archiveFlag=N
+error=Table contains empty-state message
+timestamp=20260711_105622

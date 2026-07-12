@@ -245,7 +245,11 @@ class FilterService:
                 f"td:text-is('{field.label}') + td select, "
                 f"td:text-is('{field.label}') + td input, "
                 f"label:text-is('{field.label}') + select, "
-                f"label:text-is('{field.label}') + input"
+                f"label:text-is('{field.label}') + input, "
+                f"tr:has(td:has-text('{field.label}')) select, "
+                f"tr:has(th:has-text('{field.label}')) select, "
+                f"td:has-text('{field.label}') + td select, "
+                f"label:has-text('{field.label}') + select"
             ).first
             if await label_locator.count() > 0:
                 return label_locator
@@ -289,18 +293,18 @@ class FilterService:
 
     async def _apply_select(self, locator: Locator, value: str) -> str:
         candidates = [value]
-        if value.lower() == "today":
-            candidates.extend(["Today", "Current Day", "CURRENT DAY", "TODAY"])
-        if value.lower() in {"today", "today_range"}:
+        normalized = value.lower().strip()
+        if normalized in {"previous day", "prev_day", "previous_day", "today_range", "previous_day_range"}:
             candidates.extend(
                 [
-                    "Current Day",
-                    "CURR_DAY",
-                    "Today",
-                    "Current Day",
-                    "TODAY",
+                    "Previous Day",
+                    "PREV_DAY",
+                    "PREVIOUS DAY",
+                    "PreviousDay",
                 ]
             )
+        elif normalized == "today":
+            candidates.extend(["Today", "Current Day", "CURRENT DAY", "TODAY"])
         for candidate in candidates:
             try:
                 await locator.select_option(label=candidate)

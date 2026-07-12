@@ -109,3 +109,45 @@ async def test_get_current_user_authenticated(client: AsyncClient, test_user):
 async def test_get_current_user_unauthenticated(client: AsyncClient):
     response = await client.get("/api/v1/auth/me")
     assert response.status_code == 401
+
+
+async def test_login_trims_username_whitespace(client: AsyncClient, test_user):
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "  testuser  ", "password": "TestPass123"},
+    )
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+
+async def test_registered_user_can_login_immediately(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": "freshuser",
+            "email": "freshuser@example.com",
+            "password": "FreshPass123",
+        },
+    )
+    assert response.status_code == 201
+
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "freshuser", "password": "FreshPass123"},
+    )
+    assert login_response.status_code == 200
+
+
+async def test_refresh_after_login(client: AsyncClient, test_user):
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "password": "TestPass123"},
+    )
+    assert login_response.status_code == 200
+
+    refresh_response = await client.post(
+        "/api/v1/auth/refresh",
+        cookies=login_response.cookies,
+    )
+    assert refresh_response.status_code == 200
+    assert "access_token" in refresh_response.json()

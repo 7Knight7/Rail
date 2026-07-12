@@ -57,6 +57,12 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     setActing(true);
     try {
       const result = await automationApi.start();
+
+      // Don't show toast for login-required error - handled by dialog in useAutomationPage
+      if (result.error_code === "RAILMADAD_NOT_LOGGED_IN") {
+        return result;
+      }
+
       if (result.success) {
         showToast(
           "success",

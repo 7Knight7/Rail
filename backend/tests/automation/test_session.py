@@ -1,192 +1,124 @@
-"""Unit tests for SessionManager tab discovery and activation."""
+"""Unit tests for session management and MIS guards (Phase 9)."""
 
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.automation.session import SessionManager, TabInfo
-
-
-def _make_page(url: str, title: str = "Test") -> MagicMock:
-    page = MagicMock()
-    page.url = url
-    page.title = AsyncMock(return_value=title)
-    page.bring_to_front = AsyncMock()
-    page.screenshot = AsyncMock()
-    return page
-
-
-def _make_browser(contexts_pages: list[list[tuple[str, str]]]) -> MagicMock:
-    """Build browser mock: list of contexts, each with (url, title) page tuples."""
-    contexts = []
-    for pages_data in contexts_pages:
-        context = MagicMock()
-        context.pages = [_make_page(url, title) for url, title in pages_data]
-        contexts.append(context)
-
-    browser = MagicMock()
-    browser.contexts = contexts
-    return browser
-
-
-@pytest.mark.parametrize(
-    ("page_url", "expected"),
-    [
-        ("https://railmadad.indianrail.gov.in/", True),
-        ("https://railmadad.indianrail.gov.in/login", True),
-        ("https://railmadad.indianrail.gov.in", True),
-        ("https://sub.railmadad.example.com/home", True),
-        ("https://google.com", False),
-        ("about:blank", False),
-        ("chrome://newtab/", False),
-    ],
+from app.automation.session import (
+    MIS_URL_PATTERNS,
+    MisSessionStatus,
+    SessionManager,
 )
-def test_is_railmadad_url(page_url: str, expected: bool):
-    base = "https://railmadad.indianrail.gov.in"
-    assert SessionManager.is_railmadad_url(page_url, base) is expected
 
 
 @pytest.mark.asyncio
-async def test_discover_tabs_lists_all_contexts_and_tabs():
-    browser = _make_browser(
-        [
-            [("https://google.com", "Google"), ("https://railmadad.indianrail.gov.in/", "RailMadad")],
-            [("https://example.com", "Example")],
-        ]
-    )
-    session = SessionManager(railmadad_url="https://railmadad.indianrail.gov.in")
+async def test_verify_mis_session_valid_mis_url():
+    session = SessionManager()
+    page = MagicMock()
+    page.url = "https://railmadad.indianrail.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report1"
 
-    tabs = await session.discover_tabs(browser)
+    session.is_login_page = AsyncMock(return_value=False)
 
-    assert len(tabs) == 3
-    assert tabs[0].context_index == 0
-    assert tabs[0].tab_index == 0
-    assert tabs[0].url == "https://google.com"
-    assert tabs[0].is_railmadad is False
-    assert tabs[1].context_index == 0
-    assert tabs[1].tab_index == 1
-    assert tabs[1].is_railmadad is True
-    assert tabs[2].context_index == 1
-    assert tabs[2].tab_index == 0
+    result = await session.verify_mis_session(page)
+
+    assert result.valid is True
+    assert result.error_code is None
 
 
 @pytest.mark.asyncio
-async def test_find_railmadad_tab_prefers_admin_report_over_public_portal():
-    public = TabInfo(
-        0,
-        0,
-        "https://railmadad.indianrailways.gov.in/madad/final/home.jsp",
-        "RailMadad Public",
-        True,
-        _make_page("https://railmadad.indianrailways.gov.in/madad/final/home.jsp"),
-    )
-    admin_report = TabInfo(
-        0,
-        1,
-        "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report1",
-        "",
-        True,
-        _make_page(
-            "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report1"
-        ),
-    )
+async def test_verify_mis_session_public_portal_rejected():
     session = SessionManager()
+    page = MagicMock()
+    page.url = "https://railmadad.indianrail.gov.in/madad/final/home.jsp"
 
-    found = session.find_railmadad_tab([public, admin_report])
+    session.is_login_page = AsyncMock(return_value=False)
+    session._verify_mis_menu = AsyncMock(return_value=False)
 
-    assert found is admin_report
+    result = await session.verify_mis_session(page)
+
+    assert result.valid is False
+    assert result.error_code == "MIS_SESSION_LOST"
 
 
 @pytest.mark.asyncio
-async def test_find_railmadad_tab_prefers_url_fragment_when_provided():
-    admin_other = TabInfo(
-        0,
-        0,
-        "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/other",
-        "",
-        True,
-        _make_page(
-            "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/other"
-        ),
-    )
-    admin_report1 = TabInfo(
-        0,
-        1,
-        "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report1",
-        "",
-        True,
-        _make_page(
-            "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report1"
-        ),
-    )
+async def test_verify_mis_session_login_page_rejected():
     session = SessionManager()
+    page = MagicMock()
+    page.url = "https://railmadad.indianrail.gov.in/rmmis/admin/home.jsp"
 
-    found = session.find_railmadad_tab(
-        [admin_other, admin_report1],
-        prefer_url_fragment="mis_reports/report1",
-    )
+    session.is_login_page = AsyncMock(return_value=True)
 
-    assert found is admin_report1
+    result = await session.verify_mis_session(page)
+
+    assert result.valid is False
+    assert result.error_code == "RAILMADAD_NOT_LOGGED_IN"
 
 
 @pytest.mark.asyncio
-async def test_find_railmadad_tab_returns_first_match():
-    page = _make_page("https://railmadad.indianrail.gov.in/dashboard")
-    tabs = [
-        TabInfo(0, 0, "https://google.com", "Google", False, _make_page("https://google.com")),
-        TabInfo(0, 1, page.url, "RailMadad", True, page),
-    ]
+async def test_verify_mis_session_fallback_to_menu_check():
     session = SessionManager()
+    page = MagicMock()
+    page.url = "https://railmadad.indianrail.gov.in/some/other/page"
 
-    found = session.find_railmadad_tab(tabs)
+    session.is_login_page = AsyncMock(return_value=False)
+    session._verify_mis_menu = AsyncMock(return_value=True)
 
-    assert found is not None
-    assert found.url == page.url
-    assert found.is_railmadad is True
+    result = await session.verify_mis_session(page)
 
-
-def test_find_railmadad_tab_returns_none_when_missing():
-    tabs = [
-        TabInfo(0, 0, "https://google.com", "Google", False, _make_page("https://google.com")),
-    ]
-    session = SessionManager()
-
-    assert session.find_railmadad_tab(tabs) is None
+    assert result.valid is True
 
 
 @pytest.mark.asyncio
-async def test_activate_tab_brings_page_to_front():
-    page = _make_page("https://railmadad.indianrail.gov.in/")
+async def test_verify_mis_session_no_menu_no_mis_url_rejected():
     session = SessionManager()
+    page = MagicMock()
+    page.url = "https://railmadad.indianrail.gov.in/some/other/page"
 
-    await session.activate_tab(page)
+    session.is_login_page = AsyncMock(return_value=False)
+    session._verify_mis_menu = AsyncMock(return_value=False)
 
-    page.bring_to_front.assert_awaited_once()
-    assert session.page is page
+    result = await session.verify_mis_session(page)
+
+    assert result.valid is False
+    assert result.error_code == "MIS_SESSION_LOST"
 
 
 @pytest.mark.asyncio
-async def test_capture_screenshot_saves_file(tmp_path: Path):
-    page = _make_page("https://railmadad.indianrail.gov.in/")
+async def test_verify_mis_menu_finds_menu():
     session = SessionManager()
+    page = MagicMock()
 
-    path = await session.capture_screenshot(page, tmp_path)
+    locator = MagicMock()
+    locator.count = AsyncMock(return_value=1)
+    locator.first.is_visible = AsyncMock(return_value=True)
+    page.locator.return_value = locator
 
-    assert path.startswith(str(tmp_path))
-    assert path.endswith(".png")
-    page.screenshot.assert_awaited_once()
-    kwargs = page.screenshot.call_args.kwargs
-    assert kwargs["full_page"] is True
+    result = await session._verify_mis_menu(page)
+
+    assert result is True
 
 
-def test_tab_info_format_line():
-    tab = TabInfo(
-        context_index=0,
-        tab_index=1,
-        url="https://railmadad.indianrail.gov.in/",
-        title="RailMadad",
-        is_railmadad=True,
-        page=_make_page("https://railmadad.indianrail.gov.in/"),
-    )
-    assert tab.format_line() == "[ctx=0 tab=1] https://railmadad.indianrail.gov.in/ (RailMadad)"
+@pytest.mark.asyncio
+async def test_verify_mis_menu_no_menu():
+    session = SessionManager()
+    page = MagicMock()
+
+    locator = MagicMock()
+    locator.count = AsyncMock(return_value=0)
+    page.locator.return_value = locator
+
+    result = await session._verify_mis_menu(page)
+
+    assert result is False
+
+
+def test_mis_session_status_dataclass():
+    status = MisSessionStatus(valid=False, error_code="MIS_SESSION_LOST", error="Test error")
+    assert status.valid is False
+    assert status.error_code == "MIS_SESSION_LOST"
+    assert status.error == "Test error"
+
+
+def test_mis_url_patterns_cover_expected():
+    assert "/rmmis/admin" in MIS_URL_PATTERNS
+    assert "mis_reports/" in MIS_URL_PATTERNS

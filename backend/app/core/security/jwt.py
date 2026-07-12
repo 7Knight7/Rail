@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 from jose import JWTError, jwt
 
@@ -34,6 +35,7 @@ class JWTHandler:
             "exp": expire,
             "type": "refresh",
             "iat": datetime.now(UTC),
+            "jti": str(uuid4()),
         }
         return jwt.encode(claims, self._secret, algorithm=self._algorithm)
 

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { RailMadadLoginDialog } from "@/features/automation/components/RailMadadLoginDialog";
 import { HomeGenerationProgress } from "@/features/home/components/HomeGenerationProgress";
 import { HomeGenerationTimeline } from "@/features/home/components/HomeGenerationTimeline";
 import { HomeQuickActions } from "@/features/home/components/HomeQuickActions";
@@ -37,58 +38,70 @@ export function HomePage() {
 
   if (showProgress && isAdmin) {
     return (
-      <div className="animate-fade-in space-y-8">
-        <div className="grid gap-6 lg:grid-cols-5">
-          <div className="lg:col-span-3">
-            <HomeGenerationProgress
-              steps={generation.steps}
-              progressPercent={generation.progressPercent}
-              isBusy={generation.isBusy}
-              isPaused={generation.isPaused}
-              hasFailed={generation.hasFailed}
-              isComplete={generation.isComplete}
-              acting={generation.acting}
-              onPause={generation.onPause}
-              onResume={generation.onResume}
-              onStop={generation.onStop}
-            />
+      <>
+        <RailMadadLoginDialog
+          open={generation.showLoginDialog}
+          onClose={generation.onCloseLoginDialog}
+        />
+        <div className="animate-fade-in space-y-8">
+          <div className="grid gap-6 lg:grid-cols-5">
+            <div className="lg:col-span-3">
+              <HomeGenerationProgress
+                steps={generation.steps}
+                progressPercent={generation.progressPercent}
+                isBusy={generation.isBusy}
+                isPaused={generation.isPaused}
+                hasFailed={generation.hasFailed}
+                isComplete={generation.isComplete}
+                acting={generation.acting}
+                onPause={generation.onPause}
+                onResume={generation.onResume}
+                onStop={generation.onStop}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <HomeGenerationTimeline activeStep={pipelineStep} isRunning={isGenerating} />
+            </div>
           </div>
-          <div className="lg:col-span-2">
-            <HomeGenerationTimeline activeStep={pipelineStep} isRunning={isGenerating} />
-          </div>
+          {!generation.isComplete && (
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={generation.onStop}
+                disabled={generation.acting || !generation.isBusy}
+              >
+                Cancel generation
+              </Button>
+            </div>
+          )}
         </div>
-        {!generation.isComplete && (
-          <div className="flex justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={generation.onStop}
-              disabled={generation.acting || !generation.isBusy}
-            >
-              Cancel generation
-            </Button>
-          </div>
-        )}
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="space-y-12 pb-4">
-      <HomeWelcomeSection
-        isAdmin={isAdmin}
-        isStarting={generation.acting}
-        onGenerate={() => void generation.onStart()}
-        disabled={generation.selectedReportIds.length === 0}
+    <>
+      <RailMadadLoginDialog
+        open={generation.showLoginDialog}
+        onClose={generation.onCloseLoginDialog}
       />
+      <div className="space-y-12 pb-4">
+        <HomeWelcomeSection
+          isAdmin={isAdmin}
+          isStarting={generation.acting}
+          onGenerate={() => void generation.onStart()}
+          disabled={generation.selectedReportIds.length === 0}
+        />
 
-      <HomeStatsGrid metrics={STATUS_METRICS} />
+        <HomeStatsGrid metrics={STATUS_METRICS} />
 
-      <HomeReportsGrid />
+        <HomeReportsGrid />
 
-      <HomeRecentActivity />
+        <HomeRecentActivity />
 
-      <HomeQuickActions />
-    </div>
+        <HomeQuickActions />
+      </div>
+    </>
   );
 }

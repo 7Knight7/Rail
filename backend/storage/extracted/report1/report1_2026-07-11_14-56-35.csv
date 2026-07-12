@@ -1,0 +1,21 @@
+﻿S.No.,Organisation,Opening Balance,Received,% Share,Closed,Closing Balance,% Disposal,Avg. Disposal Time,Avg. Rating,Avg. Pendency Time,Forwarded,Avg. FRT
+1,Northern Railway,51,662,12.91,635,78,89.06,0:47,Satisfactory,0:21,812,0:12
+2,Central Railway,22,501,9.77,495,28,94.65,0:19,Satisfactory,0:11,644,0:03
+3,East Central Railway,17,385,7.51,374,28,93.03,0:27,Satisfactory,0:18,447,0:08
+4,North Eastern Railway,7,336,6.55,334,9,97.38,0:18,Satisfactory,0:13,282,0:07
+5,North Central Railway,8,319,6.22,308,19,94.19,0:18,Satisfactory,0:09,380,0:08
+6,Western Railway,0,313,6.10,293,20,93.61,0:18,Satisfactory,0:08,259,0:02
+7,Irctc-Catering,5,309,6.03,244,70,77.71,1:08,Satisfactory,0:19,252,-
+8,Northeast Frontier Railway,29,303,5.91,296,36,89.16,0:44,Satisfactory,0:26,243,0:11
+9,Southern Railway,17,286,5.58,280,23,92.41,0:27,Satisfactory,0:16,425,0:08
+10,South Coast Railway,10,231,4.51,228,13,94.61,0:26,Satisfactory,0:14,320,0:03
+11,West Central Railway,10,230,4.49,237,3,98.75,0:27,Satisfactory,0:15,345,0:09
+12,South Eastern Railway,14,191,3.73,184,21,89.76,0:40,Satisfactory,0:21,189,0:19
+13,Eastern Railway,13,187,3.65,188,12,94.00,0:34,Satisfactory,0:18,233,0:05
+14,East Coast Railway,6,170,3.32,164,12,93.18,0:28,Satisfactory,0:17,144,0:10
+15,Irctc-Online,11,164,3.20,171,4,97.71,0:26,UnSatisfactory,0:21,21,-
+16,South Western Railway,11,164,3.20,161,14,92.00,0:29,Satisfactory,0:19,160,0:05
+17,South Central Railway,4,156,3.04,146,14,91.25,0:25,Satisfactory,0:11,148,0:03
+18,North Western Railway,8,135,2.63,132,11,92.31,0:19,Satisfactory,0:12,244,0:03
+19,South East Central Railway,3,63,1.23,65,1,98.48,0:22,Satisfactory,0:12,76,0:08
+20,Konkan Railway,0,22,0.43,21,1,95.45,1:00,Satisfactory,0:31,22,0:12

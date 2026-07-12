@@ -28,8 +28,9 @@ def resolve_filter_value(value_key: str, date_format: str = "%d/%m/%Y") -> str:
         return datetime.now().strftime(date_format)
     if value_key == "today_iso":
         return datetime.now().strftime("%Y-%m-%d")
-    if value_key == "today_range":
-        return "Current Day"
+    # Alias kept for compatibility; Date Range must always be Previous Day.
+    if value_key in {"today_range", "previous_day_range"}:
+        return "Previous Day"
     return value_key
 
 
@@ -83,7 +84,29 @@ def build_filters_from_discovery(
     slug: str = "report1",
 ) -> list[FilterFieldDefinition]:
     """Build filter definitions from live discovery, with date/today defaults."""
-    if slug != "report1":
+    from app.automation.report_keys import canonicalize_report_key
+
+    # Feedback Tab 6 for Report 1 dual-source is still slug "report6"
+    if slug == "report6":
+        return list(REPORT_6_FILTERS)
+
+    key = canonicalize_report_key(slug)
+    if key == "division":
+        from app.automation.report2_filters import REPORT_2_FILTERS
+        return list(REPORT_2_FILTERS)
+    if key == "train-no":
+        from app.automation.report3_filters import REPORT_3_FILTERS
+        return list(REPORT_3_FILTERS)
+    if key == "types":
+        from app.automation.report4_filters import get_report4_base_filters
+        return list(get_report4_base_filters())
+    if key == "scr-train":
+        from app.automation.report5_filters import REPORT_5_FILTERS
+        return list(REPORT_5_FILTERS)
+    if key == "scr-station":
+        from app.automation.report6_scr_filters import REPORT_6_SCR_FILTERS
+        return list(REPORT_6_SCR_FILTERS)
+    if key != "report1":
         return []
 
     normalized = [normalize_discovered_field(field) for field in discovered]
@@ -110,7 +133,7 @@ def build_filters_from_discovery(
         current_value = str(field.get("current_value") or "")
 
         if field_id == "dateRange" or (field_type == "select" and "date range" in label_lower):
-            value = "today_range"
+            value = "Previous Day"
             required = True
         elif field_type in ("text", "date") and any(
             token in label_lower or token in name_lower
@@ -163,16 +186,86 @@ REPORT_1_FILTERS: list[FilterFieldDefinition] = [
             "select[name*='date'], select[id*='date']"
         ),
         field_type="select",
-        value="today_range",
+        value="Previous Day",
         required=True,
         label="Date Range",
     ),
 ]
 
 
+def _label_select(label: str, value: str, *, required: bool = True) -> FilterFieldDefinition:
+    """Build a select filter resolved primarily by visible label text."""
+    return FilterFieldDefinition(
+        name=label.lower().replace(" ", "_").replace("/", "_").replace(".", ""),
+        selector=(
+            f"tr:has(td:text-is('{label}')) select, "
+            f"tr:has(th:text-is('{label}')) select, "
+            f"td:text-is('{label}') + td select, "
+            f"label:text-is('{label}') + select, "
+            f"tr:has(td:has-text('{label}')) select, "
+            f"tr:has(th:has-text('{label}')) select, "
+            f"td:has-text('{label}') + td select, "
+            f"label:has-text('{label}') + select, "
+            f"select[name*='{label.replace(' ', '')}'], "
+            f"select[id*='{label.replace(' ', '')}']"
+        ),
+        field_type="select",
+        value=value,
+        required=required,
+        label=label,
+    )
+
+
+# Feedback (Report 6) filters per automation spec.
+REPORT_6_FILTERS: list[FilterFieldDefinition] = [
+    FilterFieldDefinition(
+        name="dateRange",
+        selector=(
+            "select[name*='dateRange'], select[id*='dateRange'], "
+            "select[name*='DateRange'], select[id*='DateRange']"
+        ),
+        field_type="select",
+        value="Previous Day",
+        required=True,
+        label="Date Range",
+    ),
+    _label_select("Excluding Refund Cases", "YES"),
+    _label_select("Excluding Inquiry Cases", "YES"),
+    _label_select("Zone", "ALL"),
+    _label_select("Division", "ALL"),
+    _label_select("Department", "ALL"),
+    _label_select("Mode", "ALL"),
+    _label_select("Type", "ALL"),
+    _label_select("Sub Type", "ALL"),
+    _label_select("View", "Zone Wise / Dept. Wise"),
+    _label_select("Excluding Assistance Cases", "Yes"),
+]
+
+
 def filters_for_report(slug: str = "report1") -> list[FilterFieldDefinition]:
-    if slug == "report1":
+    from app.automation.report_keys import canonicalize_report_key
+
+    if slug == "report6":
+        return list(REPORT_6_FILTERS)
+
+    key = canonicalize_report_key(slug)
+    if key == "report1":
         return list(REPORT_1_FILTERS)
+    if key == "division":
+        from app.automation.report2_filters import REPORT_2_FILTERS
+        return list(REPORT_2_FILTERS)
+    if key == "train-no":
+        from app.automation.report3_filters import REPORT_3_FILTERS
+        return list(REPORT_3_FILTERS)
+    if key == "types":
+        from app.automation.report4_filters import get_report4_base_filters
+        return list(get_report4_base_filters())
+    if key == "scr-train":
+        from app.automation.report5_filters import REPORT_5_FILTERS
+        return list(REPORT_5_FILTERS)
+    if key == "scr-station":
+        from app.automation.report6_scr_filters import REPORT_6_SCR_FILTERS
+        return list(REPORT_6_SCR_FILTERS)
     return []
 
 

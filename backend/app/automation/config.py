@@ -1,6 +1,6 @@
 """In-process browser automation configuration from environment variables."""
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,6 +42,11 @@ class AutomationConfig(BaseSettings):
         default="storage/debug",
         description="Directory for Phase 4 debug verification screenshots",
     )
+    downloads_dir: str = Field(
+        default="storage/downloads/report1",
+        validation_alias=AliasChoices("DOWNLOAD_DIR", "DOWNLOADS_DIR"),
+        description="Project download directory (never system Downloads folder)",
+    )
     filter_interaction_delay_ms: int = Field(
         default=500,
         ge=0,
@@ -50,6 +55,26 @@ class AutomationConfig(BaseSettings):
     date_format: str = Field(
         default="%d/%m/%Y",
         description="strftime format for portal date fields",
+    )
+    pdf_archive_dir: str = Field(
+        default="storage/downloads",
+        validation_alias=AliasChoices("PDF_ARCHIVE_DIR"),
+        description="Base directory for archived PDFs",
+    )
+    extracted_data_dir: str = Field(
+        default="storage/extracted",
+        validation_alias=AliasChoices("EXTRACTED_DATA_DIR"),
+        description="Directory for extracted HTML/CSV data",
+    )
+    output_excel_dir: str = Field(
+        default="storage/output/excel",
+        validation_alias=AliasChoices("OUTPUT_EXCEL_DIR"),
+        description="Directory for processed Excel output",
+    )
+    output_pdf_dir: str = Field(
+        default="storage/output/pdf",
+        validation_alias=AliasChoices("OUTPUT_PDF_DIR"),
+        description="Directory for processed PDF output",
     )
 
 

@@ -10,6 +10,8 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
     for key in (
         "CHROME_DEBUG_URL",
         "DOWNLOAD_FOLDER",
+        "DOWNLOAD_DIR",
+        "DOWNLOADS_DIR",
         "TIMEOUT",
         "RETRY_COUNT",
         "RAILMADAD_URL",
@@ -20,10 +22,19 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
     cfg = AutomationConfig(_env_file=None)
     assert cfg.chrome_debug_url == "http://127.0.0.1:9222"
     assert cfg.download_folder == "downloads"
+    assert cfg.downloads_dir == "storage/downloads/report1"
     assert cfg.timeout == 300
     assert cfg.retry_count == 3
     assert cfg.railmadad_url == "https://railmadad.indianrail.gov.in"
     assert cfg.screenshots_dir == "storage/automation-screenshots"
+
+
+def test_reads_download_dir_from_environment(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("DOWNLOAD_DIR", "/tmp/project-downloads/report1")
+
+    cfg = AutomationConfig(_env_file=None)
+
+    assert cfg.downloads_dir == "/tmp/project-downloads/report1"
 
 
 def test_reads_from_environment(monkeypatch: pytest.MonkeyPatch):

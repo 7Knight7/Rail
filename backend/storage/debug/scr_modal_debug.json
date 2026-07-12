@@ -1,0 +1,82 @@
+{
+  "expected": 26,
+  "row_idx": 16,
+  "modals": [
+    {
+      "id": "exampleModal",
+      "className": "modal fade show",
+      "display": "block",
+      "visibility": "visible",
+      "textLen": 1588,
+      "textSnippet": "List of Complaints\n\u00d7\n Excel  Print  PDF\nSearch:\nS. No.\tRef. No.\tRegistration Date\tClosing Date\tMode\tTrain/Station\tChannel\tType\tSub Type\tZone\tDiv\tOwning Zone\tDept\tBreach\tRating\tStatus\tDisposal Time\tOwning Div\n1\t2026071011267\t10-07-26 21:32\t10-07-26 22:32\tT\t17231\tH\tSecurity\tUnauthorized person in Ladies/Disabled Coach/SLR/Reserve Coach\tSC\tHYB\tSO\tCML\tNo\tUnsatisfactory\tClosed\t1:0\tBZA\n2\t2026071010666\t1",
+      "tables": [
+        {
+          "id": "table2",
+          "className": "table table-bordered no-footer dataTable",
+          "thead": [
+            "S. No.",
+            "Ref. No.",
+            "Registration Date",
+            "finalStatus",
+            "Closing Date",
+            "avgcDiff",
+            "Mode",
+            "Train/Station",
+            "Primary Depot",
+            "Channel",
+            "Type",
+            "Sub Type",
+            "Zone",
+            "Div",
+            "Owning Zone",
+            "Dept",
+            "Breach",
+            "Rating",
+            "Status",
+            "Disposal Time",
+            "Owning Div",
+            "commodity",
+            "forwarded",
+            "pnrUtsNo",
+            "coachType",
+            "Berth/Seat No",
+            "feedbackRemark",
+            "nextStation",
+            "contactId",
+            "physicalCoachNo",
+            "trainNameForReport/Station Name",
+            "complaintDesc",
+            "remarks",
+            "userId",
+            "userMobile",
+            "Coach Owning Railway",
+            "Previous Watering Station",
+            "Next Watering Station",
+            "Pre Watering Division",
+            "Pre Watering Zone",
+            "From Station",
+            "To Station"
+          ],
+          "tbodyRows": 10,
+          "firstRow": [
+            "1",
+            "2026071011267",
+            "10-07-26 21:32",
+            "null",
+            "10-07-26 22:32",
+            "null"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "changePasswordAdminModal",
+      "className": "modal",
+      "display": "none",
+      "visibility": "visible",
+      "textLen": 117,
+      "textSnippet": "\n\t\t\n\t\t\t\n\t\t\t\t\n\t\t\t\t\t\u00d7\n\t\t\t\t\n\t\t\t\t\n\t\t\t\t       Change Password Admin \n\t\t\t\t\n\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\t\n\t\t\t\t\n\t\t\t\n\t\t\n\t",
+      "tables": []
+    }
+  ]
+}

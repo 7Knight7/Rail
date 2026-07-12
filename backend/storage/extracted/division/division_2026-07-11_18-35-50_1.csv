@@ -1,0 +1,26 @@
+﻿S.No.,Division,Opening Balance,Received,% Share,Closed,Closing Balance,% Disposal,Avg. Disposal Time,Avg. Rating,Avg. Pendency Time,Forwarded,Avg. FRT
+1,LUCKNOW DIVISION (North Eastern Railway),4,540,5.73,539,5,99.08,0:16,Satisfactory,0:19,286,0:10
+2,DELHI DIVISION (Northern Railway),8,475,5.04,464,19,96.07,0:37,Satisfactory,0:22,502,0:28
+3,LUCKNOW DIVISION (Northern Railway),4,346,3.67,335,15,95.71,0:48,Satisfactory,0:23,323,0:08
+4,IRC (IRCTC),4,297,3.15,288,13,95.68,0:53,UnSatisfactory,0:20,212,-
+5,PRAYAGRAJ DIVISION (North Central Railway),2,281,2.98,281,2,99.29,0:14,Satisfactory,0:11,328,0:04
+6,DANAPUR DIVISION (East Central Railway),5,268,2.84,260,13,95.24,0:24,UnSatisfactory,0:12,335,0:02
+7,LUMDING DIVISION (Northeast Frontier Railway),5,237,2.51,225,17,92.98,0:41,Satisfactory,0:34,189,0:05
+8,SAMASTIPUR DIVISION (East Central Railway),2,223,2.36,224,1,99.56,0:25,Satisfactory,0:12,291,0:13
+9,BOMBAY DIVISION (Central Railway),6,218,2.31,217,7,96.88,0:26,Satisfactory,0:12,228,0:09
+10,PUNE DIVISION (Central Railway),2,215,2.28,214,3,98.62,0:25,Satisfactory,0:11,226,0:01
+11,IRCTC EAST ZONE (IRCTC),3,213,2.26,216,0,100.00,1:29,Satisfactory,0:48,42,-
+12,IRCTC NORTH ZONE (IRCTC),0,213,2.26,213,0,100.00,1:02,UnSatisfactory,0:25,129,-
+13,JABALPUR DIVISION (West Central Railway),4,203,2.15,201,6,97.10,0:22,Satisfactory,0:19,213,0:13
+14,KHURDA DIVISION (East Coast Railway),1,196,2.08,194,3,98.48,0:48,Satisfactory,0:26,160,0:16
+15,JHANSI DIVISION (North Central Railway),5,192,2.04,191,6,96.95,0:17,Satisfactory,0:13,210,0:12
+16,VARANASI DIVISION (North Eastern Railway),3,184,1.95,184,3,98.40,0:22,Satisfactory,0:15,184,0:04
+17,KHARAGPUR DIVISION (South Eastern Railway),10,184,1.95,185,9,95.36,0:44,Satisfactory,0:27,149,0:13
+18,MUMBAI DIVISION (Western Railway),1,179,1.90,178,2,98.89,0:19,Satisfactory,0:11,149,0:23
+19,HOWRAH DIVISION (Eastern Railway),7,178,1.89,176,9,95.14,0:45,Satisfactory,0:23,168,0:09
+20,CHENNAI DIVISION (Southern Railway),1,175,1.86,171,5,97.16,0:36,Satisfactory,0:15,241,0:12
+21,BANGALORE DIVISION (South Western Railway),4,174,1.84,175,3,98.31,0:22,Satisfactory,0:19,170,0:13
+22,MORADABAD DIVISION (Northern Railway),8,166,1.76,164,10,94.25,0:44,Satisfactory,0:24,204,0:19
+23,IRCTC WEST ZONE (IRCTC),1,155,1.64,153,3,98.08,1:11,Satisfactory,0:38,58,-
+24,THIRUVANANTHAPURAM DIVISION (Southern Railway),0,147,1.56,144,3,97.96,0:36,Satisfactory,0:20,161,0:14
+25,SECUNDERABAD DIVISION (South Central Railway),3,140,1.48,140,3,97.90,0:23,Satisfactory,0:15,168,0:08

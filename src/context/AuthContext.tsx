@@ -42,12 +42,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    const response = await authApi.login(credentials);
+    const response = await authApi.login({
+      ...credentials,
+      username: credentials.username.trim(),
+    });
     if (response.csrf_token) {
       setCsrfToken(response.csrf_token);
     }
-    await refreshUser();
-  }, [refreshUser]);
+    const userData = await authApi.getMe(response.access_token);
+    setUser(userData);
+    setSessionExpired(false);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -62,12 +67,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const checkAuth = async () => {
       setIsLoading(true);
       try {
-        const userData = await authApi.getMe();
+        const userData = await authApi.getMe(undefined, true);
         setUser(userData);
-        
-        const refreshResponse = await authApi.refresh();
-        if (refreshResponse.csrf_token) {
-          setCsrfToken(refreshResponse.csrf_token);
+
+        try {
+          const refreshResponse = await authApi.refresh();
+          if (refreshResponse.csrf_token) {
+            setCsrfToken(refreshResponse.csrf_token);
+          }
+        } catch {
+          // Keep authenticated session when access cookie is valid but refresh fails.
         }
       } catch {
         setUser(null);

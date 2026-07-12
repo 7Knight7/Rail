@@ -7,7 +7,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.automation.dependencies import get_automation_service
-from app.automation.schemas import AutomationStartResult
+from app.automation.schemas import MultiReportResult, ReportResult
 from app.domain.entities.user import User, UserRole
 from app.features.auth.dependencies import require_admin, validate_csrf_token
 from app.main import app
@@ -50,51 +50,38 @@ async def api_client(admin_user: User):
 @pytest.mark.asyncio
 async def test_start_automation_success(api_client: AsyncClient):
     mock_service = AsyncMock()
-    mock_service.start.return_value = AutomationStartResult(
+    mock_service.start.return_value = MultiReportResult(
         success=True,
         connected=True,
         tab_found=True,
-        url="https://railmadad.indianrail.gov.in/",
-        title="RailMadad",
-        report_reached=True,
-        report_name="MIS Report 1",
-        screenshot_path="storage/debug/report1.png",
-        report_generated=True,
-        filters_applied=[{"name": "dateRange", "value": "Current Day", "label": "Date Range"}],
-        row_count=5,
-        screenshot_before_path="storage/debug/phase5_before_generate.png",
-        screenshot_after_path="storage/debug/phase5_report_loaded.png",
+        reports=[
+            ReportResult(
+                slug="report1",
+                status="success",
+                excel_path="storage/output/excel/report1/test.xlsx",
+                pdf_path="storage/output/pdf/report1/test.pdf",
+            )
+        ],
     )
     app.dependency_overrides[get_automation_service] = lambda: mock_service
 
     response = await api_client.post("/api/v1/automation/start")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "success": True,
-        "connected": True,
-        "tab_found": True,
-        "url": "https://railmadad.indianrail.gov.in/",
-        "title": "RailMadad",
-        "error": None,
-        "report_reached": True,
-        "report_name": "MIS Report 1",
-        "screenshot_path": "storage/debug/report1.png",
-        "report_generated": True,
-        "filters_applied": [
-            {"name": "dateRange", "value": "Current Day", "label": "Date Range"},
-        ],
-        "row_count": 5,
-        "screenshot_before_path": "storage/debug/phase5_before_generate.png",
-        "screenshot_after_path": "storage/debug/phase5_report_loaded.png",
-    }
+    payload = response.json()
+    assert payload["success"] is True
+    assert payload["connected"] is True
+    assert payload["tab_found"] is True
+    assert payload["reports"][0]["slug"] == "report1"
+    assert payload["reports"][0]["status"] == "success"
+    assert payload["error"] is None
     mock_service.start.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_start_automation_returns_connect_failure_in_body(api_client: AsyncClient):
     mock_service = AsyncMock()
-    mock_service.start.return_value = AutomationStartResult(
+    mock_service.start.return_value = MultiReportResult(
         success=False,
         connected=False,
         tab_found=False,

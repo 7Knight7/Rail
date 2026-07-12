@@ -77,8 +77,12 @@ class NavigationService:
         )
 
         try:
-            await page.goto(target_url, wait_until="networkidle", timeout=timeout_ms)
-            await page.wait_for_load_state("networkidle", timeout=timeout_ms)
+            await page.goto(target_url, wait_until="domcontentloaded", timeout=timeout_ms)
+            try:
+                await page.wait_for_load_state("networkidle", timeout=min(timeout_ms, 20_000))
+            except PlaywrightTimeoutError:
+                logger.debug("networkidle wait skipped after navigate to %s", report.slug)
+            await page.wait_for_timeout(1500)
         except PlaywrightTimeoutError as exc:
             raise NavigationError(
                 f"Timed out navigating to {report.name} at {target_url}"
@@ -89,10 +93,17 @@ class NavigationService:
             ) from exc
 
         if not await self.verify_report_page(page, report):
-            raise NavigationError(
-                f"Report page verification failed for {report.name}. "
-                f"Expected URL fragment '{report.url_fragment}', got '{page.url}'"
-            )
+            # One retry — portal sometimes keeps prior report fragment briefly
+            try:
+                await page.goto(target_url, wait_until="domcontentloaded", timeout=timeout_ms)
+                await page.wait_for_timeout(2000)
+            except Exception:
+                pass
+            if not await self.verify_report_page(page, report):
+                raise NavigationError(
+                    f"Report page verification failed for {report.name}. "
+                    f"Expected URL fragment '{report.url_fragment}', got '{page.url}'"
+                )
 
         self._log_report_verified(report, page)
 

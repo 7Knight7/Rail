@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { automationApi } from "@/api/automation";
 import { useAutomationDashboard } from "@/features/admin/automation/hooks/useAutomationDashboard";
 import type { AutomationWorkspaceProps } from "@/features/automation/components/AutomationWorkspace";
 import { useAutomationRunState } from "@/features/automation/hooks/useAutomationRunState";
@@ -9,6 +10,10 @@ export interface UseAutomationPageReturn extends AutomationWorkspaceProps {
   loading: boolean;
   /** Exposed for future Playwright WebSocket / SSE bridge. */
   handlePlaywrightEvent: ReturnType<typeof useAutomationRunState>["handlePlaywrightEvent"];
+  /** Whether to show the RailMadad login required dialog. */
+  showLoginDialog: boolean;
+  /** Close the login dialog. */
+  onCloseLoginDialog: () => void;
 }
 
 /**
@@ -33,6 +38,8 @@ export function useAutomationPage(): UseAutomationPageReturn {
   const runState = useAutomationRunState();
   const { state, appendActivityLog, handlePlaywrightEvent } = runState;
 
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+
   const activityLog = useMemo(
     () => mergeActivityLogs(state.activityLog, apiLogs),
     [state.activityLog, apiLogs],
@@ -54,11 +61,44 @@ export function useAutomationPage(): UseAutomationPageReturn {
     });
 
     const result = await startInProcess();
+
+    // Check for login required error - show dialog instead of error log
+    if (result?.error_code === "RAILMADAD_NOT_LOGGED_IN") {
+      setShowLoginDialog(true);
+      return;
+    }
+
     if (result?.success) {
       appendActivityLog({
         level: "success",
-        message: `RailMadad tab activated: ${result.title ?? result.url ?? "connected"}`,
+        message: `RailMadad multi-report run finished (${result.reports?.length ?? 0} reports)`,
         source: "playwright",
+      });
+      for (const report of result.reports ?? []) {
+        appendActivityLog({
+          level: report.status === "success" ? "success" : "warning",
+          message: `${report.slug}: ${report.status}${report.pdf_download_url ? ` — ${report.pdf_download_url}` : ""}`,
+          source: "playwright",
+        });
+      }
+      const downloads = (result.reports ?? [])
+        .filter((r) => r.status === "success" && (r.pdf_path || r.pdf_download_url))
+        .map((r) => ({
+          slug: r.slug,
+          datasetKey: r.dataset_key ?? r.slug,
+          pdfDownloadUrl: r.pdf_download_url ?? automationApi.pdfDownloadUrl(r.slug),
+          status: r.status,
+        }));
+      handlePlaywrightEvent({
+        type: "run_completed",
+        summary: {
+          reportsGenerated: downloads.length || (result.reports?.length ?? 0),
+          dashboardUpdated: true,
+          analyticsRefreshed: true,
+          pdfsGenerated: downloads.length,
+          executionTimeMs: 0,
+          reportDownloads: downloads,
+        },
       });
       return;
     }
@@ -68,7 +108,7 @@ export function useAutomationPage(): UseAutomationPageReturn {
       message: result?.error ?? "Playwright could not connect to RailMadad",
       source: "playwright",
     });
-  }, [appendActivityLog, isBusy, startInProcess, state.selectedReportIds.length]);
+  }, [appendActivityLog, handlePlaywrightEvent, isBusy, startInProcess, state.selectedReportIds.length]);
 
   const onStop = useCallback(async () => {
     try {
@@ -109,6 +149,10 @@ export function useAutomationPage(): UseAutomationPageReturn {
     }
   }, [appendActivityLog, handlePlaywrightEvent, resume]);
 
+  const onCloseLoginDialog = useCallback(() => {
+    setShowLoginDialog(false);
+  }, []);
+
   return {
     loading,
     handlePlaywrightEvent,
@@ -128,6 +172,8 @@ export function useAutomationPage(): UseAutomationPageReturn {
     acting,
     hasFailed,
     isComplete,
+    showLoginDialog,
+    onCloseLoginDialog,
     onStart,
     onStop,
     onPause,

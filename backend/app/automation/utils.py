@@ -66,6 +66,12 @@ def ensure_directory(path: Path) -> Path:
     return path
 
 
+def resolve_report_dir(base_dir: str | Path, report_slug: str) -> Path:
+    """Resolve per-report storage dir without double-appending slug."""
+    base = Path(base_dir)
+    return base if base.name == report_slug else base / report_slug
+
+
 def normalize_url(url: str) -> str:
     """Normalize a URL for comparison (lowercase host, no trailing slash)."""
     return url.rstrip("/").lower()

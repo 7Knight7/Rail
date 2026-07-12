@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -15,12 +16,65 @@ from app.core.exceptions import AppException
 
 logger = logging.getLogger(__name__)
 
+# URL patterns that indicate the login page
+LOGIN_URL_PATTERNS = (
+    "/login",
+    "/signin",
+    "/madad/final/login",
+    "/madad/final/index",
+    "index.jsp",
+)
+
+# Selectors that indicate a login form is present
+LOGIN_PAGE_SELECTORS = (
+    "input[name='userName']",
+    "input[name='username']",
+    "input[name='password']",
+    "form[action*='login']",
+    "#loginForm",
+    "#login-form",
+    "button:has-text('Login')",
+    "input[type='submit'][value*='Login']",
+    "input[type='submit'][value*='Sign']",
+)
+
+MIS_URL_PATTERNS = (
+    "/rmmis/admin",
+    "mis_reports/",
+    "/rmmis/",
+)
+
+MIS_MENU_SELECTORS = (
+    "a:has-text('Report')",
+    "a:has-text('MIS')",
+    "[id*='menu']",
+    ".menu",
+    "nav",
+)
+
 
 class RailMadadTabNotFoundError(AppException):
     """Raised when no open tab matches the RailMadad portal URL."""
 
     def __init__(self, message: str = "RailMadad tab not found among open tabs") -> None:
         super().__init__(message=message, code="RAILMADAD_TAB_NOT_FOUND")
+
+
+@dataclass
+class MisSessionStatus:
+    """Result of MIS session verification."""
+
+    valid: bool
+    error_code: str | None = None
+    error: str | None = None
+
+
+class MisSessionError(Exception):
+    """Raised when MIS session is lost or invalid."""
+
+    def __init__(self, status: MisSessionStatus) -> None:
+        self.status = status
+        super().__init__(status.error or "MIS session invalid")
 
 
 @dataclass(frozen=True)
@@ -110,10 +164,29 @@ class SessionManager:
             pages = context.pages
             for tab_index, page in enumerate(pages):
                 url = page.url
+
+                # Skip pages with empty or problematic URLs to avoid hangs
+                if not url or url in ("about:blank", "chrome://newtab/", ""):
+                    logger.debug(
+                        "Skipping page with empty/blank URL: ctx=%d tab=%d",
+                        context_index,
+                        tab_index,
+                    )
+                    continue
+
+                # Use timeout to prevent hanging on unresponsive pages
+                title = ""
                 try:
-                    title = await page.title()
-                except Exception:
-                    title = ""
+                    title = await asyncio.wait_for(page.title(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "Timeout getting title for page: ctx=%d tab=%d url=%s",
+                        context_index,
+                        tab_index,
+                        url[:100],
+                    )
+                except Exception as exc:
+                    logger.debug("Error getting page title: %s", exc)
 
                 is_railmadad = self.is_railmadad_url(url, self._railmadad_url)
                 tab = TabInfo(
@@ -164,6 +237,33 @@ class SessionManager:
         await page.bring_to_front()
         self.bind_page(page)
 
+    async def is_login_page(self, page: Page) -> bool:
+        """Check if current page is RailMadad login page (not logged in)."""
+        url = page.url.lower()
+
+        # Check URL patterns that indicate login page
+        for pattern in LOGIN_URL_PATTERNS:
+            if pattern in url:
+                logger.info("Login page detected via URL pattern: %s", pattern)
+                return True
+
+        # Check for login form elements on the page
+        for selector in LOGIN_PAGE_SELECTORS:
+            try:
+                count = await asyncio.wait_for(
+                    page.locator(selector).count(),
+                    timeout=2.0,
+                )
+                if count > 0:
+                    logger.info("Login page detected via selector: %s", selector)
+                    return True
+            except asyncio.TimeoutError:
+                logger.debug("Timeout checking selector: %s", selector)
+            except Exception as exc:
+                logger.debug("Error checking selector %s: %s", selector, exc)
+
+        return False
+
     async def capture_screenshot(self, page: Page, dest_dir: Path) -> str:
         """Capture a full-page screenshot and return the saved file path."""
         directory = ensure_directory(dest_dir)
@@ -179,3 +279,213 @@ class SessionManager:
         if not source:
             return None
         return source[0].page
+
+    async def verify_mis_session(self, page: Page) -> MisSessionStatus:
+        """Verify the current page is an authenticated MIS admin page.
+
+        Checks:
+        1. URL contains MIS patterns (/rmmis/admin, mis_reports/)
+        2. Not on login page
+        3. MIS menu elements are visible (optional fallback)
+
+        Returns MisSessionStatus with valid=True or error_code.
+        """
+        url = page.url.lower()
+
+        has_mis_url = any(pattern in url for pattern in MIS_URL_PATTERNS)
+        if not has_mis_url:
+            # Public portal pages (not MIS admin)
+            public_patterns = ("/madad/final", "/madad/final/home", "/madad/final/index")
+            is_public = any(p in url for p in public_patterns)
+            if is_public:
+                logger.warning("MIS session lost: URL is public portal: %s", url[:100])
+                return MisSessionStatus(
+                    valid=False,
+                    error_code="MIS_SESSION_LOST",
+                    error="Current page is public RailMadad portal, not authenticated MIS",
+                )
+
+        if await self.is_login_page(page):
+            logger.warning("MIS session lost: login page detected")
+            return MisSessionStatus(
+                valid=False,
+                error_code="RAILMADAD_NOT_LOGGED_IN",
+                error="Session expired or not logged in",
+            )
+
+        if not has_mis_url:
+            menu_visible = await self._verify_mis_menu(page)
+            if not menu_visible:
+                logger.warning("MIS session lost: no MIS URL pattern and menu not visible")
+                return MisSessionStatus(
+                    valid=False,
+                    error_code="MIS_SESSION_LOST",
+                    error="Not on MIS admin page",
+                )
+
+        logger.debug("MIS session verified: %s", url[:100])
+        return MisSessionStatus(valid=True)
+
+    async def _verify_mis_menu(self, page: Page) -> bool:
+        """Check if MIS menu elements are visible on the page."""
+        for selector in MIS_MENU_SELECTORS:
+            try:
+                count = await asyncio.wait_for(
+                    page.locator(selector).count(),
+                    timeout=2.0,
+                )
+                if count > 0:
+                    visible = await page.locator(selector).first.is_visible()
+                    if visible:
+                        return True
+            except asyncio.TimeoutError:
+                continue
+            except Exception as exc:
+                logger.debug("Error checking MIS menu selector %s: %s", selector, exc)
+        return False
+
+    def _is_authenticated_mis_url(self, url: str) -> bool:
+        lower = url.lower()
+        if any(p in lower for p in ("/madad/final",)):
+            # Public portal — not MIS admin
+            if "/rmmis/" not in lower:
+                return False
+        return any(pattern in lower for pattern in MIS_URL_PATTERNS)
+
+    async def find_authenticated_mis_page(
+        self,
+        browser: Browser,
+        *,
+        prefer_url_fragment: str | None = None,
+    ) -> Page | None:
+        """Scan all contexts/pages and return a valid MIS admin page if any."""
+        tabs = await self.discover_tabs(browser)
+        candidates: list[TabInfo] = []
+        for tab in tabs:
+            url = tab.url.lower()
+            if "/rmmis/admin" in url or "mis_reports/" in url or "/rmmis/" in url:
+                if "/madad/final" in url and "/rmmis/" not in url:
+                    continue
+                candidates.append(tab)
+
+        if not candidates:
+            return None
+
+        best = max(
+            candidates,
+            key=lambda tab: self._tab_priority(tab, prefer_url_fragment),
+        )
+        status = await self.verify_mis_session(best.page)
+        if status.valid:
+            return best.page
+
+        # Prefer any candidate that is not a login page even if menu check is soft
+        for tab in sorted(
+            candidates,
+            key=lambda t: self._tab_priority(t, prefer_url_fragment),
+            reverse=True,
+        ):
+            if await self.is_login_page(tab.page):
+                continue
+            if self._is_authenticated_mis_url(tab.url):
+                return tab.page
+        return None
+
+    async def ensure_authenticated_mis_page(
+        self,
+        browser: Browser,
+        current_page: Page | None = None,
+        *,
+        prefer_url_fragment: str | None = None,
+        allow_home_retry: bool = True,
+    ) -> Page:
+        """Return an authenticated MIS page, reacquiring from other tabs if needed.
+
+        Ignores public RailMadad tabs when a valid /rmmis/admin page still exists.
+        Raises MisSessionError only when no authenticated MIS page exists.
+        """
+        # 1) Prefer current page if it is already valid MIS
+        if current_page is not None:
+            status = await self.verify_mis_session(current_page)
+            if status.valid:
+                await self.activate_tab(current_page)
+                return current_page
+
+            # Current page may be public / popup — look for sibling MIS tab
+            mis_page = await self.find_authenticated_mis_page(
+                browser,
+                prefer_url_fragment=prefer_url_fragment,
+            )
+            if mis_page is not None:
+                await self.activate_tab(mis_page)
+                logger.info(
+                    "Reacquired MIS page after public/popup diversion: %s",
+                    mis_page.url[:120],
+                )
+                return mis_page
+
+            if allow_home_retry and self._is_authenticated_mis_url(current_page.url):
+                # Soft retry: navigate once to MIS home
+                try:
+                    origin = f"{urlparse(current_page.url).scheme}://{urlparse(current_page.url).netloc}"
+                    home = f"{origin}/rmmis/admin/home.jsp"
+                    await current_page.goto(home, wait_until="domcontentloaded", timeout=30000)
+                    status = await self.verify_mis_session(current_page)
+                    if status.valid:
+                        await self.activate_tab(current_page)
+                        return current_page
+                except Exception as exc:
+                    logger.warning("MIS home retry failed: %s", exc)
+
+            raise MisSessionError(status)
+
+        # 2) No current page — scan browser
+        mis_page = await self.find_authenticated_mis_page(
+            browser,
+            prefer_url_fragment=prefer_url_fragment,
+        )
+        if mis_page is not None:
+            await self.activate_tab(mis_page)
+            return mis_page
+
+        # 3) Last resort: from any RailMadad tab, navigate once to MIS admin home
+        if allow_home_retry:
+            tabs = await self.discover_tabs(browser)
+            for tab in tabs:
+                if not tab.is_railmadad:
+                    continue
+                try:
+                    parsed = urlparse(tab.url)
+                    if not parsed.scheme or not parsed.netloc:
+                        continue
+                    home = f"{parsed.scheme}://{parsed.netloc}/rmmis/admin/home.jsp"
+                    logger.info("Attempting MIS home navigation from %s -> %s", tab.url[:80], home)
+                    await tab.page.goto(home, wait_until="domcontentloaded", timeout=30000)
+                    status = await self.verify_mis_session(tab.page)
+                    if status.valid:
+                        await self.activate_tab(tab.page)
+                        return tab.page
+                except Exception as exc:
+                    logger.warning("MIS home navigation failed: %s", exc)
+
+        raise MisSessionError(
+            MisSessionStatus(
+                valid=False,
+                error_code="MIS_SESSION_LOST",
+                error="No authenticated MIS admin page found in browser",
+            )
+        )
+
+    async def close_temporary_and_reacquire(
+        self,
+        browser: Browser,
+        temporary_page: Page,
+        mis_page: Page,
+    ) -> Page:
+        """Close a popup/print page and reacquire the original MIS page."""
+        try:
+            if temporary_page != mis_page and not temporary_page.is_closed():
+                await temporary_page.close()
+        except Exception as exc:
+            logger.debug("Could not close temporary page: %s", exc)
+        return await self.ensure_authenticated_mis_page(browser, mis_page)

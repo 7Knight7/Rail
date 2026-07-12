@@ -1,0 +1,251 @@
+{
+  "title": "",
+  "url": "https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report10&archiveFlag=N&Id=null&mobile=null&email=null",
+  "labels": [
+    {
+      "tag": "SPAN",
+      "text": "9) Train Profiling",
+      "id": "",
+      "className": " "
+    },
+    {
+      "tag": "SPAN",
+      "text": "10) Zone/Train Type wise Report",
+      "id": "",
+      "className": " "
+    },
+    {
+      "tag": "SPAN",
+      "text": "11) Train Watering Complaint",
+      "id": "",
+      "className": " "
+    },
+    {
+      "tag": "SPAN",
+      "text": "22) Zone & Cause Wise Complaint/Feedback",
+      "id": "",
+      "className": " "
+    },
+    {
+      "tag": "DIV",
+      "text": "Train Watering Complaints",
+      "id": "accordian",
+      "className": ""
+    },
+    {
+      "tag": "DIV",
+      "text": "Train Watering Complaints",
+      "id": "",
+      "className": "card"
+    },
+    {
+      "tag": "DIV",
+      "text": "Train Watering Complaints",
+      "id": "",
+      "className": "card-header"
+    },
+    {
+      "tag": "SPAN",
+      "text": "Train Watering Complaints",
+      "id": "",
+      "className": "nav-link "
+    },
+    {
+      "tag": "DIV",
+      "text": "Train Profiling",
+      "id": "",
+      "className": "col-md-12 mb-2"
+    },
+    {
+      "tag": "DIV",
+      "text": "Train",
+      "id": "",
+      "className": "col-md-2"
+    },
+    {
+      "tag": "DIV",
+      "text": "Train",
+      "id": "",
+      "className": "form-group"
+    },
+    {
+      "tag": "LABEL",
+      "text": "Train",
+      "id": "",
+      "className": ""
+    }
+  ],
+  "buttons": [
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "MIS Reports",
+      "className": "btn btn-block tempc1 p-0 adminbtn-xl text-left pl-md-3 pl-1"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "Train Watering Complaints",
+      "className": "btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "RailMadad Shield Reports",
+      "className": "btn btn-block p-0 tempc2 adminbtn-xl text-left pl-md-3 pl-1"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "RailMadad Quarter Wise Data",
+      "className": "btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "RailMadad Financial Year Data",
+      "className": "btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "Search Complaint",
+      "className": "btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "Logout",
+      "className": "btn btn-sm float-right custombtnnew btn-info adminbtn"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "Change Password",
+      "className": "btn btn-sm float-right mr-2 custombtnnew btn-info editbtnself adminbtn"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "submitbtn",
+      "text": "Submit",
+      "className": "btn btn-md btn-info"
+    },
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "text": "\u00d7",
+      "className": "close"
+    }
+  ],
+  "inputs": [
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "id": "fromDate",
+      "name": "",
+      "className": "form-control ",
+      "value": "2026-07-11"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "id": "toDate",
+      "name": "",
+      "className": "form-control ",
+      "value": "2026-07-11"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "id": "trainname",
+      "name": "trainno",
+      "className": "form-control",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "id": "archiveFlag",
+      "name": "",
+      "className": "",
+      "value": "N"
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "id": "tempfrom",
+      "name": "",
+      "className": "form-control ",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "id": "tempto",
+      "name": "",
+      "className": "form-control ",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "id": "flag",
+      "name": "",
+      "className": "",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "hidden",
+      "id": "complaintTypeInput",
+      "name": "",
+      "className": "",
+      "value": ""
+    }
+  ],
+  "selects": [
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "id": "dateRange",
+      "name": "",
+      "className": "form-control ",
+      "value": "PREV_DAY"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "id": "assistanceInput",
+      "name": "",
+      "className": "form-control ",
+      "value": "Y"
+    }
+  ],
+  "multiselects": [],
+  "texts": [
+    "RailMadad",
+    "MIS Reports",
+    "Train Watering Complaints",
+    "RailMadad Shield Reports",
+    "RailMadad Quarter Wise Data",
+    "RailMadad Financial Year Data",
+    "Search Complaint",
+    "Welcome: GM_SC",
+    "Logout",
+    "Change Password",
+    "Train Profiling",
+    "Date Range",
+    "Previous Day",
+    "Last 7 Days",
+    "Current Month",
+    "Previous Month",
+    "Current Financial Year",
+    "Previous Financial Year",
+    "Train",
+    "Excluding Assistance Cases",
+    "No",
+    "Yes",
+    "Only Assistance",
+    "Submit"
+  ]
+}

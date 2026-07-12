@@ -15,7 +15,16 @@ from app.infrastructure.database.models import ReportDatasetModel
 logger = logging.getLogger(__name__)
 
 SUPPORTED_REPORT_IDS = frozenset(
-    {"merging", "division", "train-no", "types", "scr-train", "scr-station"}
+    {
+        "merging",
+        "division",
+        "train-no",
+        "types",
+        "scr-train",
+        "scr-station",
+        "report1",
+        "report1_feedback",
+    }
 )
 
 
@@ -73,9 +82,52 @@ class DatasetService:
         self._upload_service = upload_service or UploadService()
         self._parser = SpreadsheetParser()
 
-    def _validate_report_id(self, report_id: str) -> None:
-        if report_id not in SUPPORTED_REPORT_IDS:
+    def _canonical_report_id(self, report_id: str) -> str:
+        from app.automation.report_keys import canonicalize_report_key
+
+        return canonicalize_report_key(report_id)
+
+    def _validate_report_id(self, report_id: str) -> str:
+        canonical = self._canonical_report_id(report_id)
+        if canonical not in SUPPORTED_REPORT_IDS:
             raise NotFoundError("Report dataset", report_id)
+        return canonical
+
+    async def ensure_dataset_exists(self, report_id: str) -> ReportDatasetModel:
+        """Idempotently ensure a dataset row exists (seed from template if missing)."""
+        from app.automation.report_keys import DATASET_TEMPLATES
+        from app.infrastructure.seed.seed_report_datasets import SAMPLE_DIR, _ensure_workbook
+
+        canonical = self._validate_report_id(report_id)
+        existing = await self._repository.get_by_report_id(canonical)
+        if existing is not None:
+            return existing
+
+        template_name = DATASET_TEMPLATES.get(canonical)
+        if template_name is None:
+            # Create a minimal placeholder row without a file
+            return await self._repository.upsert(
+                report_id=canonical,
+                source_filename=f"{canonical}_placeholder.csv",
+                source_file_path=None,
+                header_row=1,
+                row_count=0,
+                columns=[],
+            )
+
+        file_path = SAMPLE_DIR / template_name
+        _ensure_workbook(file_path)
+        await self.ingest_file(
+            canonical,
+            file_path=file_path,
+            source_filename=template_name,
+            header_row=1,
+        )
+        model = await self._repository.get_by_report_id(canonical)
+        if model is None:
+            raise NotFoundError("Report dataset", canonical)
+        logger.info("Ensured dataset exists for report %s via template %s", canonical, template_name)
+        return model
 
     def _to_response(self, model: ReportDatasetModel) -> DatasetMetadataResponse:
         columns_data = json.loads(model.columns_json)
@@ -89,8 +141,8 @@ class DatasetService:
         )
 
     async def get_metadata(self, report_id: str) -> DatasetMetadataResponse:
-        self._validate_report_id(report_id)
-        model = await self._repository.get_by_report_id(report_id)
+        canonical = self._validate_report_id(report_id)
+        model = await self._repository.get_by_report_id(canonical)
         if not model:
             raise NotFoundError("Report dataset", report_id)
         return self._to_response(model)
@@ -103,7 +155,7 @@ class DatasetService:
         header_row: int = 1,
         sheet_name: str | None = None,
     ) -> DatasetMetadataResponse:
-        self._validate_report_id(report_id)
+        canonical = self._validate_report_id(report_id)
 
         for extension in (".xlsx", ".xls", ".csv"):
             try:
@@ -133,14 +185,14 @@ class DatasetService:
 
         row_count = self._count_rows(file_path, header_row=header_row)
         model = await self._repository.upsert(
-            report_id=report_id,
+            report_id=canonical,
             source_filename=file_path.name,
             source_file_path=str(file_path),
             header_row=header_row,
             row_count=row_count,
             columns=columns,
         )
-        logger.info("Ingested dataset metadata for report %s (%s columns)", report_id, len(columns))
+        logger.info("Ingested dataset metadata for report %s (%s columns)", canonical, len(columns))
         return self._to_response(model)
 
     async def ingest_file(
@@ -152,7 +204,7 @@ class DatasetService:
         header_row: int = 1,
         sheet_name: str | None = None,
     ) -> DatasetMetadataResponse:
-        self._validate_report_id(report_id)
+        canonical = self._validate_report_id(report_id)
 
         parsed_columns = self._parser.parse_file(
             file_path,
@@ -173,7 +225,7 @@ class DatasetService:
         row_count = self._count_rows(file_path, header_row=header_row)
 
         model = await self._repository.upsert(
-            report_id=report_id,
+            report_id=canonical,
             source_filename=source_filename,
             source_file_path=str(file_path),
             header_row=header_row,

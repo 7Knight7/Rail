@@ -10,7 +10,7 @@ export class ApiError extends Error {
 
 const API_BASE = "/api/v1";
 export const API_TIMEOUT_MS = 15_000;
-export const AUTOMATION_START_TIMEOUT_MS = 180_000;
+export const AUTOMATION_START_TIMEOUT_MS = 900_000;
 
 async function fetchWithTimeout(
   input: RequestInfo | URL,
@@ -111,7 +111,7 @@ export async function apiRequest<T>(
     if (refreshed) {
       return apiRequest(path, init, true, timeoutMs);
     }
-    
+
     window.dispatchEvent(new window.CustomEvent("auth:session-expired"));
     throw new ApiError("Session expired", 401);
   }

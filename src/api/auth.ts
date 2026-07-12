@@ -38,11 +38,11 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(credentials),
     });
-    
+
     if (response.csrf_token) {
       setCsrfToken(response.csrf_token);
     }
-    
+
     return response;
   },
 
@@ -51,19 +51,23 @@ export const authApi = {
     setCsrfToken(null);
   },
 
-  async getMe(): Promise<User> {
-    return apiRequest<User>("/auth/me");
+  async getMe(accessToken?: string, skipAuthRetry = false): Promise<User> {
+    const headers: Record<string, string> = {};
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return apiRequest<User>("/auth/me", { headers }, skipAuthRetry);
   },
 
   async refresh(): Promise<TokenResponse> {
     const response = await apiRequest<TokenResponse>("/auth/refresh", {
       method: "POST",
     });
-    
+
     if (response.csrf_token) {
       setCsrfToken(response.csrf_token);
     }
-    
+
     return response;
   },
 

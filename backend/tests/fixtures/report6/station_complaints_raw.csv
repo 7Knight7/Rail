@@ -1,0 +1,7 @@
+Ref. No.,Complaint Date,Train/Station,Mode,Type,Sub Type,Department,Status
+REF101,2026-07-10,Secunderabad Station,Station,Cleanliness,Platform,Operations,Pending
+REF102,2026-07-10,Hyderabad Station,Station,Facilities,Waiting Room,Station Master,Resolved
+REF103,2026-07-10,Vijayawada Station,Station,Security,Unauthorized Entry,RPF,In Progress
+REF104,2026-07-10,Guntakal Station,Station,Drinking Water,Not Available,Operations,Pending
+REF105,2026-07-10,Nampally Station,Station,Toilets,Not Clean,Housekeeping,Resolved
+REF106,2026-07-10,South Central Railway Station,Station,Parking,Overcrowded,Traffic,Pending

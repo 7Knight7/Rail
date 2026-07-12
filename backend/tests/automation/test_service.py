@@ -4,18 +4,19 @@ from unittest.mock import patch
 
 import pytest
 
-from app.automation.schemas import AutomationStartResult
+from app.automation.schemas import MultiReportResult, ReportResult
 from app.automation.service import AutomationService
 
 
 @pytest.mark.asyncio
 async def test_start_delegates_to_attach_runner():
-    expected = AutomationStartResult(
+    expected = MultiReportResult(
         success=True,
         connected=True,
         tab_found=True,
-        url="https://railmadad.indianrail.gov.in/",
-        title="RailMadad",
+        reports=[
+            ReportResult(slug="report1", status="success"),
+        ],
     )
     with patch(
         "app.automation.service._run_attach_in_thread",

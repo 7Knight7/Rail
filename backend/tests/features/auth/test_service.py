@@ -82,6 +82,22 @@ async def test_login_user_not_found(auth_service, mock_user_repo):
         )
 
 
+async def test_login_trims_username_before_lookup(
+    auth_service, mock_user_repo, mock_token_repo
+):
+    mock_user = create_mock_user()
+    mock_user_repo.get_by_username.return_value = mock_user
+    mock_user_repo.update_last_login.return_value = None
+    mock_token_repo.create.return_value = None
+
+    await auth_service.login(
+        username="  testuser  ",
+        password="TestPass123",
+    )
+
+    mock_user_repo.get_by_username.assert_called_once_with("testuser")
+
+
 async def test_login_inactive_user(auth_service, mock_user_repo):
     mock_user = create_mock_user(is_active=False)
     mock_user_repo.get_by_username.return_value = mock_user
