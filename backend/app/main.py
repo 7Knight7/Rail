@@ -26,6 +26,9 @@ from app.infrastructure.seed.seed_workflows import seed_workflows
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     setup_logging()
+    from app.features.activity.hub import activity_hub
+
+    activity_hub.bind_loop()
     async with SessionLocal() as session:
         await seed_workflows(session)
         await seed_admin_user(session)

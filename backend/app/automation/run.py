@@ -4,12 +4,23 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from uuid import uuid4
 
 from app.automation.browser import BrowserConnectionError, BrowserManager
+from app.automation.cancellation import (
+    RunCancelledError,
+    clear_cancel,
+    clear_pause,
+    is_cancelled,
+    is_pause_requested,
+    wait_if_paused_async,
+)
 from app.automation.config import config
 from app.automation.handlers import get_handler
 from app.automation.report_keys import canonicalize_report_key
 from app.automation.reports import catalog
+from app.automation.run_context import RunContext, reset_run_context, set_run_context
+from app.automation.run_registry import create_cdp_run, finalize_cdp_run
 from app.automation.schemas import MultiReportResult, ReportResult
 from app.automation.session import (
     MisSessionError,
@@ -17,6 +28,7 @@ from app.automation.session import (
     SessionManager,
     TabInfo,
 )
+from app.automation.timing import RunTiming
 from app.automation.utils import log_automation_event
 from app.automation.workflow import (
     FEEDBACK_DATASET_ID,
@@ -29,6 +41,8 @@ from app.automation.workflow import (
     save_failure_artifacts,
     verify_mis_session_or_raise,
 )
+from app.infrastructure.database.models import AutomationRunModel
+from app.infrastructure.database.session import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +69,87 @@ def _log_tab(tab: TabInfo) -> None:
     logger.info("%s", tab.format_line())
 
 
+async def _emit_report_activity(
+    user_id: str | None,
+    *,
+    run_id: str,
+    slug: str,
+    status: str,
+    error: str | None = None,
+) -> None:
+    if not user_id:
+        return
+    try:
+        from app.features.activity.emit import emit_activity
+
+        if status == "success":
+            await emit_activity(
+                user_id=user_id,
+                action="REPORT_COMPLETED",
+                message=f"Report {slug} completed",
+                status="success",
+                report_slug=slug,
+                run_id=run_id,
+                dedupe_key=f"report_completed:{run_id}:{slug}",
+            )
+        else:
+            await emit_activity(
+                user_id=user_id,
+                action="REPORT_FAILED",
+                message=error or f"Report {slug} failed",
+                status="error",
+                report_slug=slug,
+                run_id=run_id,
+                dedupe_key=f"report_failed:{run_id}:{slug}",
+            )
+    except Exception:
+        pass
+
+
+async def _finalize_failed_run(
+    *,
+    ctx: RunContext,
+    run_id: str,
+    user_id: str | None,
+    result: MultiReportResult,
+    session_lost: bool = False,
+) -> MultiReportResult:
+    """Persist run failure and emit activity (deduped via finalize_cdp_run)."""
+    if session_lost and user_id:
+        try:
+            from app.features.activity.emit import emit_activity
+
+            await emit_activity(
+                user_id=user_id,
+                action="SESSION_LOST",
+                message=result.error or "MIS session lost",
+                status="error",
+                run_id=run_id,
+                dedupe_key=f"session_lost:{run_id}",
+            )
+        except Exception:
+            pass
+    try:
+        async with SessionLocal() as db:
+            await finalize_cdp_run(db, run_id, result, user_id=user_id)
+    except Exception:
+        if user_id:
+            try:
+                from app.features.activity.emit import emit_activity
+
+                await emit_activity(
+                    user_id=user_id,
+                    action="AUTOMATION_FAILED",
+                    message=result.error or "Automation failed",
+                    status="error",
+                    run_id=run_id,
+                    dedupe_key=f"automation_final:{run_id}",
+                )
+            except Exception:
+                pass
+    return result
+
+
 async def _capture_failure_screenshot(
     session: SessionManager,
     tabs: list[TabInfo],
@@ -71,28 +166,185 @@ async def _capture_failure_screenshot(
         return None
 
 
-async def attach_to_railmadad() -> MultiReportResult:
-    """Connect to Chrome over CDP and execute all catalog reports sequentially."""
+async def _register_missing_artifacts(ctx: RunContext, reports: list[ReportResult]) -> None:
+    """Register excel/pdf for reports that processed inline (e.g. report1)."""
+    from app.automation.run_registry import register_artifact
+
+    try:
+        async with SessionLocal() as session:
+            for report in reports:
+                ids = ctx._artifact_ids.get(report.slug) or {}
+                if report.excel_path and "excel" not in ids:
+                    art = await register_artifact(
+                        session,
+                        run_id=ctx.run_id,
+                        report_slug=report.slug,
+                        report_name=report.slug,
+                        file_type="excel",
+                        file_path=report.excel_path,
+                    )
+                    if art:
+                        ctx.remember_artifact(report.slug, "excel", art.id)
+                if report.pdf_path and "pdf" not in ids:
+                    art = await register_artifact(
+                        session,
+                        run_id=ctx.run_id,
+                        report_slug=report.slug,
+                        report_name=report.slug,
+                        file_type="pdf",
+                        file_path=report.pdf_path,
+                    )
+                    if art:
+                        ctx.remember_artifact(report.slug, "pdf", art.id)
+    except Exception as exc:
+        logger.warning("Artifact backfill failed: %s", exc)
+
+
+def _finalize_multi_result(
+    *,
+    ctx: RunContext,
+    connected: bool,
+    report_results: list[ReportResult],
+    success: bool | None = None,
+    stopped_early: bool = False,
+    stop_reason: str | None = None,
+    error: str | None = None,
+    error_code: str | None = None,
+    session_valid: bool = True,
+    tab_found: bool = True,
+) -> MultiReportResult:
+    # Prefer merged deferred results when present
+    merged = {r.slug: r for r in report_results}
+    for r in ctx.get_results():
+        merged[r.slug] = r
+    reports = list(merged.values())
+    # Preserve catalog order
+    order = [canonicalize_report_key(r.slug) for r in catalog.reports]
+    reports.sort(
+        key=lambda r: order.index(r.slug) if r.slug in order else 999
+    )
+
+    timing_payload = ctx.timing.finish()
+    for report in reports:
+        rt = ctx.timing.reports.get(report.slug)
+        if rt:
+            report.started_at = report.started_at or rt.started_at
+            report.completed_at = report.completed_at or rt.completed_at
+            report.duration_seconds = report.duration_seconds or rt.duration_seconds
+            report.extraction_seconds = (
+                report.extraction_seconds or rt.extraction_seconds
+            )
+            report.processing_seconds = (
+                report.processing_seconds or rt.processing_seconds
+            )
+        if report.row_count is None:
+            report.row_count = report.source_row_count
+        ids = ctx._artifact_ids.get(report.slug) or {}
+        if ids.get("pdf"):
+            report.pdf_download_url = (
+                f"/api/v1/automation/artifacts/{ids['pdf']}/download"
+            )
+            report.pdf_preview_url = (
+                f"/api/v1/automation/artifacts/{ids['pdf']}/preview"
+            )
+        if ids.get("excel"):
+            report.excel_download_url = (
+                f"/api/v1/automation/artifacts/{ids['excel']}/download"
+            )
+
+    ok = all(r.status == "success" for r in reports) if success is None else success
+    successful = sum(1 for r in reports if r.status == "success")
+    failed = sum(1 for r in reports if r.status in {"failed", "partial_success"})
+    return MultiReportResult(
+        success=ok and not stopped_early,
+        connected=connected,
+        tab_found=tab_found,
+        reports=reports,
+        stopped_early=stopped_early,
+        stop_reason=stop_reason,
+        error=error,
+        error_code=error_code,
+        session_valid=session_valid,
+        run_id=ctx.run_id,
+        total_duration_seconds=timing_payload.get("total_duration_seconds"),
+        reports_successful=successful,
+        reports_failed=failed,
+        download_all_url=f"/api/v1/automation/runs/{ctx.run_id}/download-all",
+    )
+
+
+async def attach_to_railmadad(
+    *,
+    report_slugs: list[str] | None = None,
+    user_id: str | None = None,
+    run_id: str | None = None,
+) -> MultiReportResult:
+    """Connect to Chrome over CDP and execute catalog reports sequentially."""
     manager = BrowserManager(cdp_url=config.chrome_debug_url)
     session = SessionManager(railmadad_url=config.railmadad_url)
     tabs: list[TabInfo] = []
     connected = False
     report_results: list[ReportResult] = []
 
+    resolved_run_id = run_id or str(uuid4())
     try:
-        log_automation_event(
-            logger,
-            "cdp_connect_attempt",
-            cdp_url=config.chrome_debug_url,
-        )
-        browser = await manager.connect()
-        connected = True
-        log_automation_event(
-            logger,
-            "cdp_connected",
-            cdp_url=config.chrome_debug_url,
-            context_count=len(browser.contexts),
-        )
+        async with SessionLocal() as db:
+            if run_id:
+                existing = await db.get(AutomationRunModel, run_id)
+                if existing is None:
+                    run = await create_cdp_run(db, user_id=user_id, run_id=run_id)
+                    resolved_run_id = run.id
+                else:
+                    resolved_run_id = existing.id
+            else:
+                run = await create_cdp_run(db, user_id=user_id)
+                resolved_run_id = run.id
+    except Exception as exc:
+        logger.warning("Could not persist CDP run row: %s", exc)
+
+    timing = RunTiming(run_id=resolved_run_id)
+    ctx = RunContext(
+        run_id=resolved_run_id,
+        timing=timing,
+        user_id=user_id,
+        defer_processing=True,
+        skip_portal_archive=True,
+    )
+    token = set_run_context(ctx)
+    run_id = resolved_run_id
+
+    if user_id:
+        try:
+            from app.features.activity.emit import emit_activity
+
+            await emit_activity(
+                user_id=user_id,
+                action="AUTOMATION_STARTED",
+                message="Automation run started",
+                status="info",
+                run_id=run_id,
+                dedupe_key=f"automation_started:{run_id}",
+            )
+        except Exception:
+            pass
+
+    try:
+        with timing.span("browser_connect"):
+            log_automation_event(
+                logger,
+                "cdp_connect_attempt",
+                cdp_url=config.chrome_debug_url,
+                run_id=run_id,
+            )
+            browser = await manager.connect()
+            connected = True
+            log_automation_event(
+                logger,
+                "cdp_connected",
+                cdp_url=config.chrome_debug_url,
+                context_count=len(browser.contexts),
+                run_id=run_id,
+            )
 
         tabs = await session.discover_tabs(browser)
         for tab in tabs:
@@ -106,50 +358,171 @@ async def attach_to_railmadad() -> MultiReportResult:
             logger,
             "railmadad_tab_activated",
             url=page.url,
+            run_id=run_id,
         )
         logger.info("RailMadad MIS tab activated: %s", page.url)
 
         if await session.is_login_page(page):
-            return MultiReportResult(
+            result = MultiReportResult(
                 success=False,
                 connected=True,
                 tab_found=True,
                 error="Please log in to RailMadad before generating reports.",
                 error_code="RAILMADAD_NOT_LOGGED_IN",
+                run_id=run_id,
+            )
+            return await _finalize_failed_run(
+                ctx=ctx, run_id=run_id, user_id=user_id, result=result
             )
 
-        log_automation_event(logger, "phase9_validation_started")
+        log_automation_event(logger, "phase9_validation_started", run_id=run_id)
 
-        for report in catalog.reports:
+        selected = catalog.reports
+        if report_slugs:
+            wanted = {canonicalize_report_key(s) for s in report_slugs}
+            selected = [r for r in catalog.reports if canonicalize_report_key(r.slug) in wanted]
+
+        for report in selected:
+            if is_cancelled(run_id):
+                remaining = selected[selected.index(report) :]
+                for pending in remaining:
+                    pending_slug = canonicalize_report_key(pending.slug)
+                    skipped = ReportResult(
+                        slug=pending_slug,
+                        dataset_key=pending_slug,
+                        status="skipped",
+                        error="Cancelled by user",
+                    )
+                    report_results.append(skipped)
+                    ctx.store_partial(skipped)
+                await ctx.wait_all()
+                for r in ctx.get_results():
+                    found = False
+                    for i, existing in enumerate(report_results):
+                        if existing.slug == r.slug:
+                            if existing.status != "skipped":
+                                report_results[i] = r
+                            found = True
+                            break
+                    if not found:
+                        report_results.append(r)
+                result = _finalize_multi_result(
+                    ctx=ctx,
+                    connected=True,
+                    report_results=report_results,
+                    success=False,
+                    stopped_early=True,
+                    stop_reason="USER_CANCELLED",
+                    error="Report generation stopped by user",
+                    error_code="USER_CANCELLED",
+                    session_valid=True,
+                )
+                try:
+                    async with SessionLocal() as db:
+                        await finalize_cdp_run(db, run_id, result, user_id=user_id)
+                except Exception as exc:
+                    logger.warning("Could not finalize cancelled CDP run: %s", exc)
+                clear_cancel(run_id)
+                clear_pause(run_id)
+                return result
+
+            if is_pause_requested(run_id):
+                try:
+                    async with SessionLocal() as db:
+                        from app.automation.run_registry import set_run_status
+
+                        await set_run_status(
+                            db,
+                            run_id,
+                            "paused",
+                            user_id=user_id,
+                            activity_action="AUTOMATION_PAUSED",
+                            activity_message="Report generation paused",
+                        )
+                except Exception:
+                    pass
+                if user_id:
+                    try:
+                        from app.features.activity.emit import emit_activity
+
+                        await emit_activity(
+                            user_id=user_id,
+                            action="AUTOMATION_PAUSED",
+                            message="Report generation paused",
+                            status="warning",
+                            run_id=run_id,
+                            dedupe_key=f"automation_paused:{run_id}",
+                        )
+                    except Exception:
+                        pass
+                await wait_if_paused_async(run_id)
+                if is_cancelled(run_id):
+                    continue
+                try:
+                    async with SessionLocal() as db:
+                        from app.automation.run_registry import set_run_status
+
+                        await set_run_status(
+                            db,
+                            run_id,
+                            "running",
+                            user_id=user_id,
+                        )
+                except Exception:
+                    pass
+
             slug = canonicalize_report_key(report.slug)
-            log_automation_event(logger, "report_started", slug=slug)
+            ctx.timing.start_report(slug)
+            if user_id:
+                try:
+                    from app.features.activity.emit import emit_activity
+
+                    await emit_activity(
+                        user_id=user_id,
+                        action="REPORT_STARTED",
+                        message=f"Report {slug} started",
+                        status="info",
+                        report_slug=slug,
+                        run_id=run_id,
+                        dedupe_key=f"report_started:{run_id}:{slug}",
+                    )
+                except Exception:
+                    pass
 
             try:
+                await ctx.checkpoint("before_handler_execute")
+                if is_cancelled(run_id):
+                    continue
                 page = await session.ensure_authenticated_mis_page(browser, page)
                 handler = get_handler(slug)
                 handler.bind_browser(browser)
-                result = await handler.execute(page, session, report)
+                with timing.span(f"handler_execute:{slug}"):
+                    result = await handler.execute(page, session, report)
                 report_results.append(result)
+                ctx.store_partial(result)
 
-                # Keep page reference fresh after each report
                 page = await session.ensure_authenticated_mis_page(browser, page)
+                ctx.timing.end_report(slug, status=result.status, error=result.error)
+                await _emit_report_activity(
+                    user_id,
+                    run_id=run_id,
+                    slug=slug,
+                    status=result.status,
+                    error=result.error,
+                )
 
-                if result.status == "success":
-                    log_automation_event(
-                        logger,
-                        "report_completed",
-                        slug=slug,
-                        status=result.status,
-                        pdf_download_url=result.pdf_download_url,
-                    )
-                else:
-                    log_automation_event(
-                        logger,
-                        "report_failed",
-                        slug=slug,
-                        status=result.status,
-                        error=result.error,
-                    )
+            except RunCancelledError:
+                skipped = ReportResult(
+                    slug=slug,
+                    dataset_key=slug,
+                    status="skipped",
+                    error="Cancelled by user",
+                )
+                report_results.append(skipped)
+                ctx.store_partial(skipped)
+                ctx.timing.end_report(slug, status="skipped", error="cancelled")
+                # Fall through to top-of-loop cancel handling on next iteration
+                continue
 
             except MisSessionError as exc:
                 failed_result = ReportResult(
@@ -159,24 +532,46 @@ async def attach_to_railmadad() -> MultiReportResult:
                     error=exc.status.error,
                 )
                 report_results.append(failed_result)
-                log_automation_event(
-                    logger,
-                    "report_failed",
+                ctx.timing.end_report(slug, status="failed", error="auth_lost")
+                await _emit_report_activity(
+                    user_id,
+                    run_id=run_id,
                     slug=slug,
-                    error="auth_lost",
-                    error_code=exc.status.error_code,
+                    status="failed",
+                    error=exc.status.error,
                 )
-                return MultiReportResult(
-                    success=False,
+                if user_id:
+                    try:
+                        from app.features.activity.emit import emit_activity
+
+                        await emit_activity(
+                            user_id=user_id,
+                            action="SESSION_LOST",
+                            message=exc.status.error or "MIS session lost",
+                            status="error",
+                            run_id=run_id,
+                            dedupe_key=f"session_lost:{run_id}:{slug}",
+                        )
+                    except Exception:
+                        pass
+                await ctx.wait_all()
+                result = _finalize_multi_result(
+                    ctx=ctx,
                     connected=True,
-                    tab_found=True,
-                    reports=report_results,
+                    report_results=report_results,
+                    success=False,
                     stopped_early=True,
                     stop_reason=exc.status.error_code or "MIS_SESSION_LOST",
                     error=exc.status.error,
                     error_code=exc.status.error_code,
                     session_valid=False,
                 )
+                try:
+                    async with SessionLocal() as db:
+                        await finalize_cdp_run(db, run_id, result, user_id=user_id)
+                except Exception:
+                    pass
+                return result
 
             except Exception as exc:
                 logger.exception("Report %s failed", slug)
@@ -188,57 +583,83 @@ async def attach_to_railmadad() -> MultiReportResult:
                         error=str(exc),
                     )
                 )
-                log_automation_event(
-                    logger,
-                    "report_failed",
+                ctx.timing.end_report(slug, status="failed", error=str(exc))
+                await _emit_report_activity(
+                    user_id,
+                    run_id=run_id,
                     slug=slug,
+                    status="failed",
                     error=str(exc),
                 )
-                # Non-auth failure: try to reacquire MIS and continue
                 try:
                     page = await session.ensure_authenticated_mis_page(browser, page)
                 except MisSessionError as auth_exc:
-                    return MultiReportResult(
-                        success=False,
+                    await ctx.wait_all()
+                    result = _finalize_multi_result(
+                        ctx=ctx,
                         connected=True,
-                        tab_found=True,
-                        reports=report_results,
+                        report_results=report_results,
+                        success=False,
                         stopped_early=True,
                         stop_reason=auth_exc.status.error_code or "MIS_SESSION_LOST",
                         error=auth_exc.status.error,
                         error_code=auth_exc.status.error_code,
                         session_valid=False,
                     )
+                    return await _finalize_failed_run(
+                        ctx=ctx,
+                        run_id=run_id,
+                        user_id=user_id,
+                        result=result,
+                        session_lost=True,
+                    )
 
-        overall_success = all(r.status == "success" for r in report_results)
-        log_automation_event(
-            logger,
-            "multi_report_run_complete",
-            success=overall_success,
-            report_count=len(report_results),
-        )
-
-        return MultiReportResult(
-            success=overall_success,
+        await ctx.wait_all()
+        # Merge deferred results before artifact backfill
+        for r in ctx.get_results():
+            found = False
+            for i, existing in enumerate(report_results):
+                if existing.slug == r.slug:
+                    report_results[i] = r
+                    found = True
+                    break
+            if not found:
+                report_results.append(r)
+        await _register_missing_artifacts(ctx, report_results)
+        result = _finalize_multi_result(
+            ctx=ctx,
             connected=True,
-            tab_found=True,
-            reports=report_results,
+            report_results=report_results,
             session_valid=True,
         )
+        try:
+            async with SessionLocal() as db:
+                await finalize_cdp_run(db, run_id, result, user_id=user_id)
+        except Exception as exc:
+            logger.warning("Could not finalize CDP run row: %s", exc)
+        return result
 
     except MisSessionError as exc:
         logger.error("MIS session lost or invalid", exc_info=True)
         await _capture_failure_screenshot(session, tabs)
-        return MultiReportResult(
-            success=False,
+        await ctx.wait_all()
+        result = _finalize_multi_result(
+            ctx=ctx,
             connected=connected,
-            tab_found=True,
-            reports=report_results,
+            report_results=report_results,
+            success=False,
+            stopped_early=True,
+            stop_reason=exc.status.error_code or "MIS_SESSION_LOST",
             error=exc.status.error,
             error_code=exc.status.error_code,
             session_valid=False,
-            stopped_early=True,
-            stop_reason=exc.status.error_code or "MIS_SESSION_LOST",
+        )
+        return await _finalize_failed_run(
+            ctx=ctx,
+            run_id=run_id,
+            user_id=user_id,
+            result=result,
+            session_lost=True,
         )
 
     except BrowserConnectionError as exc:
@@ -247,11 +668,15 @@ async def attach_to_railmadad() -> MultiReportResult:
             config.chrome_debug_url,
             exc_info=True,
         )
-        return MultiReportResult(
+        result = MultiReportResult(
             success=False,
             connected=False,
             tab_found=False,
             error=exc.message,
+            run_id=run_id,
+        )
+        return await _finalize_failed_run(
+            ctx=ctx, run_id=run_id, user_id=user_id, result=result
         )
 
     except RailMadadTabNotFoundError as exc:
@@ -262,11 +687,15 @@ async def attach_to_railmadad() -> MultiReportResult:
             error=str(exc),
             screenshot_path=screenshot_path,
         )
-        return MultiReportResult(
+        result = MultiReportResult(
             success=False,
             connected=connected,
             tab_found=False,
             error=str(exc),
+            run_id=run_id,
+        )
+        return await _finalize_failed_run(
+            ctx=ctx, run_id=run_id, user_id=user_id, result=result
         )
 
     except Exception as exc:
@@ -279,15 +708,21 @@ async def attach_to_railmadad() -> MultiReportResult:
             screenshot_path=screenshot_path,
         )
         tab_found = connected and any(tab.is_railmadad for tab in tabs)
-        return MultiReportResult(
-            success=False,
+        await ctx.wait_all()
+        result = _finalize_multi_result(
+            ctx=ctx,
             connected=connected,
-            tab_found=tab_found,
-            reports=report_results,
+            report_results=report_results,
+            success=False,
             error=str(exc),
+            tab_found=tab_found,
+        )
+        return await _finalize_failed_run(
+            ctx=ctx, run_id=run_id, user_id=user_id, result=result
         )
 
     finally:
+        reset_run_context(token)
         log_automation_event(
             logger,
             "cdp_disconnect_start",

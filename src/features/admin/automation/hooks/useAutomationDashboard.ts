@@ -53,86 +53,115 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     }
   }, [refresh, showToast]);
 
-  const startInProcess = useCallback(async (): Promise<AutomationStartResult | null> => {
-    setActing(true);
-    try {
-      const result = await automationApi.start();
+  const startInProcess = useCallback(
+    async (options?: {
+      report_slugs?: string[];
+      async_mode?: boolean;
+    }): Promise<AutomationStartResult | null> => {
+      setActing(true);
+      try {
+        const result = await automationApi.start(options);
 
-      // Don't show toast for login-required error - handled by dialog in useAutomationPage
-      if (result.error_code === "RAILMADAD_NOT_LOGGED_IN") {
+        if (result.error_code === "RAILMADAD_NOT_LOGGED_IN") {
+          return result;
+        }
+
+        if (options?.async_mode && result.run_id) {
+          showToast("success", "Automation started", `Run ${result.run_id}`);
+          await refresh();
+          return result;
+        }
+
+        if (result.success) {
+          showToast(
+            "success",
+            "Connected to RailMadad",
+            result.title ?? result.url ?? undefined,
+          );
+        } else {
+          showToast(
+            "error",
+            "Playwright connection failed",
+            result.error ?? "Could not complete RailMadad automation",
+          );
+        }
         return result;
+      } catch (error) {
+        if (error instanceof ApiError) {
+          showToast("error", "Automation request failed", error.message);
+        } else if (error instanceof DOMException && error.name === "AbortError") {
+          showToast(
+            "error",
+            "Automation timed out",
+            "Report generation is still running in Chrome. Check backend logs.",
+          );
+        } else {
+          showToast(
+            "error",
+            "Failed to reach backend",
+            "Ensure the API server is running on http://127.0.0.1:8000",
+          );
+        }
+        return null;
+      } finally {
+        setActing(false);
       }
+    },
+    [refresh, showToast],
+  );
 
-      if (result.success) {
-        showToast(
-          "success",
-          "Connected to RailMadad",
-          result.title ?? result.url ?? undefined,
-        );
-      } else {
-        showToast(
-          "error",
-          "Playwright connection failed",
-          result.error ?? "Could not complete RailMadad automation",
-        );
+  const pause = useCallback(async (runId?: string): Promise<boolean> => {
+    try {
+      const res = await automationApi.pause(runId);
+      if (!res.success) {
+        showToast("error", "Failed to pause", res.message);
+        return false;
       }
-      return result;
+      showToast("info", "Report generation paused");
+      void refresh();
+      return true;
     } catch (error) {
-      if (error instanceof ApiError) {
-        showToast("error", "Automation request failed", error.message);
-      } else if (error instanceof DOMException && error.name === "AbortError") {
-        showToast(
-          "error",
-          "Automation timed out",
-          "Report generation is still running in Chrome. Check backend logs.",
-        );
-      } else {
-        showToast(
-          "error",
-          "Failed to reach backend",
-          "Ensure the API server is running on http://127.0.0.1:8000",
-        );
-      }
-      return null;
-    } finally {
-      setActing(false);
+      const message =
+        error instanceof ApiError ? error.message : "Failed to pause";
+      showToast("error", "Failed to pause", message);
+      return false;
     }
-  }, [showToast]);
+  }, [refresh, showToast]);
 
-  const stop = useCallback(async () => {
+  const resume = useCallback(async (runId?: string): Promise<boolean> => {
+    try {
+      const res = await automationApi.resume(runId);
+      if (!res.success) {
+        showToast("error", "Failed to resume", res.message);
+        return false;
+      }
+      showToast("success", "Report generation resumed");
+      void refresh();
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? error.message : "Failed to resume";
+      showToast("error", "Failed to resume", message);
+      return false;
+    }
+  }, [refresh, showToast]);
+
+  const stop = useCallback(async (runId?: string): Promise<boolean> => {
     setActing(true);
     try {
-      await automationApi.stop();
+      const res = await automationApi.stop(runId);
+      if (!res.success && res.status === "not_found") {
+        showToast("error", "Failed to stop", res.message);
+        return false;
+      }
       showToast("warning", "Report generation stopped");
       await refresh();
-    } catch {
-      showToast("error", "Failed to stop");
-    } finally {
-      setActing(false);
-    }
-  }, [refresh, showToast]);
-
-  const pause = useCallback(async () => {
-    setActing(true);
-    try {
-      await automationApi.pause();
-      showToast("info", "Report generation paused");
-      await refresh();
-    } catch {
-      showToast("error", "Failed to pause");
-    } finally {
-      setActing(false);
-    }
-  }, [refresh, showToast]);
-
-  const resume = useCallback(async () => {
-    setActing(true);
-    try {
-      await automationApi.resume();
-      showToast("success", "Report generation resumed");
-      await refresh();
-    } catch {
-      showToast("error", "Failed to resume");
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? error.message : "Failed to stop";
+      showToast("error", "Failed to stop", message);
+      return false;
     } finally {
       setActing(false);
     }

@@ -164,13 +164,37 @@ class SettingsService:
                 updated_items.append(self._to_item(refreshed))
 
         await settings_cache.invalidate_all()
+        try:
+            from app.features.activity.emit import emit_activity
+
+            await emit_activity(
+                user_id=user_id,
+                action="SETTINGS_UPDATED",
+                message=f"Updated {len(updated_items)} setting(s)",
+                status="info",
+                metadata={"count": len(updated_items)},
+            )
+        except Exception:
+            pass
         return SettingsUpdateResponse(updated=len(updated_items), settings=updated_items)
 
-    async def reset_category(self, category: str) -> int:
+    async def reset_category(self, category: str, *, user_id: str | None = None) -> int:
         if category not in self.CATEGORY_LABELS:
             raise NotFoundError("SettingCategory", category)
         count = await self.repository.reset_category(category)
         await settings_cache.invalidate_all()
+        try:
+            from app.features.activity.emit import emit_activity
+
+            await emit_activity(
+                user_id=user_id,
+                action="SETTINGS_RESET",
+                message=f"Reset settings category '{category}' ({count} value(s))",
+                status="info",
+                metadata={"category": category, "reset_count": count},
+            )
+        except Exception:
+            pass
         return count
 
     async def export_settings(self) -> SettingsExportResponse:
@@ -232,6 +256,18 @@ class SettingsService:
                 skipped += 1
 
         await settings_cache.invalidate_all()
+        try:
+            from app.features.activity.emit import emit_activity
+
+            await emit_activity(
+                user_id=user_id,
+                action="SETTINGS_IMPORTED",
+                message=f"Imported {imported} setting(s)",
+                status="info",
+                metadata={"imported": imported, "skipped": skipped},
+            )
+        except Exception:
+            pass
         return SettingsImportResponse(imported=imported, skipped=skipped, errors=errors)
 
     async def get_value(self, category: str, key: str, *, default: Any = None) -> Any:

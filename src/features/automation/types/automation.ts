@@ -34,11 +34,15 @@ export interface AutomationCompletionSummary {
   analyticsRefreshed: boolean;
   pdfsGenerated: number;
   executionTimeMs: number;
+  runId?: string;
+  downloadAllUrl?: string;
   /** Successful reports with downloadable PDFs */
   reportDownloads?: Array<{
     slug: string;
     datasetKey: string;
     pdfDownloadUrl: string;
+    pdfPreviewUrl?: string;
+    excelDownloadUrl?: string;
     status: string;
   }>;
 }

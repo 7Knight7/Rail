@@ -1,0 +1,44 @@
+{
+  "run_id": "79989332-9259-4ee6-87b0-65b5998f5869",
+  "started_at": "2026-07-12T18:33:55.909971+00:00",
+  "completed_at": "2026-07-12T18:33:55.915264+00:00",
+  "total_duration_seconds": 0.005,
+  "spans": {
+    "browser_connect": 0.0,
+    "nav_filter_submit:report1": 0.0,
+    "report:report1": 0.001,
+    "nav_filter_submit:division": 0.0,
+    "report:division": 0.0,
+    "nav_filter_submit:train-no": 0.004,
+    "report:train-no": 0.004
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-12T18:33:55.910288+00:00",
+      "completed_at": "2026-07-12T18:33:55.910795+00:00",
+      "duration_seconds": 0.001,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "division": {
+      "slug": "division",
+      "started_at": "2026-07-12T18:33:55.910849+00:00",
+      "completed_at": "2026-07-12T18:33:55.911037+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "train-no": {
+      "slug": "train-no",
+      "started_at": "2026-07-12T18:33:55.911073+00:00",
+      "completed_at": "2026-07-12T18:33:55.915196+00:00",
+      "duration_seconds": 0.004,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    }
+  }
+}

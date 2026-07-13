@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "run_id": "06d31f78-a3b2-4cae-8347-5605d39ab441",
+  "wall_clock_seconds": 5.491,
+  "error": null,
+  "error_code": null,
+  "connected": true,
+  "reports": [
+    {
+      "slug": "scr-station",
+      "status": "success",
+      "row_count": 0,
+      "duration_seconds": 3.972,
+      "error": null,
+      "excel_path": "storage\\output\\excel\\scr-station\\Rail_Madad_Report_6_SCR_Station_Unsatisfactory_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\scr-station\\Rail_Madad_Report_6_SCR_Station_Unsatisfactory_13-07-2026.pdf",
+      "source_csv_path": "storage\\extracted\\scr-station\\scr-station_complaints_raw.csv"
+    }
+  ]
+}

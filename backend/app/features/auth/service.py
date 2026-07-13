@@ -102,6 +102,20 @@ class AuthService:
 
         audit_logger.log_login(user.username, ip_address, user_agent, success=True, user_id=user.id)
 
+        try:
+            from app.features.activity.emit import emit_activity
+
+            await emit_activity(
+                user_id=user.id,
+                action="LOGIN",
+                message="Signed in successfully",
+                status="success",
+                dedupe_key=None,
+                metadata={"ip_address": ip_address} if ip_address else None,
+            )
+        except Exception:
+            logger.debug("activity login emit skipped", exc_info=True)
+
         token_response = TokenResponse(
             access_token=access_token,
             expires_in=settings.jwt_access_token_expire_minutes * 60,
@@ -163,6 +177,19 @@ class AuthService:
             username=username,
             ip_address=ip_address,
         )
+
+        try:
+            from app.features.activity.emit import emit_activity
+
+            await emit_activity(
+                user_id=user_id,
+                action="LOGOUT",
+                message="Signed out",
+                status="info",
+                metadata={"ip_address": ip_address} if ip_address else None,
+            )
+        except Exception:
+            logger.debug("activity logout emit skipped", exc_info=True)
 
     async def register(
         self,

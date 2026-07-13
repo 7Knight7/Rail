@@ -1,0 +1,71 @@
+{
+  "run_id": "7e43d23e-3ad9-42d4-bd80-fd5810f5a0b8",
+  "started_at": "2026-07-13T06:35:14.799883+00:00",
+  "completed_at": "2026-07-13T06:35:14.892333+00:00",
+  "total_duration_seconds": 0.092,
+  "spans": {
+    "browser_connect": 0.0,
+    "report:report1": 0.001,
+    "report:division": 0.0,
+    "report:train-no": 0.0,
+    "report:types": 0.0,
+    "report:scr-train": 0.0,
+    "report:scr-station": 0.0
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-13T06:35:14.800274+00:00",
+      "completed_at": "2026-07-13T06:35:14.800781+00:00",
+      "duration_seconds": 0.001,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "division": {
+      "slug": "division",
+      "started_at": "2026-07-13T06:35:14.800848+00:00",
+      "completed_at": "2026-07-13T06:35:14.801025+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "train-no": {
+      "slug": "train-no",
+      "started_at": "2026-07-13T06:35:14.801066+00:00",
+      "completed_at": "2026-07-13T06:35:14.801225+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "types": {
+      "slug": "types",
+      "started_at": "2026-07-13T06:35:14.801265+00:00",
+      "completed_at": "2026-07-13T06:35:14.801437+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "scr-train": {
+      "slug": "scr-train",
+      "started_at": "2026-07-13T06:35:14.801482+00:00",
+      "completed_at": "2026-07-13T06:35:14.801635+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "scr-station": {
+      "slug": "scr-station",
+      "started_at": "2026-07-13T06:35:14.801678+00:00",
+      "completed_at": "2026-07-13T06:35:14.801836+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    }
+  }
+}

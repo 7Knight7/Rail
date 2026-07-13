@@ -7,8 +7,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { closeAllActivityStreams } from "@/api/activity";
 import { authApi, type LoginCredentials, type User } from "@/api/auth";
 import { setCsrfToken } from "@/api/client";
+import { emitClearGenerationUi } from "@/features/automation/utils/generationSession";
 
 interface AuthContextType {
   user: User | null;
@@ -42,6 +44,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
+    // Never reopen a previous generation progress screen after a fresh login.
+    emitClearGenerationUi();
     const response = await authApi.login({
       ...credentials,
       username: credentials.username.trim(),
@@ -58,6 +62,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await authApi.logout();
     } finally {
+      closeAllActivityStreams();
+      emitClearGenerationUi();
       setUser(null);
       setCsrfToken(null);
     }
@@ -91,6 +97,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const handleSessionExpired = () => {
       setSessionExpired(true);
+      closeAllActivityStreams();
+      emitClearGenerationUi();
       setUser(null);
       setCsrfToken(null);
     };

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import csv
 import logging
-from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
@@ -21,7 +20,12 @@ from app.automation.formatting.scr import (
     row_contains_scr,
 )
 from app.automation.processing.base import ProcessingResult
-from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
+from app.automation.utils import (
+    ensure_directory,
+    log_automation_event,
+    previous_day_report_date,
+    resolve_report_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -67,13 +71,15 @@ class Report6Processor:
             return ProcessingResult(success=False, error="PDF cannot be used as processing input")
 
         source_rows, source_headers = self._read_csv(source_a_path)
-        
+
         station_rows = [
             row for row in source_rows
             if mode_matches(self.expected_mode, row.get("Mode", ""))
         ]
 
-        if not station_rows:
+        # Header-only / zero data rows: valid empty-state success (Unsatisfactory count = 0).
+        # Data present but no Station rows: still a failure (wrong mode).
+        if not station_rows and source_rows:
             return ProcessingResult(
                 success=False,
                 error=f"No {self.expected_mode} mode rows found in data",
@@ -83,7 +89,7 @@ class Report6Processor:
 
         output_rows = self._format_output_rows(station_rows)
 
-        report_date = datetime.now().strftime("%d-%m-%Y")
+        report_date = previous_day_report_date()
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
         pdf_dir = ensure_directory(resolve_report_dir(config.output_pdf_dir, report_slug))
         base_name = f"Rail_Madad_Report_6_SCR_Station_Unsatisfactory_{report_date}"

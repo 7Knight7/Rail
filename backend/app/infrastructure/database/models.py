@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -727,6 +727,7 @@ class AutomationRunModel(Base):
     failure_count: Mapped[int] = mapped_column(Integer, default=0)
     current_report_index: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text)
+    result_json: Mapped[str | None] = mapped_column(Text)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[str | None] = mapped_column(
@@ -790,6 +791,8 @@ class AutomationArtifactModel(Base):
     file_path: Mapped[str] = mapped_column(String(1024), nullable=False)
     file_size_bytes: Mapped[int | None] = mapped_column(Integer)
     report_name: Mapped[str | None] = mapped_column(String(128))
+    report_slug: Mapped[str | None] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="ready")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -810,6 +813,7 @@ class ReportDatasetModel(Base):
     report_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     source_filename: Mapped[str] = mapped_column(String(256), nullable=False)
     source_file_path: Mapped[str | None] = mapped_column(String(1024))
+    content_checksum: Mapped[str | None] = mapped_column(String(64), nullable=True)
     header_row: Mapped[int] = mapped_column(Integer, default=1)
     row_count: Mapped[int] = mapped_column(Integer, default=0)
     columns_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
@@ -818,4 +822,33 @@ class ReportDatasetModel(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class UserActivityModel(Base):
+    """Per-user activity feed entries (account-scoped, never secrets)."""
+
+    __tablename__ = "user_activity"
+    __table_args__ = (
+        UniqueConstraint("user_id", "dedupe_key", name="uq_user_activity_dedupe"),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=generate_uuid
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    action: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="info", index=True)
+    report_slug: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    run_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    dedupe_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
     )

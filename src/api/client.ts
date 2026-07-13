@@ -8,7 +8,8 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE = "/api/v1";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
+export { API_BASE };
 export const API_TIMEOUT_MS = 15_000;
 export const AUTOMATION_START_TIMEOUT_MS = 900_000;
 

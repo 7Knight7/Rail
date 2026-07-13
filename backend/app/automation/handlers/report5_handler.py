@@ -5,6 +5,8 @@ from __future__ import annotations
 import csv
 import logging
 import re
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -15,7 +17,6 @@ from app.automation.reports import ReportDefinition
 from app.automation.schemas import ReportResult
 from app.automation.table_extractor import FEEDBACK_ZONE_REQUIRED_HEADERS
 from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
-from app.automation.workflow import ingest_downloaded_file
 
 from .base import BaseReportHandler
 
@@ -40,6 +41,8 @@ class Report5Handler(BaseReportHandler):
         session: "SessionManager",
         report: ReportDefinition,
     ) -> ReportResult:
+        started_at = datetime.now(UTC).isoformat()
+        t0 = time.perf_counter()
         page = await self.ensure_mis_page(page, session, f"{report.slug}_start")
         await self.navigation.navigate_to_report(page, report)
         page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav")
@@ -47,7 +50,9 @@ class Report5Handler(BaseReportHandler):
         report_root, _, _ = await self.apply_filters_and_submit(
             page, report, filters=REPORT_5_FILTERS, session=session
         )
-        await self.click_received_twice(report_root, page, feedback=True)
+        await self.click_received_twice(
+            report_root, page, feedback=True, report_slug=report.slug
+        )
 
         expected_count, complaints, error = await self._extract_scr_complaints(
             page, report_root, report.slug
@@ -73,60 +78,26 @@ class Report5Handler(BaseReportHandler):
                 source_row_count=len(complaints),
             )
 
-        ingestion_success = await ingest_downloaded_file(
-            csv_path,
-            report.slug,
-            source="scr_modal_csv",
-        )
+        await self.archive_pdf(page, report_root, report.slug, session=session)
 
-        if not ingestion_success:
-            return self.build_failed_result(
-                report.slug,
-                "Ingestion failed",
-                partial=True,
-                source_paths=source_paths,
-                row_counts=row_counts,
-                source_csv_path=str(csv_path),
-                source_row_count=len(complaints),
-            )
-
-        archive_success, archive_path, _ = await self.archive_pdf(
-            page, report_root, report.slug, session=session
-        )
-        processing_result = await self.invoke_processor(report.slug, ingestion_success)
-
-        if not processing_result.success:
-            return self.build_failed_result(
-                report.slug,
-                processing_result.error or "Processing failed",
-                partial=True,
-                source_paths=source_paths,
-                row_counts=row_counts,
-                ingestion_success=True,
-                source_csv_path=str(csv_path),
-                source_row_count=len(complaints),
-            )
-
+        extraction_seconds = time.perf_counter() - t0
         log_automation_event(
             logger,
-            "scr_train_complete",
+            "report_extraction_completed",
+            slug=report.slug,
             extracted_count=len(complaints),
             expected_count=expected_count,
+            duration_seconds=round(extraction_seconds, 3),
         )
-
-        return self.build_success_result(
-            report.slug,
+        return await self.finalize_after_extract(
+            slug=report.slug,
+            csv_path=csv_path,
             source_paths=source_paths,
             row_counts=row_counts,
-            excel_path=processing_result.excel_path,
-            pdf_path=processing_result.pdf_path,
-            archive_path=archive_path if archive_success else None,
-            processor_used=processing_result.processor_used,
-            input_row_count=len(complaints),
-            processed_row_count=processing_result.processed_row_count,
-            ingestion_success=True,
-            source_csv_path=str(csv_path),
             source_row_count=len(complaints),
+            ingest_source="scr_modal_csv",
+            started_at=started_at,
+            extraction_seconds=round(extraction_seconds, 3),
         )
 
     async def _extract_scr_complaints(
@@ -365,16 +336,28 @@ class Report5Handler(BaseReportHandler):
         seen_refs: set[str] = set()
 
         while True:
-            await page.wait_for_timeout(500)
             modal_table = page.locator(
-                ".modal table, [role='dialog'] table, #complaintListModal table"
+                "#exampleModal.show table, .modal.show table, "
+                ".modal table, [role='dialog'] table"
             ).first
 
-            if await modal_table.count() == 0:
+            try:
+                await modal_table.wait_for(state="visible", timeout=5000)
+            except Exception:
                 break
 
             headers = await self._extract_table_headers(modal_table)
             rows = modal_table.locator("tbody tr")
+            try:
+                await page.wait_for_function(
+                    """() => {
+                      const t = document.querySelector('#exampleModal.show table tbody, .modal.show table tbody');
+                      return t && t.querySelectorAll('tr').length > 0;
+                    }""",
+                    timeout=10000,
+                )
+            except Exception:
+                pass
             row_count = await rows.count()
 
             if row_count == 0:
@@ -398,14 +381,19 @@ class Report5Handler(BaseReportHandler):
                     all_complaints.append(row_data)
 
             next_button = page.locator(
+                ".modal.show .dataTables_paginate .next:not(.disabled), "
                 ".pagination .next:not(.disabled), "
                 "button:has-text('Next'):not([disabled]), "
-                "a:has-text('Next'):not(.disabled), "
-                ".dataTables_paginate .next:not(.disabled)"
+                "a:has-text('Next'):not(.disabled)"
             )
             if await next_button.count() > 0 and await next_button.first.is_visible():
                 await next_button.first.click()
-                await page.wait_for_timeout(1000)
+                try:
+                    await page.locator(
+                        ".modal table tbody tr, [role='dialog'] table tbody tr"
+                    ).first.wait_for(state="attached", timeout=2_000)
+                except Exception:
+                    await page.wait_for_timeout(150)
             else:
                 break
 
@@ -413,12 +401,16 @@ class Report5Handler(BaseReportHandler):
 
     async def _close_modal(self, page: "Page") -> None:
         close_buttons = page.locator(
-            ".modal .close, [role='dialog'] button[aria-label='Close'], "
-            ".modal button:has-text('Close'), .modal .btn-close"
+            ".modal.show .close, .modal.show .btn-close, "
+            "[role='dialog'] button[aria-label='Close'], "
+            ".modal button:has-text('Close')"
         )
         if await close_buttons.count() > 0:
             await close_buttons.first.click()
-            await page.wait_for_timeout(500)
+            try:
+                await page.wait_for_selector(".modal.show", state="hidden", timeout=5000)
+            except Exception:
+                pass
 
     def _save_complaints_csv(
         self,

@@ -28,6 +28,18 @@ async def seed_admin_user(session: AsyncSession) -> None:
     user_repo = UserRepository(session)
     existing = await user_repo.get_by_username(username)
     if existing:
+        # Dev-only: keep local admin password aligned with .env so login doesn't drift.
+        if not settings.is_production and not password_hasher.verify(
+            password, existing.password_hash
+        ):
+            logger.warning(
+                "Admin user %r password does not match DEFAULT_ADMIN_PASSWORD; resetting (dev)",
+                username,
+            )
+            await user_repo.update_password(
+                existing.id, password_hasher.hash(password)
+            )
+            return
         logger.info("Admin user %r already exists, skipping", username)
         return
 

@@ -4,6 +4,7 @@ import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { ApiError } from "@/api/client";
 import { useAuth } from "@/context/AuthContext";
 import { RailMadadLogo } from "@/components/branding/RailMadadLogo";
 import { Alert } from "@/components/ui/Alert";
@@ -23,6 +24,22 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 interface LocationState {
   from?: { pathname: string };
+}
+
+function loginErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401 || error.status === 403) {
+      return "Invalid username or password. Please try again.";
+    }
+    if (error.status >= 500) {
+      return "Server error. Please try again in a moment.";
+    }
+    return error.message || "Sign in failed. Please try again.";
+  }
+  if (error instanceof TypeError || (error instanceof DOMException && error.name === "AbortError")) {
+    return "Cannot reach the API server. Ensure it is running on http://127.0.0.1:8000.";
+  }
+  return "Cannot reach the API server. Ensure it is running on http://127.0.0.1:8000.";
 }
 
 export function LoginPage() {
@@ -52,8 +69,8 @@ export function LoginPage() {
         remember_me: data.remember_me,
       });
       void navigate(from, { replace: true });
-    } catch {
-      setError("Invalid username or password. Please try again.");
+    } catch (err) {
+      setError(loginErrorMessage(err));
     }
   };
 

@@ -2,7 +2,7 @@
  * Automation orchestration API client
  */
 
-import { apiRequest, AUTOMATION_START_TIMEOUT_MS } from "./client";
+import { apiRequest, API_BASE, AUTOMATION_START_TIMEOUT_MS } from "./client";
 
 export interface AutomationRunSummary {
   id: string;
@@ -57,12 +57,20 @@ export interface ReportResult {
   dataset_key?: string | null;
   source_csv_path?: string | null;
   source_row_count?: number | null;
+  row_count?: number | null;
   ingestion_success?: boolean;
   excel_path?: string | null;
   pdf_path?: string | null;
   pdf_download_url?: string | null;
+  excel_download_url?: string | null;
+  pdf_preview_url?: string | null;
   error?: string | null;
   processing_success?: boolean;
+  started_at?: string | null;
+  completed_at?: string | null;
+  duration_seconds?: number | null;
+  extraction_seconds?: number | null;
+  processing_seconds?: number | null;
 }
 
 export interface AutomationStartResult {
@@ -77,6 +85,11 @@ export interface AutomationStartResult {
   stopped_early?: boolean;
   stop_reason?: string | null;
   session_valid?: boolean;
+  run_id?: string | null;
+  total_duration_seconds?: number | null;
+  reports_successful?: number;
+  reports_failed?: number;
+  download_all_url?: string | null;
   report_reached?: boolean;
   report_name?: string | null;
   screenshot_path?: string | null;
@@ -117,6 +130,45 @@ export interface AutomationStartResult {
   source_b_rows?: number | null;
 }
 
+export interface AutomationArtifact {
+  id: string;
+  run_id: string;
+  report_slug?: string | null;
+  report_name?: string | null;
+  file_type: string;
+  file_size?: number | null;
+  created_at?: string | null;
+  status: string;
+  preview_url?: string | null;
+  download_url?: string | null;
+}
+
+export interface AutomationRunDetail {
+  run_id: string;
+  status: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  success_count: number;
+  failure_count: number;
+  error?: string | null;
+  total_duration_seconds?: number | null;
+  reports_successful: number;
+  reports_failed: number;
+  download_all_url?: string | null;
+  reports: ReportResult[];
+  result?: AutomationStartResult | null;
+}
+
+export interface CdpRunSummary {
+  run_id: string;
+  status: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  success_count: number;
+  failure_count: number;
+  download_all_url?: string | null;
+}
+
 export const automationApi = {
   async getStatus(): Promise<AutomationStatus> {
     return apiRequest<AutomationStatus>("/automation/status");
@@ -138,43 +190,141 @@ export const automationApi = {
     });
   },
 
-  async start(): Promise<AutomationStartResult> {
+  async start(options?: {
+    report_slugs?: string[];
+    async_mode?: boolean;
+  }): Promise<AutomationStartResult> {
     return apiRequest<AutomationStartResult>(
       "/automation/start",
       {
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          report_slugs: options?.report_slugs ?? null,
+          async_mode: options?.async_mode ?? false,
+        }),
       },
       false,
-      AUTOMATION_START_TIMEOUT_MS,
+      options?.async_mode ? 60_000 : AUTOMATION_START_TIMEOUT_MS,
     );
   },
 
-  pdfDownloadUrl(reportKey: string): string {
-    return `/api/v1/automation/reports/${encodeURIComponent(reportKey)}/pdf`;
+  async getRun(runId: string): Promise<AutomationRunDetail> {
+    return apiRequest<AutomationRunDetail>(`/automation/runs/${encodeURIComponent(runId)}`);
   },
 
-  async downloadPdf(reportKey: string): Promise<Blob> {
-    const response = await fetch(this.pdfDownloadUrl(reportKey), {
+  async getRunArtifacts(runId: string): Promise<AutomationArtifact[]> {
+    return apiRequest<AutomationArtifact[]>(
+      `/automation/runs/${encodeURIComponent(runId)}/artifacts`,
+    );
+  },
+
+  async listCdpRuns(limit = 20): Promise<CdpRunSummary[]> {
+    return apiRequest<CdpRunSummary[]>(`/automation/cdp-runs?limit=${limit}`);
+  },
+
+  artifactPreviewUrl(artifactId: string): string {
+    return `${API_BASE}/automation/artifacts/${encodeURIComponent(artifactId)}/preview`;
+  },
+
+  artifactDownloadUrl(artifactId: string): string {
+    return `${API_BASE}/automation/artifacts/${encodeURIComponent(artifactId)}/download`;
+  },
+
+  downloadAllUrl(runId: string): string {
+    return `${API_BASE}/automation/runs/${encodeURIComponent(runId)}/download-all`;
+  },
+
+  pdfDownloadUrl(reportKey: string): string {
+    return `${API_BASE}/automation/reports/${encodeURIComponent(reportKey)}/pdf`;
+  },
+
+  parseFilenameFromDisposition(header: string | null, fallback: string): string {
+    if (!header) return fallback;
+    const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+    if (utfMatch?.[1]) {
+      try {
+        return decodeURIComponent(utfMatch[1].trim());
+      } catch {
+        return utfMatch[1].trim();
+      }
+    }
+    const plainMatch = /filename="?([^";]+)"?/i.exec(header);
+    if (plainMatch?.[1]) return plainMatch[1].trim();
+    return fallback;
+  },
+
+  async downloadBlob(
+    url: string,
+    fallbackFilename = "download.bin",
+  ): Promise<{ blob: Blob; filename: string }> {
+    let fetchUrl = url;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      if (url.startsWith("/api/v1/")) {
+        fetchUrl = `${API_BASE}${url.slice("/api/v1".length)}`;
+      } else if (url.startsWith("/")) {
+        fetchUrl = `${API_BASE}${url}`;
+      } else {
+        fetchUrl = `${API_BASE}/${url}`;
+      }
+    }
+    const response = await fetch(fetchUrl, {
       method: "GET",
       credentials: "include",
-      headers: { Accept: "application/pdf" },
     });
     if (!response.ok) {
-      throw new Error(`PDF download failed for ${reportKey}: ${response.status}`);
+      throw new Error(`Download failed: ${response.status}`);
     }
-    return response.blob();
+    const blob = await response.blob();
+    const filename = this.parseFilenameFromDisposition(
+      response.headers.get("Content-Disposition"),
+      fallbackFilename,
+    );
+    return { blob, filename };
   },
 
-  async stop(): Promise<{ success: boolean; status: string; message: string }> {
+  async downloadPdf(reportKey: string): Promise<{ blob: Blob; filename: string }> {
+    return this.downloadBlob(this.pdfDownloadUrl(reportKey), `${reportKey}.pdf`);
+  },
+
+  async stop(runId?: string): Promise<{
+    success: boolean;
+    status: string;
+    message: string;
+    run_id?: string;
+  }> {
+    if (runId) {
+      return apiRequest(`/automation/runs/${encodeURIComponent(runId)}/stop`, {
+        method: "POST",
+      });
+    }
     return apiRequest("/automation/stop", { method: "POST" });
   },
 
-  async pause(): Promise<{ success: boolean; status: string; message: string }> {
+  async pause(runId?: string): Promise<{
+    success: boolean;
+    status: string;
+    message: string;
+    run_id?: string;
+  }> {
+    if (runId) {
+      return apiRequest(`/automation/runs/${encodeURIComponent(runId)}/pause`, {
+        method: "POST",
+      });
+    }
     return apiRequest("/automation/pause", { method: "POST" });
   },
 
-  async resume(): Promise<{ success: boolean; status: string; message: string }> {
+  async resume(runId?: string): Promise<{
+    success: boolean;
+    status: string;
+    message: string;
+    run_id?: string;
+  }> {
+    if (runId) {
+      return apiRequest(`/automation/runs/${encodeURIComponent(runId)}/resume`, {
+        method: "POST",
+      });
+    }
     return apiRequest("/automation/resume", { method: "POST" });
   },
 

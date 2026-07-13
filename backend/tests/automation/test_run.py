@@ -44,22 +44,41 @@ async def test_attach_returns_multi_report_result_on_success():
 
     mock_handler = MagicMock()
     mock_handler.bind_browser = MagicMock()
-    mock_handler.execute = AsyncMock(
-        return_value=ReportResult(slug="report1", dataset_key="report1", status="success")
-    )
+
+    async def _execute(_page, _session, report):
+        from app.automation.report_keys import canonicalize_report_key
+
+        key = canonicalize_report_key(report.slug)
+        return ReportResult(slug=key, dataset_key=key, status="success")
+
+    mock_handler.execute = AsyncMock(side_effect=_execute)
 
     with (
         patch("app.automation.run.BrowserManager", return_value=mock_manager),
         patch("app.automation.run.SessionManager", return_value=mock_session),
         patch("app.automation.run.get_handler", return_value=mock_handler),
+        patch("app.automation.run.SessionLocal") as mock_db,
+        patch("app.automation.run._register_missing_artifacts", AsyncMock()),
     ):
-        result = await attach_to_railmadad()
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__ = AsyncMock(return_value=MagicMock())
+        mock_cm.__aexit__ = AsyncMock(return_value=None)
+        mock_db.return_value = mock_cm
+        with patch(
+            "app.automation.run.create_cdp_run",
+            AsyncMock(return_value=MagicMock(id="test-run-id")),
+        ), patch(
+            "app.automation.run.finalize_cdp_run",
+            AsyncMock(),
+        ):
+            result = await attach_to_railmadad()
 
     assert isinstance(result, MultiReportResult)
     assert result.success is True
     assert result.connected is True
     assert result.tab_found is True
     assert len(result.reports) == 6
+    assert result.run_id == "test-run-id"
     mock_manager.close.assert_awaited_once()
 
 
@@ -106,12 +125,10 @@ async def test_attach_returns_failure_on_connect_error():
     with patch("app.automation.run.BrowserManager", return_value=mock_manager):
         result = await attach_to_railmadad()
 
-    assert result == MultiReportResult(
-        success=False,
-        connected=False,
-        tab_found=False,
-        error="Connection refused",
-    )
+    assert result.success is False
+    assert result.connected is False
+    assert result.tab_found is False
+    assert result.error == "Connection refused"
     mock_manager.close.assert_awaited_once()
 
 

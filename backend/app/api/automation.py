@@ -1,19 +1,36 @@
-"""API routes for in-process browser automation."""
+"""API routes for in-process browser automation and run artifacts."""
+
+from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.automation.config import config
 from app.automation.dependencies import get_automation_service
 from app.automation.report_keys import canonicalize_report_key
+from app.automation.run_registry import (
+    ArtifactPathError,
+    artifact_public_dict,
+    build_download_all_zip,
+    get_artifact,
+    list_run_artifacts,
+    public_report_dict,
+    scrub_multi_result,
+    validate_artifact_file,
+)
 from app.automation.schemas import MultiReportResult
 from app.automation.service import AutomationService
 from app.domain.entities.user import User
 from app.features.auth.dependencies import require_admin, validate_csrf_token
+from app.infrastructure.database.models import AutomationRunModel
+from app.infrastructure.database.session import get_db_session
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +46,50 @@ ALLOWED_PDF_KEYS = frozenset(
         "scr-station",
     }
 )
+
+
+class ArtifactMeta(BaseModel):
+    id: str
+    run_id: str
+    report_slug: str | None = None
+    report_name: str | None = None
+    file_type: str
+    file_size: int | None = None
+    created_at: str | None = None
+    status: str = "ready"
+    preview_url: str | None = None
+    download_url: str | None = None
+
+
+class RunDetailResponse(BaseModel):
+    run_id: str
+    status: str
+    started_at: str | None = None
+    completed_at: str | None = None
+    success_count: int = 0
+    failure_count: int = 0
+    error: str | None = None
+    total_duration_seconds: float | None = None
+    reports_successful: int = 0
+    reports_failed: int = 0
+    download_all_url: str | None = None
+    reports: list[dict[str, Any]] = Field(default_factory=list)
+    result: MultiReportResult | None = None
+
+
+class StartAutomationRequest(BaseModel):
+    report_slugs: list[str] | None = None
+    async_mode: bool = False
+
+
+class StartAcceptedResponse(BaseModel):
+    run_id: str
+    status: str = "running"
+    message: str = "Automation started"
+    success: bool = True
+    connected: bool = False
+    tab_found: bool = False
+    reports: list[dict[str, Any]] = Field(default_factory=list)
 
 
 def _resolve_latest_pdf(report_key: str) -> Path:
@@ -61,28 +122,40 @@ def _resolve_latest_pdf(report_key: str) -> Path:
 
 @router.post(
     "/start",
-    response_model=MultiReportResult,
     dependencies=[Depends(require_admin), Depends(validate_csrf_token)],
 )
 async def start_automation(
     service: Annotated[AutomationService, Depends(get_automation_service)],
     _user: Annotated[User, Depends(require_admin)],
-) -> MultiReportResult:
-    """Connect to Chrome via CDP and run all catalog reports."""
+    body: StartAutomationRequest = StartAutomationRequest(),
+) -> MultiReportResult | StartAcceptedResponse:
+    """Connect to Chrome via CDP and run catalog reports.
+
+    When ``async_mode`` is true, returns ``run_id`` immediately; poll GET /runs/{id}.
+    """
+    report_slugs = body.report_slugs
+    if body.async_mode:
+        run_id, status = await service.start_async(
+            user_id=_user.id, report_slugs=report_slugs
+        )
+        logger.info("Automation async start: run_id=%s", run_id)
+        return StartAcceptedResponse(run_id=run_id, status=status)
+
     try:
-        result = await service.start()
+        result = await service.start(user_id=_user.id, report_slugs=report_slugs)
     except Exception as exc:
         logger.exception("Unexpected automation start failure")
         raise HTTPException(status_code=500, detail="Automation failed to start") from exc
 
     logger.info(
-        "Automation start completed: success=%s connected=%s tab_found=%s report_count=%s",
+        "Automation start completed: success=%s connected=%s tab_found=%s report_count=%s run_id=%s",
         result.success,
         result.connected,
         result.tab_found,
         len(result.reports),
+        result.run_id,
     )
-    return result
+    return scrub_multi_result(result)
 
 
 @router.get(
@@ -96,9 +169,360 @@ async def download_report_pdf(
     """Download the latest final PDF for a report (restricted to storage/output/pdf)."""
     pdf_path = _resolve_latest_pdf(report_key)
     logger.info("Serving PDF for %s: %s", report_key, pdf_path)
+    try:
+        from app.features.activity.emit import emit_activity
+
+        canonical = canonicalize_report_key(report_key)
+        await emit_activity(
+            user_id=_user.id,
+            action="PDF_DOWNLOADED",
+            message=f"Downloaded latest PDF for {canonical}",
+            status="success",
+            report_slug=canonical,
+            dedupe_key=f"pdf_latest_downloaded:{canonical}:{pdf_path.name}",
+            metadata={"filename": pdf_path.name},
+        )
+    except Exception:
+        pass
     return FileResponse(
         path=str(pdf_path),
         media_type="application/pdf",
         filename=pdf_path.name,
         content_disposition_type="attachment",
     )
+
+
+@router.get(
+    "/runs/{run_id}",
+    response_model=RunDetailResponse,
+    dependencies=[Depends(require_admin)],
+)
+async def get_run(
+    run_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> RunDetailResponse:
+    run = await db.get(AutomationRunModel, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    result: MultiReportResult | None = None
+    reports: list[dict[str, Any]] = []
+    total_duration = None
+    if run.result_json:
+        try:
+            parsed = MultiReportResult.model_validate_json(run.result_json)
+            result = scrub_multi_result(parsed)
+            reports = [public_report_dict(r) for r in result.reports]
+            total_duration = result.total_duration_seconds
+        except Exception:
+            result = None
+
+    # Enrich missing URLs from registered artifacts
+    try:
+        artifacts = await list_run_artifacts(db, run_id)
+        by_slug: dict[str, dict[str, str]] = {}
+        for art in artifacts:
+            slug = art.report_slug or ""
+            by_slug.setdefault(slug, {})[art.artifact_type] = art.id
+        for report in reports:
+            slug = report.get("slug") or ""
+            ids = by_slug.get(slug) or {}
+            if ids.get("pdf") and not report.get("pdf_download_url"):
+                report["pdf_download_url"] = f"/api/v1/automation/artifacts/{ids['pdf']}/download"
+                report["pdf_preview_url"] = f"/api/v1/automation/artifacts/{ids['pdf']}/preview"
+            if ids.get("excel") and not report.get("excel_download_url"):
+                report["excel_download_url"] = (
+                    f"/api/v1/automation/artifacts/{ids['excel']}/download"
+                )
+    except Exception:
+        pass
+
+    return RunDetailResponse(
+        run_id=run.id,
+        status=run.status,
+        started_at=run.started_at.isoformat() if run.started_at else None,
+        completed_at=run.completed_at.isoformat() if run.completed_at else None,
+        success_count=run.success_count,
+        failure_count=run.failure_count,
+        error=run.error_message,
+        total_duration_seconds=total_duration,
+        reports_successful=result.reports_successful if result else run.success_count,
+        reports_failed=result.reports_failed if result else run.failure_count,
+        download_all_url=f"/api/v1/automation/runs/{run.id}/download-all",
+        reports=reports,
+        result=result,
+    )
+
+
+class StopRunResponse(BaseModel):
+    success: bool
+    status: str
+    message: str
+    run_id: str
+
+
+@router.post(
+    "/runs/{run_id}/stop",
+    response_model=StopRunResponse,
+    dependencies=[Depends(require_admin), Depends(validate_csrf_token)],
+)
+async def stop_run(
+    run_id: str,
+    service: Annotated[AutomationService, Depends(get_automation_service)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> StopRunResponse:
+    """Stop an in-process CDP run at the next report checkpoint."""
+    result = await service.stop(run_id, user_id=_user.id)
+    if result.get("status") == "not_found":
+        raise HTTPException(status_code=404, detail="Run not found")
+    return StopRunResponse(
+        success=bool(result["success"]),
+        status=str(result["status"]),
+        message=str(result["message"]),
+        run_id=str(result["run_id"]),
+    )
+
+
+@router.post(
+    "/runs/{run_id}/pause",
+    response_model=StopRunResponse,
+    dependencies=[Depends(require_admin), Depends(validate_csrf_token)],
+)
+async def pause_run(
+    run_id: str,
+    service: Annotated[AutomationService, Depends(get_automation_service)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> StopRunResponse:
+    """Pause an in-process CDP run at the next cooperative checkpoint."""
+    result = await service.pause(run_id, user_id=_user.id)
+    if result.get("status") == "not_found":
+        raise HTTPException(status_code=404, detail="Run not found")
+    if not result.get("success"):
+        raise HTTPException(status_code=409, detail=str(result.get("message")))
+    return StopRunResponse(
+        success=bool(result["success"]),
+        status=str(result["status"]),
+        message=str(result["message"]),
+        run_id=str(result["run_id"]),
+    )
+
+
+@router.post(
+    "/runs/{run_id}/resume",
+    response_model=StopRunResponse,
+    dependencies=[Depends(require_admin), Depends(validate_csrf_token)],
+)
+async def resume_run(
+    run_id: str,
+    service: Annotated[AutomationService, Depends(get_automation_service)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> StopRunResponse:
+    """Resume a paused in-process CDP run."""
+    result = await service.resume(run_id, user_id=_user.id)
+    if result.get("status") == "not_found":
+        raise HTTPException(status_code=404, detail="Run not found")
+    if not result.get("success"):
+        raise HTTPException(status_code=409, detail=str(result.get("message")))
+    return StopRunResponse(
+        success=bool(result["success"]),
+        status=str(result["status"]),
+        message=str(result["message"]),
+        run_id=str(result["run_id"]),
+    )
+
+
+@router.get(
+    "/runs/{run_id}/artifacts",
+    response_model=list[ArtifactMeta],
+    dependencies=[Depends(require_admin)],
+)
+async def get_run_artifacts(
+    run_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> list[ArtifactMeta]:
+    run = await db.get(AutomationRunModel, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    artifacts = await list_run_artifacts(db, run_id)
+    return [ArtifactMeta(**artifact_public_dict(a)) for a in artifacts]
+
+
+@router.get(
+    "/artifacts/{artifact_id}/preview",
+    dependencies=[Depends(require_admin)],
+)
+async def preview_artifact(
+    artifact_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> FileResponse:
+    artifact = await get_artifact(db, artifact_id)
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    if artifact.artifact_type != "pdf":
+        raise HTTPException(status_code=400, detail="Only PDF artifacts support preview")
+    run = await db.get(AutomationRunModel, artifact.run_id)
+    if run and run.created_by and run.created_by != _user.id and not _user.can_access_admin():
+        raise HTTPException(status_code=403, detail="Artifact not accessible")
+    try:
+        path = validate_artifact_file(
+            Path(artifact.file_path),
+            require_pdf_header=True,
+            file_type="pdf",
+        )
+    except ArtifactPathError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    try:
+        from app.features.activity.emit import emit_activity
+
+        await emit_activity(
+            user_id=_user.id,
+            action="PDF_PREVIEWED",
+            message=f"Previewed PDF for {artifact.report_slug or 'report'}",
+            status="info",
+            report_slug=artifact.report_slug,
+            run_id=artifact.run_id,
+            dedupe_key=f"pdf_previewed:{artifact_id}",
+            metadata={"artifact_id": artifact_id},
+        )
+    except Exception:
+        pass
+    return FileResponse(
+        path=str(path),
+        media_type="application/pdf",
+        filename=path.name,
+        content_disposition_type="inline",
+    )
+
+
+@router.get(
+    "/artifacts/{artifact_id}/download",
+    dependencies=[Depends(require_admin)],
+)
+async def download_artifact(
+    artifact_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> FileResponse:
+    artifact = await get_artifact(db, artifact_id)
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+    run = await db.get(AutomationRunModel, artifact.run_id)
+    if run and run.created_by and run.created_by != _user.id and not _user.can_access_admin():
+        raise HTTPException(status_code=403, detail="Artifact not accessible")
+    try:
+        path = validate_artifact_file(
+            Path(artifact.file_path),
+            require_pdf_header=artifact.artifact_type == "pdf",
+            file_type=artifact.artifact_type,
+        )
+    except ArtifactPathError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    if artifact.artifact_type == "pdf" and path.suffix.lower() != ".pdf":
+        raise HTTPException(status_code=400, detail="PDF suffix required")
+
+    media = (
+        "application/pdf"
+        if artifact.artifact_type == "pdf"
+        else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    try:
+        from app.features.activity.emit import emit_activity
+
+        action = (
+            "PDF_DOWNLOADED" if artifact.artifact_type == "pdf" else "EXCEL_DOWNLOADED"
+        )
+        await emit_activity(
+            user_id=_user.id,
+            action=action,
+            message=f"Downloaded {artifact.artifact_type} for {artifact.report_slug or 'report'}",
+            status="success",
+            report_slug=artifact.report_slug,
+            run_id=artifact.run_id,
+            dedupe_key=f"{artifact.artifact_type}_downloaded:{artifact_id}",
+            metadata={"artifact_id": artifact_id},
+        )
+    except Exception:
+        pass
+    return FileResponse(
+        path=str(path),
+        media_type=media,
+        filename=path.name,
+        content_disposition_type="attachment",
+    )
+
+
+@router.get(
+    "/runs/{run_id}/download-all",
+    dependencies=[Depends(require_admin)],
+)
+async def download_all_artifacts(
+    run_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> Response:
+    run = await db.get(AutomationRunModel, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    artifacts = await list_run_artifacts(db, run_id)
+    payload = build_download_all_zip(artifacts)
+    if not payload:
+        raise HTTPException(status_code=404, detail="No downloadable artifacts for this run")
+    try:
+        from app.features.activity.emit import emit_activity
+
+        await emit_activity(
+            user_id=_user.id,
+            action="ZIP_DOWNLOADED",
+            message=f"Downloaded ZIP for run {run_id}",
+            status="success",
+            run_id=run_id,
+            dedupe_key=f"zip_downloaded:{run_id}",
+            metadata={"artifact_count": len(artifacts)},
+        )
+    except Exception:
+        pass
+    from app.automation.utils import previous_day_report_date
+
+    zip_name = f"Rail_Madad_Reports_{previous_day_report_date()}.zip"
+    return Response(
+        content=payload,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{zip_name}"'
+        },
+    )
+
+
+@router.get(
+    "/cdp-runs",
+    dependencies=[Depends(require_admin)],
+)
+async def list_cdp_runs(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _user: Annotated[User, Depends(require_admin)],
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """List recent in-process CDP automation runs."""
+    result = await db.execute(
+        select(AutomationRunModel)
+        .where(AutomationRunModel.trigger_type == "cdp_in_process")
+        .order_by(AutomationRunModel.created_at.desc())
+        .limit(limit)
+    )
+    runs = list(result.scalars().all())
+    return [
+        {
+            "run_id": r.id,
+            "status": r.status,
+            "started_at": r.started_at.isoformat() if r.started_at else None,
+            "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+            "success_count": r.success_count,
+            "failure_count": r.failure_count,
+            "download_all_url": f"/api/v1/automation/runs/{r.id}/download-all",
+        }
+        for r in runs
+    ]

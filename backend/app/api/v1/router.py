@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.automation import router as in_process_automation_router
+from app.features.activity.controller import router as activity_router
 from app.features.auth.controller import router as auth_router
 from app.features.automation.controller import router as automation_router
 from app.features.health.controller import router as health_router
@@ -11,10 +11,12 @@ from app.features.templates.controller import router as templates_router
 from app.features.datasets.controller import router as datasets_router
 from app.features.uploads.controller import router as uploads_router
 from app.features.workflows.controller import router as workflows_router
+from app.api.automation import router as in_process_automation_router
 
 api_router = APIRouter()
 api_router.include_router(health_router)
 api_router.include_router(auth_router)
+api_router.include_router(activity_router)
 api_router.include_router(workflows_router)
 api_router.include_router(uploads_router)
 api_router.include_router(datasets_router)

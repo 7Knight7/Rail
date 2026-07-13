@@ -16,11 +16,13 @@ from app.automation.processing.service import process_report
 from app.automation.report1_filters import build_filters_from_discovery
 from app.automation.report_keys import canonicalize_report_key, pdf_download_url
 from app.automation.reports import ReportDefinition
+from app.automation.run_context import get_run_context
 from app.automation.schemas import ReportResult
 from app.automation.session import MisSessionError, SessionManager
 from app.automation.table_extractor import ExtractionResult, TableExtractor
 from app.automation.table_sort import ReceivedColumnService
 from app.automation.utils import log_automation_event, resolve_report_dir
+from datetime import UTC, datetime
 
 if TYPE_CHECKING:
     from playwright.async_api import Browser, Page
@@ -63,6 +65,10 @@ class BaseReportHandler(ABC):
         context: str = "operation",
     ) -> "Page":
         """Reacquire authenticated MIS page; raise MisSessionError only if none exists."""
+        ctx = get_run_context()
+        if ctx is not None:
+            await ctx.checkpoint(f"ensure_mis:{context}")
+
         if self._browser is not None:
             mis_page = await session.ensure_authenticated_mis_page(
                 self._browser,
@@ -104,60 +110,102 @@ class BaseReportHandler(ABC):
 
         Returns (report_root, applied_values, row_count).
         """
-        if session is not None:
-            page = await self.ensure_mis_page(page, session, f"{report.slug}_before_submit")
-
-        report_root = await self.filter_service.get_report_root(page)
-
-        if filters is None:
-            discovered_fields = await self.discovery_service.discover_fields(page)
-            filters = build_filters_from_discovery(discovered_fields, report.slug)
-
-        applied_values = await self.filter_service.apply_filters(
-            report_root,
-            filters,
-            page=page,
+        key = canonicalize_report_key(report.slug)
+        ctx = get_run_context()
+        span_cm = (
+            ctx.timing.report_span(key, "nav_filter_submit")
+            if ctx is not None
+            else None
         )
-        await self.filter_service.validate_mandatory(report_root, filters, applied_values)
 
-        # Verify Previous Day was applied when dateRange is present
-        date_applied = None
-        for name, value in applied_values.items():
-            if "date" in name.lower() and "range" in name.lower():
-                date_applied = value
-                break
-        if date_applied is None:
-            date_applied = applied_values.get("dateRange")
-        if date_applied and "previous day" not in str(date_applied).lower():
-            log_automation_event(
-                logger,
-                "date_range_mismatch",
-                applied=date_applied,
-                expected="Previous Day",
+        async def _body() -> tuple:
+            nonlocal page
+            ctx_inner = get_run_context()
+            if ctx_inner is not None:
+                await ctx_inner.checkpoint(f"filters:{report.slug}")
+            if session is not None:
+                page = await self.ensure_mis_page(
+                    page, session, f"{report.slug}_before_submit"
+                )
+
+            report_root = await self.filter_service.get_report_root(page)
+
+            if filters is None:
+                discovered_fields = await self.discovery_service.discover_fields(page)
+                filters_local = build_filters_from_discovery(discovered_fields, report.slug)
+            else:
+                filters_local = filters
+
+            applied_values = await self.filter_service.apply_filters(
+                report_root,
+                filters_local,
+                page=page,
             )
-            raise ReportGenerationError(
-                f"Date Range must be Previous Day before Submit, got: {date_applied}"
+            await self.filter_service.validate_mandatory(
+                report_root, filters_local, applied_values
             )
 
-        await self.generator.generate_report(report_root, page)
-        row_count = await self.generator.count_rows(report_root)
+            # Verify Previous Day was applied when dateRange is present
+            date_applied = None
+            for name, value in applied_values.items():
+                if "date" in name.lower() and "range" in name.lower():
+                    date_applied = value
+                    break
+            if date_applied is None:
+                date_applied = applied_values.get("dateRange")
+            if date_applied and "previous day" not in str(date_applied).lower():
+                log_automation_event(
+                    logger,
+                    "date_range_mismatch",
+                    applied=date_applied,
+                    expected="Previous Day",
+                )
+                raise ReportGenerationError(
+                    f"Date Range must be Previous Day before Submit, got: {date_applied}"
+                )
 
-        if not await self.generator.verify_report_displayed(report_root):
-            raise ReportGenerationError(f"Report {report.slug} did not display after generate")
+            await self.generator.generate_report(report_root, page)
+            row_count = await self.generator.count_rows(report_root)
 
-        return report_root, applied_values, row_count
+            if not await self.generator.verify_report_displayed(report_root):
+                raise ReportGenerationError(
+                    f"Report {report.slug} did not display after generate"
+                )
+
+            return report_root, applied_values, row_count
+
+        if span_cm is not None:
+            with span_cm:
+                return await _body()
+        return await _body()
 
     async def click_received_twice(
         self,
         report_root: Any,
         page: "Page",
         feedback: bool = False,
+        *,
+        report_slug: str | None = None,
     ) -> None:
         """Click Received or Feedback Received column header twice for descending sort."""
-        if feedback:
-            await self.received_service.sort_feedback_received_descending(report_root, page)
+        ctx = get_run_context()
+        if ctx is not None:
+            await ctx.checkpoint(f"sort:{report_slug or 'received'}")
+        slug = canonicalize_report_key(report_slug) if report_slug else None
+
+        async def _sort() -> None:
+            if feedback:
+                await self.received_service.sort_feedback_received_descending(
+                    report_root, page
+                )
+            else:
+                await self.received_service.sort_received_descending(report_root, page)
+
+        if ctx is not None and slug:
+            with ctx.timing.report_span(slug, "sorting"):
+                await _sort()
         else:
-            await self.received_service.sort_received_descending(report_root, page)
+            await _sort()
 
     async def extract_table_data(
         self,
@@ -230,8 +278,22 @@ class BaseReportHandler(ABC):
         existing_pdf_path: Path | None = None,
         session: SessionManager | None = None,
     ) -> tuple[bool, str | None, str | None]:
-        """Archive PDF for the report. Returns (success, archive_path, error)."""
+        """Archive PDF for the report. Returns (success, archive_path, error).
+
+        Skips portal PDF click when RunContext.skip_portal_archive is set
+        (Reports 2–6 use processor PDFs). Report 1 still passes existing_pdf_path.
+        """
         key = canonicalize_report_key(report_slug)
+        ctx = get_run_context()
+        if ctx is not None and ctx.skip_portal_archive and existing_pdf_path is None:
+            log_automation_event(
+                logger,
+                "pdf_archive_skipped",
+                slug=key,
+                reason="processor_pdf_preferred",
+            )
+            return True, None, None
+
         if session is not None:
             page = await self.ensure_mis_page(page, session, f"{key}_before_pdf")
 
@@ -255,6 +317,178 @@ class BaseReportHandler(ABC):
         except Exception as exc:
             logger.warning("PDF archive failed for %s: %s", key, exc)
             return False, None, str(exc)
+
+    async def finalize_after_extract(
+        self,
+        *,
+        slug: str,
+        csv_path: Path,
+        source_paths: list[str] | None = None,
+        row_counts: dict[str, int] | None = None,
+        source_row_count: int | None = None,
+        archive_path: str | None = None,
+        ingest_source: str = "html_extracted_csv",
+        started_at: str | None = None,
+        extraction_seconds: float | None = None,
+    ) -> ReportResult:
+        """Ingest + process, optionally deferred via RunContext process pool."""
+        key = canonicalize_report_key(slug)
+        ctx = get_run_context()
+        if ctx is not None:
+            await ctx.checkpoint("after_extract_before_process")
+
+        paths = source_paths or [str(csv_path)]
+        counts = row_counts or {"extracted": source_row_count or 0}
+        row_count = source_row_count
+        if row_count is None and counts:
+            row_count = next(iter(counts.values()), None)
+
+        partial = ReportResult(
+            slug=key,
+            dataset_key=key,
+            status="partial_success",
+            source_paths=paths,
+            source_csv_path=str(csv_path),
+            source_row_count=row_count,
+            row_counts=counts,
+            archive_path=archive_path,
+            started_at=started_at,
+            extraction_seconds=extraction_seconds,
+            row_count=row_count,
+            processing_attempted=False,
+            processing_success=False,
+            ingestion_success=False,
+            error="Extracted; ingest/process pending",
+        )
+
+        if ctx is not None:
+            ctx.store_partial(partial)
+            ctx.timing.record_report_span(
+                key, "extraction", extraction_seconds or 0.0
+            )
+
+        async def _work() -> ReportResult:
+            from app.automation.workflow import ingest_downloaded_file
+            from app.automation.run_registry import register_artifact
+            from app.infrastructure.database.session import SessionLocal
+
+            ingestion_success = await ingest_downloaded_file(
+                csv_path, key, source=ingest_source
+            )
+            if not ingestion_success:
+                return self.build_failed_result(
+                    key,
+                    "Ingestion failed",
+                    partial=True,
+                    source_paths=paths,
+                    row_counts=counts,
+                    source_csv_path=str(csv_path),
+                    source_row_count=row_count,
+                )
+
+            processing_result = await self.invoke_processor(key, ingestion_success)
+            if not processing_result.success:
+                return self.build_failed_result(
+                    key,
+                    processing_result.error or "Processing failed",
+                    partial=True,
+                    source_paths=paths,
+                    row_counts=counts,
+                    ingestion_success=True,
+                    source_csv_path=str(csv_path),
+                    source_row_count=row_count,
+                )
+
+            result = self.build_success_result(
+                key,
+                source_paths=paths,
+                row_counts=counts,
+                excel_path=processing_result.excel_path,
+                pdf_path=processing_result.pdf_path,
+                archive_path=archive_path,
+                processor_used=processing_result.processor_used,
+                input_row_count=row_count,
+                processed_row_count=processing_result.processed_row_count,
+                ingestion_success=True,
+                source_csv_path=str(csv_path),
+                source_row_count=row_count,
+            )
+            result.started_at = started_at
+            result.extraction_seconds = extraction_seconds
+            result.row_count = row_count
+            result.completed_at = datetime.now(UTC).isoformat()
+
+            # Gate terminal success on non-empty Excel/PDF artifacts
+            excel_ok = bool(
+                processing_result.excel_path
+                and Path(processing_result.excel_path).is_file()
+                and Path(processing_result.excel_path).stat().st_size > 0
+            )
+            pdf_ok = bool(
+                processing_result.pdf_path
+                and Path(processing_result.pdf_path).is_file()
+                and Path(processing_result.pdf_path).stat().st_size > 0
+            )
+            if not (excel_ok and pdf_ok):
+                return self.build_failed_result(
+                    key,
+                    "Processor completed but Excel/PDF missing or empty",
+                    partial=True,
+                    source_paths=paths,
+                    row_counts=counts,
+                    ingestion_success=True,
+                    source_csv_path=str(csv_path),
+                    source_row_count=row_count,
+                )
+
+            if ctx is not None:
+                async with SessionLocal() as session:
+                    artifact_ids: dict[str, str] = {}
+                    if processing_result.excel_path:
+                        art = await register_artifact(
+                            session,
+                            run_id=ctx.run_id,
+                            report_slug=key,
+                            report_name=key,
+                            file_type="excel",
+                            file_path=processing_result.excel_path,
+                        )
+                        if art:
+                            artifact_ids["excel"] = art.id
+                            ctx.remember_artifact(key, "excel", art.id)
+                    if processing_result.pdf_path:
+                        art = await register_artifact(
+                            session,
+                            run_id=ctx.run_id,
+                            report_slug=key,
+                            report_name=key,
+                            file_type="pdf",
+                            file_path=processing_result.pdf_path,
+                        )
+                        if art:
+                            artifact_ids["pdf"] = art.id
+                            ctx.remember_artifact(key, "pdf", art.id)
+                    if artifact_ids.get("pdf"):
+                        result.pdf_download_url = (
+                            f"/api/v1/automation/artifacts/{artifact_ids['pdf']}/download"
+                        )
+                        result.pdf_preview_url = (
+                            f"/api/v1/automation/artifacts/{artifact_ids['pdf']}/preview"
+                        )
+                    if artifact_ids.get("excel"):
+                        result.excel_download_url = (
+                            f"/api/v1/automation/artifacts/{artifact_ids['excel']}/download"
+                        )
+                    rt = ctx.timing.ensure_report(key)
+                    result.processing_seconds = rt.processing_seconds
+                    result.duration_seconds = rt.duration_seconds
+            return result
+
+        if ctx is not None and ctx.defer_processing:
+            await ctx.schedule_processing(key, _work)
+            return partial
+
+        return await _work()
 
     def build_success_result(
         self,

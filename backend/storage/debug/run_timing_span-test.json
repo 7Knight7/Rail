@@ -1,0 +1,36 @@
+{
+  "run_id": "span-test",
+  "started_at": "2026-07-13T06:35:18.745814+00:00",
+  "completed_at": "2026-07-13T06:35:18.745933+00:00",
+  "total_duration_seconds": 0.0,
+  "spans": {
+    "nav_filter_submit:division": 0.0,
+    "sorting:division": 0.0,
+    "extraction:division": 0.0,
+    "ingestion:division": 0.1,
+    "processing:division": 0.2,
+    "excel_generation:division": 0.05,
+    "pdf_generation:division": 0.05,
+    "archive:division": 0.0
+  },
+  "reports": {
+    "division": {
+      "slug": "division",
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": null,
+      "extraction_seconds": 0.0,
+      "processing_seconds": 0.2,
+      "spans": {
+        "nav_filter_submit": 0.0,
+        "sorting": 0.0,
+        "extraction": 0.0,
+        "ingestion": 0.1,
+        "processing": 0.2,
+        "excel_generation": 0.05,
+        "pdf_generation": 0.05,
+        "archive": 0.0
+      }
+    }
+  }
+}

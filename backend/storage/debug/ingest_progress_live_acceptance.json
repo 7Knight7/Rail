@@ -1,0 +1,23 @@
+{
+  "success": false,
+  "run_id": "7110a5c5-69d5-4e00-85e8-cc3bd3d22fc4",
+  "wall_clock_seconds": 7.318,
+  "reports_successful": 0,
+  "reports_failed": 1,
+  "error": "Current page is public RailMadad portal, not authenticated MIS",
+  "download_all_url": "/api/v1/automation/runs/7110a5c5-69d5-4e00-85e8-cc3bd3d22fc4/download-all",
+  "reports": [
+    {
+      "slug": "report1",
+      "status": "failed",
+      "ingestion_success": false,
+      "processing_success": false,
+      "source_row_count": null,
+      "processed_row_count": null,
+      "pdf_preview_url": null,
+      "pdf_download_url": null,
+      "excel_download_url": null,
+      "error": "Report page verification failed for MIS Report 1. Expected URL fragment 'mis_reports/report1', got 'https://railmadad.indianrailways.gov.in/madad/final/home.jsp'"
+    }
+  ]
+}

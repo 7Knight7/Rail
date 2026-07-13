@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 import shutil
@@ -21,7 +20,11 @@ from playwright.async_api import (
 from app.automation.config import config
 from app.automation.filters import ReportRoot
 from app.automation.selectors import selectors
-from app.automation.utils import ensure_directory, log_automation_event
+from app.automation.utils import (
+    artifact_filename_timestamp,
+    ensure_directory,
+    log_automation_event,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -155,8 +158,8 @@ class PdfArchiver:
             )
 
     def _generate_filename(self, report_slug: str) -> str:
-        """Generate timestamped PDF filename."""
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        """Generate timestamped PDF filename (previous-day date + current time)."""
+        timestamp = artifact_filename_timestamp()
         return f"{report_slug}_{timestamp}.pdf"
 
     def _unique_path(self, base_path: Path) -> Path:
@@ -256,7 +259,7 @@ class PdfArchiver:
                             return candidate
                 except Exception:
                     continue
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
 
         return None
 

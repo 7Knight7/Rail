@@ -6,7 +6,6 @@ import csv
 import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 from playwright.async_api import FrameLocator, Locator, Page
@@ -19,7 +18,11 @@ from app.automation.table_validator import (
     get_required_headers_for_report,
     validate_extracted_data,
 )
-from app.automation.utils import ensure_directory, log_automation_event
+from app.automation.utils import (
+    artifact_filename_timestamp,
+    ensure_directory,
+    log_automation_event,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +85,10 @@ class TableExtractor:
         if table is None:
             return []
 
+        dt_rows = await self._extract_via_datatables(root, table)
+        if dt_rows:
+            return dt_rows
+
         rows: list[list[str]] = []
 
         try:
@@ -121,6 +128,81 @@ class TableExtractor:
         except Exception as exc:
             log_automation_event(logger, "table_data_extraction_failed", error=str(exc))
             return []
+
+    async def _extract_via_datatables(
+        self,
+        root: ReportRoot,
+        table: Locator,
+    ) -> list[list[str]] | None:
+        """If DataTables holds all rows client-side, dump via API (no pagination)."""
+        try:
+            page = table.page
+            table_id = await table.get_attribute("id")
+            payload = await page.evaluate(
+                """(tableId) => {
+                    const $ = window.jQuery || window.$;
+                    if (!$ || !$.fn || !$.fn.dataTable) return null;
+                    let api = null;
+                    if (tableId && $.fn.dataTable.isDataTable('#' + tableId)) {
+                        api = $('#' + tableId).DataTable();
+                    } else {
+                        const nodes = document.querySelectorAll('table.dataTable, table');
+                        for (const node of nodes) {
+                            if ($.fn.dataTable.isDataTable(node)) {
+                                api = $(node).DataTable();
+                                break;
+                            }
+                        }
+                    }
+                    if (!api) return null;
+                    const info = api.page.info();
+                    const pageLen = info.length;
+                    const recordsTotal = info.recordsTotal || info.recordsDisplay || 0;
+                    // -1 or length covering all displayed records => all client-side
+                    const allClient =
+                        pageLen === -1 ||
+                        (pageLen > 0 && recordsTotal > 0 && pageLen >= recordsTotal) ||
+                        (info.pages <= 1 && recordsTotal > 0);
+                    if (!allClient) return { skip: true, recordsTotal, pageLen };
+                    const headers = api.columns().header().toArray().map(
+                        (h) => (h.textContent || '').trim()
+                    );
+                    const data = api.rows({ search: 'applied' }).data().toArray().map((row) => {
+                        if (Array.isArray(row)) {
+                            return row.map((cell) => {
+                                if (cell == null) return '';
+                                if (typeof cell === 'object' && cell.display != null) {
+                                    return String(cell.display).trim();
+                                }
+                                return String(cell).replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim();
+                            });
+                        }
+                        return Object.values(row).map((cell) =>
+                            cell == null ? '' : String(cell).replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' ').trim()
+                        );
+                    });
+                    return { headers, data, recordsTotal };
+                }""",
+                table_id,
+            )
+            if not payload or payload.get("skip"):
+                return None
+            headers = payload.get("headers") or []
+            data = payload.get("data") or []
+            if not headers or not data:
+                return None
+            rows = [list(headers)] + [list(r) for r in data]
+            log_automation_event(
+                logger,
+                "table_data_extracted_datatables",
+                row_count=len(rows),
+                column_count=len(headers),
+                records_total=payload.get("recordsTotal"),
+            )
+            return rows
+        except Exception as exc:
+            logger.debug("DataTables fast path unavailable: %s", exc)
+            return None
 
     async def _extract_row_cells(self, row: Locator, cell_tag: str) -> list[str]:
         """Extract text content from all cells in a row."""
@@ -276,8 +358,8 @@ class TableExtractor:
         return []
 
     def _generate_filename(self, report_slug: str, extension: str = ".csv") -> str:
-        """Generate timestamped filename."""
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        """Generate timestamped filename (previous-day date + current time)."""
+        timestamp = artifact_filename_timestamp()
         ext = extension if extension.startswith(".") else f".{extension}"
         return f"{report_slug}_{timestamp}{ext}"
 

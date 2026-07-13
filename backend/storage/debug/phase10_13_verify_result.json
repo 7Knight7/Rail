@@ -1,0 +1,61 @@
+{
+  "success": false,
+  "run_id": "10fcd888-5828-407a-9491-d20a90f2e59f",
+  "total_duration_seconds": 186.781,
+  "wall_clock_seconds": 186.934,
+  "reports_successful": 4,
+  "reports_failed": 1,
+  "stopped_early": false,
+  "stop_reason": null,
+  "error": null,
+  "error_code": null,
+  "connected": true,
+  "tab_found": true,
+  "reports": [
+    {
+      "slug": "division",
+      "status": "success",
+      "row_count": 26,
+      "duration_seconds": 69.602,
+      "error": null,
+      "excel_path": "storage\\output\\excel\\division\\Rail_Madad_Report_2_Division_Wise_Bottom_25_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\division\\Rail_Madad_Report_2_Division_Wise_Bottom_25_13-07-2026.pdf"
+    },
+    {
+      "slug": "train-no",
+      "status": "success",
+      "row_count": 21,
+      "duration_seconds": 19.332,
+      "error": null,
+      "excel_path": "storage\\output\\excel\\train-no\\Rail_Madad_Report_3_Top_20_Trains_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\train-no\\Rail_Madad_Report_3_Top_20_Trains_13-07-2026.pdf"
+    },
+    {
+      "slug": "types",
+      "status": "success",
+      "row_count": 70,
+      "duration_seconds": 72.013,
+      "error": null,
+      "excel_path": "storage\\output\\excel\\types\\Rail_Madad_Report_4_Cause_Wise_Top_10_Trains_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\types\\Rail_Madad_Report_4_Cause_Wise_Top_10_Trains_13-07-2026.pdf"
+    },
+    {
+      "slug": "scr-train",
+      "status": "success",
+      "row_count": 19,
+      "duration_seconds": 18.578,
+      "error": null,
+      "excel_path": "storage\\output\\excel\\scr-train\\Rail_Madad_Report_5_SCR_Train_Unsatisfactory_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\scr-train\\Rail_Madad_Report_5_SCR_Train_Unsatisfactory_13-07-2026.pdf"
+    },
+    {
+      "slug": "scr-station",
+      "status": "failed",
+      "row_count": null,
+      "duration_seconds": 3.835,
+      "error": "SCR Unsatisfactory count is 0 or not found",
+      "excel_path": null,
+      "pdf_path": null
+    }
+  ]
+}

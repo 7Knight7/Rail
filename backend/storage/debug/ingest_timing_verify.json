@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "report1",
+    "row_count": 19,
+    "first_ingest_ms": 29.2,
+    "duplicate_skip_ms": 2.99
+  },
+  {
+    "slug": "division",
+    "row_count": 25,
+    "first_ingest_ms": 21.8,
+    "duplicate_skip_ms": 3.39
+  },
+  {
+    "slug": "train-no",
+    "row_count": 20,
+    "first_ingest_ms": 16.84,
+    "duplicate_skip_ms": 3.38
+  },
+  {
+    "slug": "types",
+    "row_count": 7,
+    "first_ingest_ms": 17.32,
+    "duplicate_skip_ms": 3.49
+  },
+  {
+    "slug": "scr-train",
+    "row_count": 19,
+    "first_ingest_ms": 19.38,
+    "duplicate_skip_ms": 3.12
+  },
+  {
+    "slug": "scr-station",
+    "row_count": 0,
+    "first_ingest_ms": 19.1,
+    "duplicate_skip_ms": 2.81
+  }
+]

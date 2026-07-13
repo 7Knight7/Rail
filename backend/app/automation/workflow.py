@@ -60,14 +60,54 @@ async def verify_mis_session_or_raise(
 
 
 async def ingest_downloaded_file(file_path: Path, report_slug: str, source: str) -> bool:
-    """Ingest the downloaded file into the dataset system using canonical keys."""
+    """Ingest the downloaded CSV into the dataset system using canonical keys.
+
+    Never ingests PDF. Verifies DB row_count matches CSV after commit.
+    """
+    import time
+
     try:
         from app.automation.report_keys import canonicalize_report_key
+        from app.automation.run_context import get_run_context
         from app.features.datasets.service import DatasetService
         from app.infrastructure.database.session import SessionLocal
 
         canonical = canonicalize_report_key(report_slug)
+        path = Path(file_path)
+        if path.suffix.lower() == ".pdf":
+            log_automation_event(
+                logger,
+                "ingestion_failed",
+                file_path=str(path),
+                report_slug=canonical,
+                source=source,
+                error="PDF cannot be ingested",
+            )
+            return False
+        if not path.is_file():
+            log_automation_event(
+                logger,
+                "ingestion_failed",
+                file_path=str(path),
+                report_slug=canonical,
+                source=source,
+                error="file not found",
+            )
+            return False
 
+        resolved = str(path.resolve())
+        ctx = get_run_context()
+        if ctx is not None and ctx.already_ingested(canonical, resolved):
+            log_automation_event(
+                logger,
+                "ingestion_skipped_duplicate",
+                file_path=resolved,
+                report_slug=canonical,
+                source=source,
+            )
+            return True
+
+        t0 = time.perf_counter()
         log_automation_event(
             logger,
             "ingestion_started",
@@ -76,21 +116,37 @@ async def ingest_downloaded_file(file_path: Path, report_slug: str, source: str)
             source=source,
         )
 
-        async with SessionLocal() as db_session:
-            service = DatasetService(db_session)
-            await service.ensure_dataset_exists(canonical)
-            await service.ingest_file(
-                canonical,
-                file_path=file_path,
-                source_filename=file_path.name,
-            )
+        span_name = "ingestion_feedback" if "feedback" in source.lower() else "ingestion"
+        meta = None
 
+        async def _do_ingest() -> None:
+            nonlocal meta
+            async with SessionLocal() as db_session:
+                service = DatasetService(db_session)
+                await service.ensure_dataset_exists(canonical)
+                meta = await service.ingest_file(
+                    canonical,
+                    file_path=path,
+                    source_filename=path.name,
+                )
+
+        if ctx is not None:
+            with ctx.timing.report_span(canonical, span_name):
+                await _do_ingest()
+            ctx.mark_ingested(canonical, resolved)
+        else:
+            await _do_ingest()
+
+        duration_ms = int((time.perf_counter() - t0) * 1000)
         log_automation_event(
             logger,
             "ingestion_completed",
             file_path=str(file_path),
             report_slug=canonical,
             source=source,
+            dataset_key=canonical,
+            row_count=getattr(meta, "row_count", None) if meta else None,
+            ingestion_duration_ms=duration_ms,
         )
         return True
 
@@ -453,38 +509,59 @@ async def regenerate_comprehensive_for_pdf(
     generator: ReportGeneratorService,
     extractor: TableExtractor,
     session: SessionManager,
+    *,
+    known_filters: list | None = None,
 ):
-    """Return to Report 1, reapply filters, Submit, re-sort Received, then ready for PDF."""
-    await verify_mis_session_or_raise(session, page, "comprehensive_regenerate")
-    await navigation.navigate_to_report(page, REPORT_1)
-    report_root = await filter_service.get_report_root(page)
-    discovered_fields = await discovery_service.discover_fields(page)
-    report_filters = build_filters_from_discovery(discovered_fields, REPORT_1.slug)
-    applied_values = await filter_service.apply_filters(
-        report_root, report_filters, page=page
+    """Return to Report 1, reapply filters, Submit, re-sort Received, then ready for PDF.
+
+    Skips full rediscovery when known_filters provided, and does not re-save CSV
+    (verify table + sort only).
+    """
+    from app.automation.run_context import get_run_context
+
+    ctx = get_run_context()
+    span_cm = (
+        ctx.timing.report_span("report1", "comprehensive_regenerate")
+        if ctx is not None
+        else None
     )
-    await filter_service.validate_mandatory(report_root, report_filters, applied_values)
-    await generator.generate_report(report_root, page)
-    if not await generator.verify_report_displayed(report_root):
-        raise ReportGenerationError(
-            "Comprehensive report did not display after regenerate before PDF"
+
+    async def _body():
+        await verify_mis_session_or_raise(session, page, "comprehensive_regenerate")
+        await navigation.navigate_to_report(page, REPORT_1)
+        report_root = await filter_service.get_report_root(page)
+        if known_filters is not None:
+            report_filters = known_filters
+        else:
+            discovered_fields = await discovery_service.discover_fields(page)
+            report_filters = build_filters_from_discovery(discovered_fields, REPORT_1.slug)
+        applied_values = await filter_service.apply_filters(
+            report_root, report_filters, page=page
         )
+        await filter_service.validate_mandatory(report_root, report_filters, applied_values)
+        await generator.generate_report(report_root, page)
+        if not await generator.verify_report_displayed(report_root):
+            raise ReportGenerationError(
+                "Comprehensive report did not display after regenerate before PDF"
+            )
+        row_count = await generator.count_rows(report_root)
+        if row_count is None or row_count <= 0:
+            raise ReportGenerationError(
+                "Comprehensive table empty after regenerate before PDF"
+            )
 
-    data = await extractor.extract_table_data_by_headers(
-        report_root,
-        {"Organisation", "Received"},
-    )
-    if not data:
-        raise ReportGenerationError(
-            "Comprehensive table not found after regenerate before PDF"
+        await ReceivedColumnService().sort_received_descending(report_root, page)
+
+        log_automation_event(
+            logger,
+            "comprehensive_regenerated_before_pdf",
+            row_count=row_count,
+            received_sorted=True,
+            rediscovery_skipped=known_filters is not None,
         )
+        return report_root, report_filters, applied_values
 
-    await ReceivedColumnService().sort_received_descending(report_root, page)
-
-    log_automation_event(
-        logger,
-        "comprehensive_regenerated_before_pdf",
-        row_count=len(data),
-        received_sorted=True,
-    )
-    return report_root, report_filters, applied_values
+    if span_cm is not None:
+        with span_cm:
+            return await _body()
+    return await _body()

@@ -1,0 +1,85 @@
+{
+  "success": false,
+  "run_id": "c9a187d1-5cf6-4a6a-b021-92691ae01dc6",
+  "total_duration_seconds": 503.309,
+  "wall_clock_seconds": 503.452,
+  "reports_successful": 5,
+  "reports_failed": 1,
+  "download_all_url": "/api/v1/automation/runs/c9a187d1-5cf6-4a6a-b021-92691ae01dc6/download-all",
+  "error": null,
+  "error_code": null,
+  "reports": [
+    {
+      "slug": "report1",
+      "status": "success",
+      "row_count": 21,
+      "duration_seconds": 193.935,
+      "extraction_seconds": 4.345,
+      "processing_seconds": 1.549,
+      "pdf_preview_url": "/api/v1/automation/artifacts/d6526d6b-da49-4a90-bc3a-2bb658d6da6b/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/d6526d6b-da49-4a90-bc3a-2bb658d6da6b/download",
+      "excel_download_url": "/api/v1/automation/artifacts/cde29b74-8a59-4be7-83fb-9570cbbbf4e2/download",
+      "error": null
+    },
+    {
+      "slug": "division",
+      "status": "success",
+      "row_count": 26,
+      "duration_seconds": 90.634,
+      "extraction_seconds": 90.059,
+      "processing_seconds": 0.154,
+      "pdf_preview_url": "/api/v1/automation/artifacts/7e4f9f42-4ca6-478b-8776-5d4d34bdf274/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/7e4f9f42-4ca6-478b-8776-5d4d34bdf274/download",
+      "excel_download_url": "/api/v1/automation/artifacts/bea0e825-9a3d-419e-bb0f-29a55d8ef4f3/download",
+      "error": null
+    },
+    {
+      "slug": "train-no",
+      "status": "success",
+      "row_count": 21,
+      "duration_seconds": 17.515,
+      "extraction_seconds": 17.173,
+      "processing_seconds": 0.162,
+      "pdf_preview_url": "/api/v1/automation/artifacts/dc6f602a-5f50-45ea-85bc-435861b7d10d/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/dc6f602a-5f50-45ea-85bc-435861b7d10d/download",
+      "excel_download_url": "/api/v1/automation/artifacts/c9efed14-3568-46ba-9978-86674134b63c/download",
+      "error": null
+    },
+    {
+      "slug": "types",
+      "status": "success",
+      "row_count": 70,
+      "duration_seconds": 141.301,
+      "extraction_seconds": 140.403,
+      "processing_seconds": 0.878,
+      "pdf_preview_url": "/api/v1/automation/artifacts/835ce6a3-73fa-4100-97e0-327ac7726f78/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/835ce6a3-73fa-4100-97e0-327ac7726f78/download",
+      "excel_download_url": "/api/v1/automation/artifacts/47e58dae-46b2-44b6-b585-9a781592d68c/download",
+      "error": null
+    },
+    {
+      "slug": "scr-train",
+      "status": "success",
+      "row_count": 19,
+      "duration_seconds": 52.603,
+      "extraction_seconds": 51.74,
+      "processing_seconds": 0.229,
+      "pdf_preview_url": "/api/v1/automation/artifacts/92dc78b8-1951-40da-9c32-94bc4a0b8109/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/92dc78b8-1951-40da-9c32-94bc4a0b8109/download",
+      "excel_download_url": "/api/v1/automation/artifacts/eed77d53-bc75-45c3-b090-f9cc583373bb/download",
+      "error": null
+    },
+    {
+      "slug": "scr-station",
+      "status": "failed",
+      "row_count": null,
+      "duration_seconds": 4.281,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "pdf_preview_url": null,
+      "pdf_download_url": null,
+      "excel_download_url": null,
+      "error": "Feedback Received column sort verification failed after two full click sequences"
+    }
+  ]
+}

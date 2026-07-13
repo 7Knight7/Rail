@@ -111,7 +111,7 @@ class AutomationRepository:
         stmt = (
             select(AutomationRunModel)
             .options(selectinload(AutomationRunModel.profile))
-            .where(AutomationRunModel.status.in_(["pending", "running", "paused"]))
+            .where(AutomationRunModel.status.in_(["pending", "running", "paused", "pause_requested", "cancel_requested"]))
             .order_by(desc(AutomationRunModel.created_at))
             .limit(1)
         )

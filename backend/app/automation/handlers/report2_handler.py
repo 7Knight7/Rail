@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,7 +14,7 @@ from app.automation.reports import ReportDefinition
 from app.automation.schemas import ReportResult
 from app.automation.table_extractor import TableExtractor
 from app.automation.utils import log_automation_event
-from app.automation.workflow import extract_with_retry, ingest_downloaded_file
+from app.automation.workflow import extract_with_retry
 
 from .base import BaseReportHandler
 
@@ -33,6 +35,8 @@ class Report2Handler(BaseReportHandler):
         session: "SessionManager",
         report: ReportDefinition,
     ) -> ReportResult:
+        started_at = datetime.now(UTC).isoformat()
+        t0 = time.perf_counter()
         page = await self.ensure_mis_page(page, session, f"{report.slug}_start")
         await self.navigation.navigate_to_report(page, report)
         page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav")
@@ -40,7 +44,7 @@ class Report2Handler(BaseReportHandler):
         report_root, _, row_count = await self.apply_filters_and_submit(
             page, report, filters=REPORT_2_FILTERS, session=session
         )
-        await self.click_received_twice(report_root, page)
+        await self.click_received_twice(report_root, page, report_slug=report.slug)
 
         extractor = TableExtractor(output_dir=Path(config.extracted_data_dir))
         extraction_result, _, _ = await extract_with_retry(
@@ -62,7 +66,6 @@ class Report2Handler(BaseReportHandler):
                 extraction_result.error or "Extraction failed or empty table",
             )
 
-        # Persist Top 25 after descending sort (header + 25 data rows)
         if extraction_result.data and len(extraction_result.data) > 26:
             top_data = extraction_result.data[:26]
             csv_path = await extractor.save_as_csv(
@@ -74,58 +77,23 @@ class Report2Handler(BaseReportHandler):
                 extraction_result.data = top_data
                 extraction_result.row_count = len(top_data)
 
-        ingestion_success = await ingest_downloaded_file(
-            extraction_result.csv_path,
-            report.slug,
-            source="html_extracted_csv",
-        )
+        # Skip portal archive — processor PDF is the review artifact
+        await self.archive_pdf(page, report_root, report.slug, session=session)
 
-        if not ingestion_success:
-            return self.build_failed_result(
-                report.slug,
-                "Ingestion failed",
-                partial=True,
-                source_paths=[str(extraction_result.csv_path)],
-                row_counts={"extracted": extraction_result.row_count},
-                source_csv_path=str(extraction_result.csv_path),
-                source_row_count=extraction_result.row_count,
-            )
-
-        archive_success, archive_path, _ = await self.archive_pdf(
-            page, report_root, report.slug, session=session
-        )
-        processing_result = await self.invoke_processor(report.slug, ingestion_success)
-
-        if not processing_result.success:
-            return self.build_failed_result(
-                report.slug,
-                processing_result.error or "Processing failed",
-                partial=True,
-                source_paths=[str(extraction_result.csv_path)],
-                row_counts={"extracted": extraction_result.row_count},
-                ingestion_success=True,
-                source_csv_path=str(extraction_result.csv_path),
-                source_row_count=extraction_result.row_count,
-            )
-
+        extraction_seconds = time.perf_counter() - t0
         log_automation_event(
             logger,
-            "division_complete",
-            row_count=row_count,
-            extracted_rows=extraction_result.row_count,
+            "report_extraction_completed",
+            slug=report.slug,
+            row_count=extraction_result.row_count,
+            duration_seconds=round(extraction_seconds, 3),
         )
-
-        return self.build_success_result(
-            report.slug,
+        return await self.finalize_after_extract(
+            slug=report.slug,
+            csv_path=Path(extraction_result.csv_path),
             source_paths=[str(extraction_result.csv_path)],
             row_counts={"extracted": extraction_result.row_count},
-            excel_path=processing_result.excel_path,
-            pdf_path=processing_result.pdf_path,
-            archive_path=archive_path if archive_success else None,
-            processor_used=processing_result.processor_used,
-            input_row_count=processing_result.input_row_count,
-            processed_row_count=processing_result.processed_row_count,
-            ingestion_success=True,
-            source_csv_path=str(extraction_result.csv_path),
             source_row_count=extraction_result.row_count,
+            started_at=started_at,
+            extraction_seconds=round(extraction_seconds, 3),
         )

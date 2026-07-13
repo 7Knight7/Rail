@@ -61,10 +61,10 @@ async def update_settings(
 async def reset_category_settings(
     category: str,
     service: Annotated[SettingsService, Depends(get_settings_service)],
-    _user: Annotated[User, Depends(require_admin)],
+    user: Annotated[User, Depends(require_admin)],
 ) -> dict:
     """Reset a category to default values."""
-    count = await service.reset_category(category)
+    count = await service.reset_category(category, user_id=user.id)
     return {"success": True, "reset_count": count, "category": category}
 
 

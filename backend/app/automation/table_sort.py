@@ -161,9 +161,15 @@ class ReceivedColumnService:
                 logger.debug("Loader still visible for selector %s", selector)
 
         try:
-            await page.wait_for_load_state("networkidle", timeout=STABILITY_TIMEOUT_MS)
+            await page.wait_for_load_state("domcontentloaded", timeout=min(STABILITY_TIMEOUT_MS, 10_000))
         except PlaywrightTimeoutError:
-            logger.debug("Network idle timeout while waiting for table stability")
+            logger.debug("domcontentloaded timeout while waiting for table stability")
+        # Prefer table/header readiness over full networkidle (up to 5s each sort click)
+        try:
+            table = root.locator("table").first
+            await table.wait_for(state="visible", timeout=3_000)
+        except PlaywrightTimeoutError:
+            logger.debug("Table not visible after sort click")
 
     async def _verify_descending_sort(
         self,

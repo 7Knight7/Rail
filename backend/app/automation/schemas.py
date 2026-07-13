@@ -76,6 +76,8 @@ class ReportResult(BaseModel):
     excel_path: str | None = None
     pdf_path: str | None = None
     pdf_download_url: str | None = None
+    excel_download_url: str | None = None
+    pdf_preview_url: str | None = None
     archive_path: str | None = None
     error: str | None = None
     processing_attempted: bool = False
@@ -83,6 +85,12 @@ class ReportResult(BaseModel):
     processor_used: str | None = None
     input_row_count: int | None = None
     processed_row_count: int | None = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    duration_seconds: float | None = None
+    extraction_seconds: float | None = None
+    processing_seconds: float | None = None
+    row_count: int | None = None
 
 
 class MultiReportResult(BaseModel):
@@ -97,3 +105,8 @@ class MultiReportResult(BaseModel):
     error: str | None = None
     error_code: str | None = None
     session_valid: bool = True
+    run_id: str | None = None
+    total_duration_seconds: float | None = None
+    reports_successful: int = 0
+    reports_failed: int = 0
+    download_all_url: str | None = None

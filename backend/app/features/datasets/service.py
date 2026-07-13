@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 from datetime import UTC, datetime
@@ -28,6 +29,15 @@ SUPPORTED_REPORT_IDS = frozenset(
 )
 
 
+def file_content_checksum(file_path: Path) -> str:
+    """SHA256 of file contents for idempotent ingestion."""
+    digest = hashlib.sha256()
+    with file_path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 class DatasetRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -47,6 +57,7 @@ class DatasetRepository:
         header_row: int,
         row_count: int,
         columns: list[ColumnMetadata],
+        content_checksum: str | None = None,
     ) -> ReportDatasetModel:
         existing = await self.get_by_report_id(report_id)
         payload = json.dumps([column.model_dump(by_alias=True) for column in columns])
@@ -58,6 +69,8 @@ class DatasetRepository:
             existing.row_count = row_count
             existing.columns_json = payload
             existing.parsed_at = datetime.now(UTC)
+            if content_checksum is not None:
+                existing.content_checksum = content_checksum
             await self._session.commit()
             await self._session.refresh(existing)
             return existing
@@ -69,6 +82,7 @@ class DatasetRepository:
             header_row=header_row,
             row_count=row_count,
             columns_json=payload,
+            content_checksum=content_checksum,
         )
         self._session.add(model)
         await self._session.commit()
@@ -105,7 +119,6 @@ class DatasetService:
 
         template_name = DATASET_TEMPLATES.get(canonical)
         if template_name is None:
-            # Create a minimal placeholder row without a file
             return await self._repository.upsert(
                 report_id=canonical,
                 source_filename=f"{canonical}_placeholder.csv",
@@ -166,34 +179,13 @@ class DatasetService:
         else:
             raise NotFoundError("Upload", upload_id)
 
-        parsed_columns = self._parser.parse_file(
-            file_path,
+        return await self.ingest_file(
+            canonical,
+            file_path=file_path,
+            source_filename=file_path.name,
             header_row=header_row,
             sheet_name=sheet_name,
         )
-        columns = [
-            ColumnMetadata(
-                id=column.id,
-                fieldName=column.field_name,
-                displayName=column.display_name,
-                dataType=column.data_type,
-                filterable=column.filterable,
-                sortable=column.sortable,
-            )
-            for column in parsed_columns
-        ]
-
-        row_count = self._count_rows(file_path, header_row=header_row)
-        model = await self._repository.upsert(
-            report_id=canonical,
-            source_filename=file_path.name,
-            source_file_path=str(file_path),
-            header_row=header_row,
-            row_count=row_count,
-            columns=columns,
-        )
-        logger.info("Ingested dataset metadata for report %s (%s columns)", canonical, len(columns))
-        return self._to_response(model)
 
     async def ingest_file(
         self,
@@ -205,6 +197,57 @@ class DatasetService:
         sheet_name: str | None = None,
     ) -> DatasetMetadataResponse:
         canonical = self._validate_report_id(report_id)
+        path = Path(file_path)
+        if not path.is_file():
+            raise ValidationError(f"Ingest file not found: {path}")
+        if path.suffix.lower() == ".pdf":
+            raise ValidationError("PDF cannot be ingested into datasets")
+
+        checksum = file_content_checksum(path)
+        existing = await self._repository.get_by_report_id(canonical)
+        if existing is not None:
+            stored = existing.content_checksum
+            same_path = (existing.source_file_path or "") == str(path.resolve())
+            if stored and stored == checksum and same_path:
+                logger.info("Skipping unchanged ingest for %s (checksum match)", canonical)
+                return self._to_response(existing)
+
+        columns, row_count = self._inspect_file(
+            path, header_row=header_row, sheet_name=sheet_name
+        )
+
+        model = await self._repository.upsert(
+            report_id=canonical,
+            source_filename=source_filename,
+            source_file_path=str(path.resolve()),
+            header_row=header_row,
+            row_count=row_count,
+            columns=columns,
+            content_checksum=checksum,
+        )
+        if model.row_count != row_count:
+            raise ValidationError(
+                f"Ingest row_count mismatch for {canonical}: db={model.row_count} csv={row_count}"
+            )
+        logger.info(
+            "Ingested dataset metadata for report %s (%s columns, %s rows)",
+            canonical,
+            len(columns),
+            row_count,
+        )
+        return self._to_response(model)
+
+    def _inspect_file(
+        self,
+        file_path: Path,
+        *,
+        header_row: int,
+        sheet_name: str | None = None,
+    ) -> tuple[list[ColumnMetadata], int]:
+        """Single-pass column discovery + row count for CSV; one parse for workbooks."""
+        suffix = file_path.suffix.lower()
+        if suffix == ".csv":
+            return self._inspect_csv(file_path, header_row=header_row)
 
         parsed_columns = self._parser.parse_file(
             file_path,
@@ -223,16 +266,42 @@ class DatasetService:
             for column in parsed_columns
         ]
         row_count = self._count_rows(file_path, header_row=header_row)
+        return columns, row_count
 
-        model = await self._repository.upsert(
-            report_id=canonical,
-            source_filename=source_filename,
-            source_file_path=str(file_path),
-            header_row=header_row,
-            row_count=row_count,
-            columns=columns,
-        )
-        return self._to_response(model)
+    def _inspect_csv(
+        self, file_path: Path, *, header_row: int
+    ) -> tuple[list[ColumnMetadata], int]:
+        import csv as csv_mod
+
+        with file_path.open(encoding="utf-8-sig", newline="") as handle:
+            reader = csv_mod.reader(handle)
+            rows = list(reader)
+
+        if not rows:
+            return [], 0
+
+        header_idx = max(header_row - 1, 0)
+        if header_idx >= len(rows):
+            return [], 0
+
+        headers = [str(h).strip() or f"col_{i}" for i, h in enumerate(rows[header_idx])]
+        data_rows = rows[header_idx + 1 :]
+        data_rows = [r for r in data_rows if any(str(c).strip() for c in r)]
+
+        columns: list[ColumnMetadata] = []
+        for idx, name in enumerate(headers):
+            field = name or f"col_{idx}"
+            columns.append(
+                ColumnMetadata(
+                    id=f"c{idx}",
+                    fieldName=field,
+                    displayName=field,
+                    dataType="string",
+                    filterable=True,
+                    sortable=True,
+                )
+            )
+        return columns, len(data_rows)
 
     def _count_rows(self, file_path: Path, *, header_row: int) -> int:
         suffix = file_path.suffix.lower()

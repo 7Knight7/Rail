@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +19,12 @@ from app.automation.config import config
 from app.automation.formatting.scr import highlight_south_central_railway_rows, row_contains_scr
 from app.automation.processing.base import ProcessingResult
 from app.automation.report4_filters import COMPLAINT_TYPES_ORDERED, get_type_configs, TypeConfig
-from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
+from app.automation.utils import (
+    ensure_directory,
+    log_automation_event,
+    previous_day_report_date,
+    resolve_report_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +113,7 @@ class Report4Processor:
                 
                 sections.append(TypeDataset(type_config=type_config, rows=formatted))
 
-        report_date = datetime.now().strftime("%d-%m-%Y")
+        report_date = previous_day_report_date()
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
         pdf_dir = ensure_directory(resolve_report_dir(config.output_pdf_dir, report_slug))
         base_name = f"Rail_Madad_Report_4_Cause_Wise_Top_10_Trains_{report_date}"

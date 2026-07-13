@@ -284,7 +284,7 @@ class AutomationService:
             success_rate=round(rate, 1),
             total_runs=total,
             total_failures=failures,
-            is_paused=active.status == "paused" if active else False,
+            is_paused=active.status in {"paused", "pause_requested"} if active else False,
         )
 
     async def get_history(self, limit: int = 50, offset: int = 0) -> AutomationHistoryResponse:

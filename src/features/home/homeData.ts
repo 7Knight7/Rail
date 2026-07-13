@@ -109,13 +109,6 @@ export const GENERATION_PIPELINE = [
   { step: 5, label: "Ready for Download" },
 ];
 
-export const RECENT_ACTIVITY = [
-  { label: "7 Reports Generated", time: "Yesterday, 5:42 PM" },
-  { label: "Dashboard Updated", time: "Yesterday, 5:43 PM" },
-  { label: "Reports Downloaded", time: "Yesterday, 5:48 PM" },
-  { label: "PDF Export Completed", time: "Yesterday, 5:49 PM" },
-];
-
 export const QUICK_ACTIONS = [
   {
     label: "View Dashboard",

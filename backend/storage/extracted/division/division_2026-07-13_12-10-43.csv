@@ -1,0 +1,80 @@
+﻿S.No.,Division,Opening Balance,Received,% Share,Closed,Closing Balance,% Disposal,Avg. Disposal Time,Avg. Rating,Avg. Pendency Time,Forwarded,Avg. FRT
+1,DELHI DIVISION (Northern Railway),8,386,3.82,383,11,97.21,0:46,Satisfactory,0:19,615,0:20
+2,PRAYAGRAJ DIVISION (North Central Railway),1,302,2.99,299,4,98.68,0:15,Satisfactory,0:10,369,0:09
+3,LUCKNOW DIVISION (North Eastern Railway),2,295,2.92,288,9,96.97,0:21,Satisfactory,0:13,273,0:10
+4,LUCKNOW DIVISION (Northern Railway),8,289,2.86,279,18,93.94,0:44,Satisfactory,0:18,368,0:06
+5,LUMDING DIVISION (Northeast Frontier Railway),5,279,2.76,272,12,95.77,1:00,Satisfactory,1:20,179,0:04
+6,IRC (IRCTC),3,277,2.74,267,13,95.36,0:20,Satisfactory,0:10,244,-
+7,BOMBAY DIVISION (Central Railway),4,270,2.67,271,3,98.91,0:24,Satisfactory,0:14,232,0:06
+8,DANAPUR DIVISION (East Central Railway),9,264,2.61,269,4,98.53,0:37,Satisfactory,0:14,398,0:19
+9,NAGPUR DIVISION (Central Railway),15,256,2.54,269,2,99.26,0:08,Satisfactory,0:11,248,0:04
+10,JABALPUR DIVISION (West Central Railway),10,249,2.47,246,13,94.98,0:26,Satisfactory,0:19,283,0:23
+11,KHURDA DIVISION (East Coast Railway),4,238,2.36,236,6,97.52,0:32,Satisfactory,0:16,170,0:10
+12,JHANSI DIVISION (North Central Railway),4,237,2.35,240,1,99.59,0:20,Satisfactory,0:13,249,0:12
+13,VARANASI DIVISION (North Eastern Railway),1,232,2.30,228,5,97.85,0:23,Satisfactory,0:13,233,0:05
+14,MORADABAD DIVISION (Northern Railway),16,230,2.28,226,20,91.87,0:52,Satisfactory,0:17,214,0:15
+15,BHUSAVAL DIVISION (Central Railway),2,211,2.09,213,0,100.00,0:14,Satisfactory,0:10,590,0:07
+16,IRCTC EAST ZONE (IRCTC),0,207,2.05,207,0,100.00,1:16,Satisfactory,0:29,74,-
+17,KHARAGPUR DIVISION (South Eastern Railway),7,201,1.99,199,9,95.67,0:40,Satisfactory,0:33,157,0:18
+18,IRCTC NORTH ZONE (IRCTC),2,201,1.99,203,0,100.00,1:04,Satisfactory,0:18,99,-
+19,CHENNAI DIVISION (Southern Railway),4,190,1.88,179,15,92.27,0:28,Satisfactory,0:20,279,0:12
+20,MUMBAI DIVISION (Western Railway),1,189,1.87,189,1,99.47,0:20,Satisfactory,0:07,185,0:06
+21,BANGALORE DIVISION (South Western Railway),3,180,1.78,177,6,96.72,0:23,Satisfactory,0:16,188,0:08
+22,BHOPAL DIVISION (West Central Railway),1,178,1.76,179,0,100.00,0:18,Satisfactory,0:10,367,0:10
+23,PUNE DIVISION (Central Railway),2,176,1.74,176,2,98.88,0:26,Satisfactory,0:15,256,0:04
+24,SAMASTIPUR DIVISION (East Central Railway),0,169,1.67,163,6,96.45,0:39,Satisfactory,0:16,201,0:19
+25,VIJAYAWADA DIVISION (South Coast Railway),5,163,1.61,163,5,97.02,0:16,Satisfactory,0:12,173,0:03
+26,IRCTC WEST ZONE (IRCTC),5,160,1.58,162,3,98.18,1:11,Satisfactory,0:26,68,-
+27,HOWRAH DIVISION (Eastern Railway),9,153,1.52,158,4,97.53,0:32,Satisfactory,0:15,179,0:03
+28,TINSUKIA DIVISION (Northeast Frontier Railway),1,152,1.51,150,3,98.04,0:36,Satisfactory,0:29,117,0:10
+29,FIROZPUR DIVISION (Northern Railway),2,151,1.50,151,2,98.69,0:41,Satisfactory,0:22,164,0:21
+30,THIRUVANANTHAPURAM DIVISION (Southern Railway),2,149,1.48,149,2,98.68,0:29,Satisfactory,0:16,188,0:16
+31,RATLAM DIVISION (Western Railway),1,146,1.45,147,0,100.00,0:17,Satisfactory,0:09,129,0:05
+32,GUNTAKAL DIVISION (South Coast Railway),2,142,1.41,142,2,98.61,0:20,Satisfactory,0:17,140,0:05
+33,JAIPUR DIVISION (North Western Railway),1,137,1.36,137,1,99.28,0:19,Satisfactory,0:13,231,0:04
+34,SECUNDERABAD DIVISION (South Central Railway),1,131,1.30,132,0,100.00,0:28,Satisfactory,0:11,183,0:18
+35,VISAKHAPATNAM DIVISION (South Coast Railway),1,130,1.29,130,1,99.24,0:24,Excellent,0:14,107,0:01
+36,AHMEDABAD DIVISION (Western Railway),1,129,1.28,129,1,99.23,0:18,Satisfactory,0:06,119,0:04
+37,DHANBAD DIVISION (East Central Railway),6,125,1.24,127,4,96.95,0:39,Satisfactory,0:18,116,0:04
+38,AGRA DIVISION (North Central Railway),3,121,1.20,116,8,93.55,0:16,Satisfactory,0:09,147,0:03
+39,KATIHAR DIVISION (Northeast Frontier Railway),16,120,1.19,130,6,95.59,0:35,Satisfactory,0:27,199,0:11
+40,SEALDAH DIVISION (Eastern Railway),3,109,1.08,110,2,98.21,0:19,Satisfactory,0:14,97,0:05
+41,Pt. DEEN DAYAL UPADHYAYA DIVISION (East Central Railway),4,107,1.06,110,1,99.10,0:24,Satisfactory,0:17,190,0:08
+42,MALDA DIVISION (Eastern Railway),0,96,0.95,94,2,97.92,0:17,Satisfactory,0:19,78,0:12
+43,IRCTC SOUTH CENTRAL ZONE (IRCTC),2,96,0.95,97,1,98.98,0:58,Satisfactory,0:15,38,-
+44,SONEPUR DIVISION (East Central Railway),0,95,0.94,95,0,100.00,0:18,Satisfactory,0:12,97,0:08
+45,AMBALA DIVISION (Northern Railway),2,92,0.91,92,2,97.87,0:28,Satisfactory,0:20,102,0:07
+46,HUBLI DIVISION (South Western Railway),6,84,0.83,88,2,97.78,0:34,Satisfactory,0:18,67,0:09
+47,JODHPUR DIVISION (North Western Railway),1,80,0.79,81,0,100.00,0:21,Excellent,0:11,99,0:02
+48,BIKANER DIVISION (North Western Railway),2,78,0.77,79,1,98.75,0:15,Excellent,0:12,153,0:07
+49,RANCHI DIVISION (South Eastern Railway),5,77,0.76,77,5,93.90,0:39,Excellent,0:35,67,0:01
+50,JAMMU DIVISION (Northern Railway),1,75,0.74,69,7,90.79,0:43,Satisfactory,0:19,63,0:03
+51,IRCTC SOUTH ZONE (IRCTC),0,73,0.72,73,0,100.00,1:10,Satisfactory,0:24,63,-
+52,IZATNAGAR DIVISION (North Eastern Railway),1,72,0.71,72,1,98.63,0:16,Satisfactory,0:13,31,0:06
+53,PALGHAT DIVISION (Southern Railway),1,72,0.71,67,6,91.78,0:22,Satisfactory,0:09,147,0:10
+54,HYDERABAD DIVISION (South Central Railway),0,71,0.70,70,1,98.59,0:20,Satisfactory,0:10,69,0:04
+55,CHAKRADHARPUR DIVISION (South Eastern Railway),1,69,0.68,68,2,97.14,0:37,Satisfactory,0:25,73,0:03
+56,ASANSOL DIVISION (Eastern Railway),2,65,0.64,65,2,97.01,0:35,Satisfactory,0:14,60,0:07
+57,BILASPUR DIVISION (South East Central Railway),0,65,0.64,65,0,100.00,0:24,Satisfactory,0:23,66,0:06
+58,BHAVNAGAR DIVISION (Western Railway),0,62,0.61,62,0,100.00,0:15,Satisfactory,0:08,25,0:04
+59,KOTA DIVISION (West Central Railway),0,62,0.61,62,0,100.00,0:12,Satisfactory,0:11,72,0:13
+60,KARWAR DIVISION (Konkan Railway),0,61,0.60,58,3,95.08,0:45,Satisfactory,0:21,35,0:12
+61,MYSORE DIVISION (South Western Railway),0,60,0.59,60,0,100.00,0:28,Satisfactory,0:15,42,0:03
+62,NANDED DIVISION (South Central Railway),2,58,0.57,60,0,100.00,0:42,Satisfactory,0:08,67,0:05
+63,AJMER DIVISION (North Western Railway),0,55,0.54,54,1,98.18,0:25,Excellent,0:07,141,0:04
+64,SHOLAPUR DIVISION (Central Railway),0,46,0.46,46,0,100.00,0:12,Satisfactory,0:08,69,0:03
+65,VADODARA DIVISION (Western Railway),1,45,0.45,43,3,93.48,0:09,Satisfactory,0:07,78,0:07
+66,SALEM DIVISION (Southern Railway),0,40,0.40,40,0,100.00,0:14,Satisfactory,0:09,115,0:00
+67,ALIPURDUAR DIVISION (Northeast Frontier Railway),1,39,0.39,40,0,100.00,0:26,Satisfactory,0:18,23,0:06
+68,SAMBALPUR DIVISION (East Coast Railway),0,39,0.39,39,0,100.00,0:15,Satisfactory,0:14,36,0:07
+69,GUNTUR DIVISION (South Coast Railway),1,35,0.35,36,0,100.00,0:15,Satisfactory,0:15,32,0:01
+70,NAGPUR DIVISION (South East Central Railway),1,30,0.30,31,0,100.00,0:12,Satisfactory,0:16,69,0:03
+71,RAIPUR DIVISION (South East Central Railway),0,30,0.30,30,0,100.00,0:28,Satisfactory,0:15,36,0:15
+72,RAJKOT DIVISION (Western Railway),1,27,0.27,27,1,96.43,0:04,Satisfactory,0:05,22,0:00
+73,TRICHURAPALLI DIVISION (Southern Railway),1,27,0.27,27,1,96.43,0:21,Satisfactory,0:18,60,0:22
+74,MADURAI DIVISION (Southern Railway),0,22,0.22,18,4,81.82,0:31,Excellent,0:07,52,0:02
+75,RANGIYA DIVISION (Northeast Frontier Railway),0,20,0.20,18,2,90.00,0:22,Satisfactory,0:22,41,0:04
+76,HEAD QUARTER,0,18,0.18,17,1,94.44,0:27,Satisfactory,0:34,21,-
+77,ADRA DIVISION (South Eastern Railway),0,17,0.17,16,1,94.12,0:56,Satisfactory,0:24,27,0:01
+78,RAYAGADA DIVISION (East Coast Railway),4,6,0.06,7,3,70.00,0:32,Excellent,0:18,8,0:01
+79,RATNAGIRI DIVISION (Konkan Railway),1,6,0.06,7,0,100.00,1:13,Excellent,0:58,12,0:24

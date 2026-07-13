@@ -198,7 +198,12 @@ class FeedbackModalExtractor:
         page_num = 1
 
         while True:
-            self.page.wait_for_timeout(500)
+            try:
+                self.page.locator(
+                    ".modal table, [role='dialog'] table, #complaintListModal table"
+                ).first.wait_for(state="visible", timeout=2000)
+            except Exception:
+                self.page.wait_for_timeout(150)
 
             modal_table = self.page.locator(
                 ".modal table, [role='dialog'] table, #complaintListModal table"
@@ -267,7 +272,12 @@ class FeedbackModalExtractor:
             if next_button.count() > 0 and next_button.first.is_visible():
                 try:
                     next_button.first.click()
-                    self.page.wait_for_timeout(1000)
+                    try:
+                        self.page.locator(
+                            ".modal table tbody tr, [role='dialog'] table tbody tr"
+                        ).first.wait_for(state="attached", timeout=2000)
+                    except Exception:
+                        self.page.wait_for_timeout(200)
                     page_num += 1
                 except Exception as e:
                     log_automation_event(logger, "pagination_click_error", error=str(e))
@@ -285,7 +295,12 @@ class FeedbackModalExtractor:
         )
         if close_buttons.count() > 0:
             close_buttons.first.click()
-            self.page.wait_for_timeout(500)
+            try:
+                self.page.locator(".modal.show, [role='dialog']").first.wait_for(
+                    state="hidden", timeout=2000
+                )
+            except Exception:
+                self.page.wait_for_timeout(150)
 
     def extract_scr_complaints(
         self,

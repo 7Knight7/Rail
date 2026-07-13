@@ -1,9 +1,27 @@
 """Shared automation utilities."""
 
 import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+def previous_day_report_date(
+    *,
+    fmt: str = "%d-%m-%Y",
+    now: datetime | None = None,
+) -> str:
+    """Return report_date = current_date - 1 day (for titles/filenames/metadata)."""
+    moment = now or datetime.now()
+    return (moment - timedelta(days=1)).strftime(fmt)
+
+
+def artifact_filename_timestamp(*, now: datetime | None = None) -> str:
+    """Intermediate artifact stamp: previous-day date + current clock time."""
+    moment = now or datetime.now()
+    report_day = moment - timedelta(days=1)
+    return f"{report_day.strftime('%Y-%m-%d')}_{moment.strftime('%H-%M-%S')}"
 
 # Keys reserved on logging.LogRecord — must not appear in logger.info(..., extra={...}).
 _RESERVED_LOGRECORD_KEYS = frozenset(

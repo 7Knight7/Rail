@@ -5,21 +5,26 @@ from __future__ import annotations
 import csv
 import logging
 import re
-from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, Side
 from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
+from app.automation.formatting.pdf_table import build_fitted_table
 from app.automation.formatting.scr import row_contains_scr
+from app.automation.formatting.serial import apply_serial_number
 from app.automation.processing.base import ProcessingResult
-from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
+from app.automation.utils import (
+    ensure_directory,
+    log_automation_event,
+    previous_day_report_date,
+    resolve_report_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +85,7 @@ class Report1Processor:
         if total_a:
             merged_rows.append(self._merge_total_row(total_a, total_b, source_a_headers, source_b_headers))
 
-        report_date = datetime.now().strftime("%d-%m-%Y")
+        report_date = previous_day_report_date()
         excel_dir = ensure_directory(
             resolve_report_dir(config.output_excel_dir, report_slug)
         )
@@ -231,7 +236,11 @@ class Report1Processor:
             org = row.get("Organisation", "")
             is_second_irctc = self._is_irctc_online(org)
 
-            source_a_values = [row.get(header, "") for header in source_a_headers]
+            source_a_values = apply_serial_number(
+                source_a_headers,
+                [row.get(header, "") for header in source_a_headers],
+                index,
+            )
             b_sno = str(index)
             b_org = org
             b_values = self._feedback_values_for_row(
@@ -250,11 +259,15 @@ class Report1Processor:
         source_a_headers: list[str],
         source_b_headers: list[str],
     ) -> list[str]:
-        a_values = [total_a.get(header, "") for header in source_a_headers]
+        a_values = apply_serial_number(
+            source_a_headers,
+            [total_a.get(header, "") for header in source_a_headers],
+            None,
+        )
         b_values = [
             (total_b or {}).get(column, "") for column in SOURCE_B_DATA_COLUMNS
         ]
-        b_sno = total_b.get("S.No.", "") if total_b else ""
+        b_sno = ""
         b_org = total_b.get("Organisation", "Total") if total_b else "Total"
         return a_values + [b_sno, b_org] + b_values
 
@@ -338,13 +351,27 @@ class Report1Processor:
             if row_contains_scr(visible_row):
                 scr_row_indices.add(len(table_data) - 1)
 
+        style_commands: list[tuple] = [
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ]
+        for row_idx in scr_row_indices:
+            style_commands.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.yellow))
+            style_commands.append(("TEXTCOLOR", (0, row_idx), (-1, row_idx), colors.black))
+        if rows:
+            style_commands.append(
+                ("FONTNAME", (0, len(table_data) - 1), (-1, len(table_data) - 1), "Helvetica-Bold")
+            )
+
+        table, pagesize, margin = build_fitted_table(table_data, style_commands)
         doc = SimpleDocTemplate(
             str(temp_path),
-            pagesize=landscape(A4),
-            leftMargin=24,
-            rightMargin=24,
-            topMargin=24,
-            bottomMargin=24,
+            pagesize=pagesize,
+            leftMargin=margin,
+            rightMargin=margin,
+            topMargin=margin,
+            bottomMargin=margin,
         )
         styles = getSampleStyleSheet()
         story = [
@@ -356,20 +383,7 @@ class Report1Processor:
                 styles["Title"],
             ),
             Spacer(1, 12),
+            table,
         ]
-
-        table = Table(table_data, repeatRows=1)
-        style_commands: list[tuple] = [
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ]
-        for row_idx in scr_row_indices:
-            style_commands.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.yellow))
-            style_commands.append(("TEXTCOLOR", (0, row_idx), (-1, row_idx), colors.black))
-        if rows:
-            style_commands.append(("FONTNAME", (0, len(table_data) - 1), (-1, len(table_data) - 1), "Helvetica-Bold"))
-        table.setStyle(TableStyle(style_commands))
-        story.append(table)
         doc.build(story)
         temp_path.replace(target_path)

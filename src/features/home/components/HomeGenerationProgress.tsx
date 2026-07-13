@@ -89,17 +89,32 @@ export function HomeGenerationProgress({
         {isBusy && (
           <div className="flex gap-2">
             {isPaused ? (
-              <Button variant="secondary" size="sm" onClick={onResume} disabled={acting}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void onResume()}
+                disabled={acting}
+              >
                 <Play className="mr-1.5 h-3.5 w-3.5" />
                 Resume
               </Button>
             ) : (
-              <Button variant="secondary" size="sm" onClick={onPause} disabled={acting}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void onPause()}
+                disabled={acting}
+              >
                 <Pause className="mr-1.5 h-3.5 w-3.5" />
                 Pause
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={onStop} disabled={acting}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void onStop()}
+              disabled={acting && !isBusy}
+            >
               <Square className="mr-1.5 h-3.5 w-3.5" />
               Stop
             </Button>

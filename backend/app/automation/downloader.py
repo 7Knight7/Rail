@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 from playwright.async_api import (
@@ -19,7 +18,11 @@ from playwright.async_api import (
 from app.automation.config import config
 from app.automation.filters import ReportRoot
 from app.automation.selectors import selectors
-from app.automation.utils import ensure_directory, log_automation_event
+from app.automation.utils import (
+    artifact_filename_timestamp,
+    ensure_directory,
+    log_automation_event,
+)
 from app.core.exceptions import AppException
 
 logger = logging.getLogger(__name__)
@@ -76,8 +79,8 @@ class ReportDownloader:
         self.downloads_dir = ensure_directory(Path(configured).resolve())
 
     def _generate_filename(self, report_slug: str = "report1", extension: str = ".xlsx") -> str:
-        """Generate timestamped filename for the download."""
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        """Generate timestamped filename for the download (previous-day date)."""
+        timestamp = artifact_filename_timestamp()
         ext = extension if extension.startswith(".") else f".{extension}"
         return f"{report_slug}_{timestamp}{ext}"
 
@@ -120,7 +123,11 @@ class ReportDownloader:
         log_automation_event(logger, "report_ready", status="waiting_for_export_button")
 
         try:
-            await page.wait_for_load_state("networkidle", timeout=30_000)
+            await page.wait_for_load_state("domcontentloaded", timeout=10_000)
+        except PlaywrightTimeoutError:
+            logger.debug("domcontentloaded timeout; continuing to look for export button")
+        try:
+            await page.wait_for_load_state("networkidle", timeout=5_000)
         except PlaywrightTimeoutError:
             logger.debug("Network idle timeout; continuing to look for export button")
 
@@ -251,7 +258,7 @@ class ReportDownloader:
                 except Exception as exc:
                     logger.debug("Error checking export locator: %s", exc)
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.35)
 
         return None
 

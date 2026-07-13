@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import logging
 import re
-from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -18,7 +17,12 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 from app.automation.config import config
 from app.automation.formatting.scr import highlight_south_central_railway_rows, row_contains_scr
 from app.automation.processing.base import ProcessingResult
-from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
+from app.automation.utils import (
+    ensure_directory,
+    log_automation_event,
+    previous_day_report_date,
+    resolve_report_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +68,7 @@ class Report3Processor:
         top_n_rows = data_rows[:TOP_N]
         output_rows = self._format_output_rows(top_n_rows, source_headers)
 
-        report_date = datetime.now().strftime("%d-%m-%Y")
+        report_date = previous_day_report_date()
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
         pdf_dir = ensure_directory(resolve_report_dir(config.output_pdf_dir, report_slug))
         base_name = f"Rail_Madad_Report_3_Top_20_Trains_{report_date}"

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CheckCircle2, Download } from "lucide-react";
+import { CheckCircle2, Download, Eye } from "lucide-react";
 import { useCallback, useState } from "react";
 import { automationApi } from "@/api/automation";
 import { Button } from "@/components/ui/Button";
@@ -11,37 +11,38 @@ export interface AutomationCompletionSummaryProps {
   summary: AutomationCompletionSummary;
 }
 
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 export function AutomationCompletionSummaryCard({ summary }: AutomationCompletionSummaryProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const onDownload = useCallback(async (slug: string, url: string) => {
-    setDownloading(slug);
+  const onDownload = useCallback(async (key: string, url: string, fallback: string) => {
+    setDownloading(key);
+    setError(null);
     try {
-      const response = await fetch(url, {
-        method: "GET",
-        credentials: "include",
-        headers: { Accept: "application/pdf" },
-      });
-      if (!response.ok) {
-        throw new Error(`Download failed (${response.status})`);
-      }
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = objectUrl;
-      anchor.download = `${slug}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(objectUrl);
-    } catch (error) {
-      console.error("PDF download failed", error);
+      const { blob, filename } = await automationApi.downloadBlob(url, fallback);
+      triggerBlobDownload(blob, filename || fallback);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Download failed");
     } finally {
       setDownloading(null);
     }
   }, []);
 
   const downloads = summary.reportDownloads ?? [];
+  const reviewHref = summary.runId
+    ? `/reports?run_id=${encodeURIComponent(summary.runId)}`
+    : "/reports";
 
   return (
     <Card className="border-rail-line shadow-card">
@@ -68,40 +69,110 @@ export function AutomationCompletionSummaryCard({ summary }: AutomationCompletio
           </li>
         </ul>
 
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
         {downloads.length > 0 ? (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-800">Download PDFs</p>
+            <p className="text-sm font-medium text-slate-800">Outputs</p>
             <ul className="space-y-2">
-              {downloads.map((item) => (
-                <li key={item.slug} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-slate-700">{item.datasetKey || item.slug}</span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={downloading === item.slug}
-                    onClick={() =>
-                      void onDownload(
-                        item.slug,
-                        item.pdfDownloadUrl || automationApi.pdfDownloadUrl(item.slug),
-                      )
-                    }
+              {downloads.map((item) => {
+                const pdfUrl =
+                  item.pdfDownloadUrl || automationApi.pdfDownloadUrl(item.slug);
+                const canPdf = Boolean(pdfUrl);
+                return (
+                  <li
+                    key={item.slug}
+                    className="flex flex-wrap items-center justify-between gap-2 text-sm"
                   >
-                    <Download className="mr-1 h-3.5 w-3.5" />
-                    {downloading === item.slug ? "Downloading…" : "Download PDF"}
-                  </Button>
-                </li>
-              ))}
+                    <span className="text-slate-700">{item.datasetKey || item.slug}</span>
+                    <div className="flex flex-wrap gap-2">
+                      {item.pdfPreviewUrl ? (
+                        <Button asChild type="button" variant="secondary" size="sm">
+                          <a
+                            href={
+                              item.pdfPreviewUrl.startsWith("http")
+                                ? item.pdfPreviewUrl
+                                : item.pdfPreviewUrl
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <Eye className="mr-1 h-3.5 w-3.5" />
+                            Preview PDF
+                          </a>
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={!canPdf || downloading === `${item.slug}-pdf`}
+                        onClick={() =>
+                          void onDownload(`${item.slug}-pdf`, pdfUrl, `${item.slug}.pdf`)
+                        }
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" />
+                        {downloading === `${item.slug}-pdf` ? "…" : "PDF"}
+                      </Button>
+                      {item.excelDownloadUrl ? (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={downloading === `${item.slug}-xlsx`}
+                          onClick={() =>
+                            void onDownload(
+                              `${item.slug}-xlsx`,
+                              item.excelDownloadUrl!,
+                              `${item.slug}.xlsx`,
+                            )
+                          }
+                        >
+                          <Download className="mr-1 h-3.5 w-3.5" />
+                          {downloading === `${item.slug}-xlsx` ? "…" : "Excel"}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
+        ) : null}
+
+        {summary.downloadAllUrl ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={downloading === "zip"}
+            onClick={() =>
+              void onDownload(
+                "zip",
+                summary.downloadAllUrl!,
+                `Rail_Madad_Reports.zip`,
+              )
+            }
+          >
+            <Download className="mr-1 h-3.5 w-3.5" />
+            {downloading === "zip" ? "…" : "Download All ZIP"}
+          </Button>
         ) : null}
 
         <p className="text-xs text-slate-500">
           Completed in {formatDuration(summary.executionTimeMs)}
         </p>
-        <Button asChild>
-          <Link to="/dashboard">View Dashboard</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link to={reviewHref}>
+              <Eye className="mr-1 h-4 w-4" />
+              Review / Download
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link to="/dashboard">View Dashboard</Link>
+          </Button>
+        </div>
       </CardBody>
     </Card>
   );

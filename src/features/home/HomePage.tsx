@@ -24,12 +24,18 @@ export function HomePage() {
   const { isAdmin } = usePermissions();
   const generation = useAutomationPage();
 
+  // Strict gate: progress UI only after an explicit Generate click in this session.
+  const started = generation.generationStarted === true;
   const isGenerating =
-    generation.isBusy ||
-    generation.runStatus === "running" ||
-    generation.runStatus === "paused";
+    started &&
+    (generation.runStatus === "running" || generation.runStatus === "paused");
   const showProgress =
-    isGenerating || generation.isComplete || generation.hasFailed;
+    started &&
+    (isGenerating ||
+      generation.runStatus === "completed" ||
+      generation.runStatus === "failed" ||
+      generation.isComplete ||
+      generation.hasFailed);
 
   const pipelineStep = pipelineStepFromProgress(
     generation.progressPercent,
@@ -68,8 +74,7 @@ export function HomePage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={generation.onStop}
-                disabled={generation.acting || !generation.isBusy}
+                onClick={() => void generation.onStop()}
               >
                 Cancel generation
               </Button>
@@ -89,7 +94,7 @@ export function HomePage() {
       <div className="space-y-12 pb-4">
         <HomeWelcomeSection
           isAdmin={isAdmin}
-          isStarting={generation.acting}
+          isStarting={generation.acting && !showProgress}
           onGenerate={() => void generation.onStart()}
           disabled={generation.selectedReportIds.length === 0}
         />

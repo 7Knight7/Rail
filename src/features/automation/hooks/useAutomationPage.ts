@@ -1,31 +1,139 @@
-import { useCallback, useMemo, useState } from "react";
-import { automationApi } from "@/api/automation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { automationApi, type AutomationRunDetail, type ReportResult } from "@/api/automation";
 import { useAutomationDashboard } from "@/features/admin/automation/hooks/useAutomationDashboard";
 import type { AutomationWorkspaceProps } from "@/features/automation/components/AutomationWorkspace";
 import { useAutomationRunState } from "@/features/automation/hooks/useAutomationRunState";
 import { computeProgressPercent, getStepStats } from "@/features/automation/utils/display";
 import { mergeActivityLogs } from "@/features/automation/utils/mapApiLogs";
+import {
+  CLEAR_GENERATION_UI_EVENT,
+  RAILMADAD_ACTIVE_GENERATION_KEY,
+  RAILMADAD_LAST_RUN_KEY,
+  clearGenerationSessionState,
+} from "@/features/automation/utils/generationSession";
+
+const LAST_RUN_KEY = RAILMADAD_LAST_RUN_KEY;
+const ACTIVE_SESSION_KEY = RAILMADAD_ACTIVE_GENERATION_KEY;
+
+/** Home never auto-resumes progress after login/refresh — user must click Generate. */
+export function shouldResumeRun(_status: string): boolean {
+  return false;
+}
+
+export function isTerminalRunStatus(status: string): boolean {
+  return (
+    status === "completed" ||
+    status === "failed" ||
+    status === "stopped" ||
+    status === "cancelled"
+  );
+}
+
+/** UI report ids → backend canonical slugs */
+const UI_TO_BACKEND: Record<string, string> = {
+  zone: "report1",
+  division: "division",
+  train: "train-no",
+  cause: "types",
+  "scr-train": "scr-train",
+  "scr-station": "scr-station",
+};
+
+const BACKEND_TO_UI: Record<string, string> = Object.fromEntries(
+  Object.entries(UI_TO_BACKEND).map(([ui, backend]) => [backend, ui]),
+);
+
+function toBackendSlugs(uiIds: string[]): string[] {
+  return uiIds.map((id) => UI_TO_BACKEND[id] ?? id);
+}
+
+function stepIdForSlug(slug: string): string {
+  return BACKEND_TO_UI[slug] ?? slug;
+}
+
+function downloadsFromReports(reports: ReportResult[]) {
+  return reports
+    .filter((r) => r.status === "success" && (r.pdf_download_url || r.pdf_path))
+    .map((r) => ({
+      slug: r.slug,
+      datasetKey: r.dataset_key ?? r.slug,
+      pdfDownloadUrl: r.pdf_download_url ?? automationApi.pdfDownloadUrl(r.slug),
+      pdfPreviewUrl: r.pdf_preview_url ?? undefined,
+      excelDownloadUrl: r.excel_download_url ?? undefined,
+      status: r.status,
+    }));
+}
+
+function applyRunDetailToEvents(
+  detail: AutomationRunDetail,
+  seen: Set<string>,
+  emit: (event: Parameters<ReturnType<typeof useAutomationRunState>["handlePlaywrightEvent"]>[0]) => void,
+) {
+  for (const report of detail.reports ?? []) {
+    const stepId = stepIdForSlug(report.slug);
+    const key = `${report.slug}:${report.status}:${report.processing_success ? 1 : 0}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    if (report.status === "success") {
+      emit({ type: "step_completed", stepId, message: `${report.slug} ready` });
+    } else if (report.status === "partial_success") {
+      emit({
+        type: "step_started",
+        stepId,
+        message: report.error ?? `${report.slug} in progress`,
+      });
+    } else if (report.status === "failed") {
+      emit({
+        type: "step_failed",
+        stepId,
+        message: report.error ?? `${report.slug} failed`,
+        error: report.error ?? undefined,
+      });
+    }
+  }
+
+  if (detail.status === "completed" || detail.status === "failed") {
+    const downloads = downloadsFromReports(detail.reports ?? []);
+    if (detail.status === "completed") {
+      emit({
+        type: "run_completed",
+        summary: {
+          reportsGenerated: downloads.length || detail.reports_successful,
+          dashboardUpdated: true,
+          analyticsRefreshed: true,
+          pdfsGenerated: downloads.length,
+          executionTimeMs: Math.round((detail.total_duration_seconds ?? 0) * 1000),
+          runId: detail.run_id,
+          downloadAllUrl: detail.download_all_url ?? undefined,
+          reportDownloads: downloads,
+        },
+      });
+    } else {
+      emit({
+        type: "run_failed",
+        message: detail.error ?? "Automation failed",
+      });
+    }
+  }
+}
 
 export interface UseAutomationPageReturn extends AutomationWorkspaceProps {
   loading: boolean;
-  /** Exposed for future Playwright WebSocket / SSE bridge. */
   handlePlaywrightEvent: ReturnType<typeof useAutomationRunState>["handlePlaywrightEvent"];
-  /** Whether to show the RailMadad login required dialog. */
   showLoginDialog: boolean;
-  /** Close the login dialog. */
   onCloseLoginDialog: () => void;
+  /** True only after the user clicks Generate in this session. */
+  generationStarted: boolean;
 }
 
 /**
- * Page-level container: API controls + run state.
- * Playwright events should be forwarded to `handlePlaywrightEvent`.
+ * Page-level container: async start + poll run status into live progress.
  */
 export function useAutomationPage(): UseAutomationPageReturn {
   const {
     loading,
     acting,
-    isActive,
-    isRunning,
     isPaused,
     logs: apiLogs,
     startInProcess,
@@ -36,9 +144,18 @@ export function useAutomationPage(): UseAutomationPageReturn {
   } = useAutomationDashboard(2000);
 
   const runState = useAutomationRunState();
-  const { state, appendActivityLog, handlePlaywrightEvent } = runState;
+  const { state, appendActivityLog, handlePlaywrightEvent, prepareRun, resetRun } = runState;
 
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  /** Progress UI is gated on this — never open from stale engine/DB/HMR state. */
+  const [generationStarted, setGenerationStarted] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const seenRef = useRef<Set<string>>(new Set());
+  const activeRunIdRef = useRef<string | null>(null);
+  const stoppingRef = useRef(false);
+  const pausingRef = useRef(false);
+  const lastPolledStatusRef = useRef<string | null>(null);
 
   const activityLog = useMemo(
     () => mergeActivityLogs(state.activityLog, apiLogs),
@@ -48,11 +165,137 @@ export function useAutomationPage(): UseAutomationPageReturn {
   const progressPercent = computeProgressPercent(state.steps);
   const stepStats = getStepStats(state.steps);
   const hasFailed = stepStats.failed > 0 || state.runStatus === "failed";
-  const isBusy = isActive || state.runStatus === "running" || state.runStatus === "paused";
-  const isComplete = state.completionSummary != null && !isBusy;
+  const isBusy =
+    acting ||
+    stopping ||
+    state.runStatus === "running" ||
+    state.runStatus === "paused" ||
+    Boolean(activeRunIdRef.current && state.runStatus === "running");
+  const isComplete = state.completionSummary != null && state.runStatus === "completed";
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const clearActiveRunState = useCallback(() => {
+    stopPolling();
+    activeRunIdRef.current = null;
+    seenRef.current = new Set();
+    clearGenerationSessionState();
+  }, [stopPolling]);
+
+  const markGenerationSession = useCallback((runId: string) => {
+    try {
+      localStorage.setItem(LAST_RUN_KEY, runId);
+      sessionStorage.setItem(ACTIVE_SESSION_KEY, runId);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const pollRun = useCallback(
+    async (runId: string) => {
+      try {
+        const detail = await automationApi.getRun(runId);
+        if (stoppingRef.current) return;
+        applyRunDetailToEvents(detail, seenRef.current, handlePlaywrightEvent);
+        const prev = lastPolledStatusRef.current;
+        lastPolledStatusRef.current = detail.status;
+        if (
+          (detail.status === "paused" || detail.status === "pause_requested") &&
+          prev !== "paused" &&
+          prev !== "pause_requested"
+        ) {
+          handlePlaywrightEvent({ type: "run_paused" });
+        }
+        if (
+          detail.status === "running" &&
+          (prev === "paused" || prev === "pause_requested")
+        ) {
+          handlePlaywrightEvent({ type: "run_resumed" });
+        }
+        if (isTerminalRunStatus(detail.status)) {
+          stopPolling();
+          activeRunIdRef.current = null;
+          try {
+            sessionStorage.removeItem(ACTIVE_SESSION_KEY);
+          } catch {
+            // ignore
+          }
+          if (detail.status === "stopped" || detail.status === "cancelled") {
+            clearGenerationSessionState();
+            resetRun();
+          }
+        }
+      } catch (error) {
+        console.error("Failed to poll run", error);
+      }
+    },
+    [handlePlaywrightEvent, resetRun, stopPolling],
+  );
+
+  const startPolling = useCallback(
+    (runId: string) => {
+      stopPolling();
+      activeRunIdRef.current = runId;
+      seenRef.current = new Set();
+      lastPolledStatusRef.current = null;
+      void pollRun(runId);
+      pollRef.current = setInterval(() => void pollRun(runId), 2000);
+    },
+    [pollRun, stopPolling],
+  );
+
+  // Land on Generate CTA — never auto-resume progress from storage or stale engine runs.
+  // Empty deps: must not re-run when resetRun identity changes mid-generation.
+  useEffect(() => {
+    const resetUi = () => {
+      stopPolling();
+      activeRunIdRef.current = null;
+      seenRef.current = new Set();
+      lastPolledStatusRef.current = null;
+      stoppingRef.current = false;
+      pausingRef.current = false;
+      setGenerationStarted(false);
+      setStopping(false);
+      resetRun();
+      try {
+        sessionStorage.removeItem(ACTIVE_SESSION_KEY);
+      } catch {
+        // ignore
+      }
+    };
+
+    resetUi();
+    window.addEventListener(CLEAR_GENERATION_UI_EVENT, resetUi);
+    return () => {
+      window.removeEventListener(CLEAR_GENERATION_UI_EVENT, resetUi);
+      stopPolling();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/login only
+  }, []);
 
   const onStart = useCallback(async () => {
-    if (state.selectedReportIds.length === 0 || isBusy) return;
+    if (state.selectedReportIds.length === 0) return;
+    // Only block if this page already started a generation — ignore stale engine "active" runs.
+    if (
+      generationStarted ||
+      state.runStatus === "running" ||
+      state.runStatus === "paused" ||
+      stopping ||
+      acting
+    ) {
+      return;
+    }
+
+    const reportIds = state.selectedReportIds;
+    setGenerationStarted(true);
+    prepareRun(reportIds);
+    handlePlaywrightEvent({ type: "run_started" });
+    handlePlaywrightEvent({ type: "step_started", stepId: "login" });
 
     appendActivityLog({
       level: "info",
@@ -60,35 +303,51 @@ export function useAutomationPage(): UseAutomationPageReturn {
       source: "playwright",
     });
 
-    const result = await startInProcess();
+    const slugs = toBackendSlugs(reportIds);
+    const result = await startInProcess({
+      report_slugs: slugs,
+      async_mode: true,
+    });
 
-    // Check for login required error - show dialog instead of error log
     if (result?.error_code === "RAILMADAD_NOT_LOGGED_IN") {
       setShowLoginDialog(true);
+      setGenerationStarted(false);
+      resetRun();
       return;
     }
 
-    if (result?.success) {
+    if (result?.run_id) {
+      markGenerationSession(result.run_id);
+      handlePlaywrightEvent({ type: "step_completed", stepId: "login" });
+      handlePlaywrightEvent({ type: "run_started", runId: result.run_id });
       appendActivityLog({
         level: "success",
-        message: `RailMadad multi-report run finished (${result.reports?.length ?? 0} reports)`,
+        message: `Automation started (run ${result.run_id})`,
         source: "playwright",
       });
+      startPolling(result.run_id);
+      return;
+    }
+
+    // Sync fallback (full result returned)
+    if (result?.success) {
+      handlePlaywrightEvent({ type: "step_completed", stepId: "login" });
       for (const report of result.reports ?? []) {
-        appendActivityLog({
-          level: report.status === "success" ? "success" : "warning",
-          message: `${report.slug}: ${report.status}${report.pdf_download_url ? ` — ${report.pdf_download_url}` : ""}`,
-          source: "playwright",
-        });
+        const stepId = stepIdForSlug(report.slug);
+        if (report.status === "success") {
+          handlePlaywrightEvent({ type: "step_completed", stepId });
+        } else {
+          handlePlaywrightEvent({
+            type: "step_failed",
+            stepId,
+            error: report.error ?? undefined,
+          });
+        }
       }
-      const downloads = (result.reports ?? [])
-        .filter((r) => r.status === "success" && (r.pdf_path || r.pdf_download_url))
-        .map((r) => ({
-          slug: r.slug,
-          datasetKey: r.dataset_key ?? r.slug,
-          pdfDownloadUrl: r.pdf_download_url ?? automationApi.pdfDownloadUrl(r.slug),
-          status: r.status,
-        }));
+      const downloads = downloadsFromReports(result.reports ?? []);
+      if (result.run_id) {
+        markGenerationSession(result.run_id);
+      }
       handlePlaywrightEvent({
         type: "run_completed",
         summary: {
@@ -96,90 +355,159 @@ export function useAutomationPage(): UseAutomationPageReturn {
           dashboardUpdated: true,
           analyticsRefreshed: true,
           pdfsGenerated: downloads.length,
-          executionTimeMs: 0,
+          executionTimeMs: Math.round((result.total_duration_seconds ?? 0) * 1000),
+          runId: result.run_id ?? undefined,
+          downloadAllUrl: result.download_all_url ?? undefined,
           reportDownloads: downloads,
         },
       });
       return;
     }
 
+    setGenerationStarted(false);
+    resetRun();
     appendActivityLog({
       level: "error",
       message: result?.error ?? "Playwright could not connect to RailMadad",
       source: "playwright",
     });
-  }, [appendActivityLog, handlePlaywrightEvent, isBusy, startInProcess, state.selectedReportIds.length]);
+  }, [
+    acting,
+    appendActivityLog,
+    generationStarted,
+    handlePlaywrightEvent,
+    markGenerationSession,
+    prepareRun,
+    resetRun,
+    startInProcess,
+    startPolling,
+    state.runStatus,
+    state.selectedReportIds,
+    stopping,
+  ]);
 
   const onStop = useCallback(async () => {
-    try {
-      await stop();
-      handlePlaywrightEvent({ type: "run_failed", message: "Report generation stopped" });
-    } catch {
-      appendActivityLog({
-        level: "error",
-        message: "Failed to stop report generation",
-        source: "pipeline",
-      });
+    if (stoppingRef.current || stopping) return;
+    const runId =
+      activeRunIdRef.current ??
+      (() => {
+        try {
+          return localStorage.getItem(LAST_RUN_KEY);
+        } catch {
+          return null;
+        }
+      })();
+    if (!runId) {
+      clearActiveRunState();
+      setGenerationStarted(false);
+      resetRun();
+      return;
     }
-  }, [appendActivityLog, handlePlaywrightEvent, stop]);
+
+    stoppingRef.current = true;
+    setStopping(true);
+    // Unblock any in-progress pause wait
+    pausingRef.current = false;
+    try {
+      const ok = await stop(runId);
+      if (!ok) {
+        return;
+      }
+      clearActiveRunState();
+      setGenerationStarted(false);
+      resetRun();
+      await refresh();
+    } finally {
+      stoppingRef.current = false;
+      setStopping(false);
+    }
+  }, [clearActiveRunState, refresh, resetRun, stop, stopping]);
 
   const onPause = useCallback(async () => {
+    if (stoppingRef.current || stopping || pausingRef.current) return;
+    const runId =
+      activeRunIdRef.current ??
+      (() => {
+        try {
+          return localStorage.getItem(LAST_RUN_KEY);
+        } catch {
+          return null;
+        }
+      })();
+    if (!runId) return;
+
+    pausingRef.current = true;
+    // Optimistic UI — do not wait for worker to reach paused
+    handlePlaywrightEvent({ type: "run_paused" });
     try {
-      await pause();
-      handlePlaywrightEvent({ type: "run_paused" });
-    } catch {
-      appendActivityLog({
-        level: "error",
-        message: "Failed to pause report generation",
-        source: "pipeline",
-      });
+      const ok = await pause(runId);
+      if (!ok) {
+        handlePlaywrightEvent({ type: "run_resumed" });
+        return;
+      }
+      lastPolledStatusRef.current = "pause_requested";
+    } finally {
+      pausingRef.current = false;
     }
-  }, [appendActivityLog, handlePlaywrightEvent, pause]);
+  }, [handlePlaywrightEvent, pause, stopping]);
 
   const onResume = useCallback(async () => {
-    try {
-      await resume();
-      handlePlaywrightEvent({ type: "run_resumed" });
-    } catch {
-      appendActivityLog({
-        level: "error",
-        message: "Failed to resume report generation",
-        source: "pipeline",
-      });
-    }
-  }, [appendActivityLog, handlePlaywrightEvent, resume]);
+    if (stoppingRef.current || stopping || pausingRef.current) return;
+    const runId =
+      activeRunIdRef.current ??
+      (() => {
+        try {
+          return localStorage.getItem(LAST_RUN_KEY);
+        } catch {
+          return null;
+        }
+      })();
+    if (!runId) return;
 
-  const onCloseLoginDialog = useCallback(() => {
-    setShowLoginDialog(false);
-  }, []);
+    pausingRef.current = true;
+    handlePlaywrightEvent({ type: "run_resumed" });
+    try {
+      const ok = await resume(runId);
+      if (!ok) {
+        handlePlaywrightEvent({ type: "run_paused" });
+        return;
+      }
+      lastPolledStatusRef.current = "running";
+    } finally {
+      pausingRef.current = false;
+    }
+  }, [handlePlaywrightEvent, resume, stopping]);
 
   return {
     loading,
-    handlePlaywrightEvent,
-    reports: runState.reports,
-    selectedReportIds: state.selectedReportIds,
-    allSelected: runState.allSelected,
-    estimatedMinutes: runState.estimatedMinutes,
-    steps: state.steps,
+    acting: acting || stopping,
+    isBusy: generationStarted && isBusy,
+    isPaused: isPaused || state.runStatus === "paused",
+    isRunning: generationStarted && state.runStatus === "running",
+    isActive:
+      generationStarted &&
+      (state.runStatus === "running" || state.runStatus === "paused"),
+    isComplete: generationStarted && isComplete,
+    hasFailed: generationStarted && hasFailed,
+    generationStarted,
     progressPercent,
     activityLog,
-    completionSummary: state.completionSummary,
+    reports: runState.reports,
+    allSelected: runState.allSelected,
+    estimatedMinutes: runState.estimatedMinutes,
+    selectedReportIds: state.selectedReportIds,
+    steps: state.steps,
     runStatus: state.runStatus,
-    isBusy,
-    isPaused: isPaused || state.runStatus === "paused",
-    isRunning: isRunning || state.runStatus === "running",
-    isActive,
-    acting,
-    hasFailed,
-    isComplete,
-    showLoginDialog,
-    onCloseLoginDialog,
+    completionSummary: state.completionSummary,
+    onToggleReport: runState.toggleReport,
+    onSelectAllReports: runState.selectAllReports,
     onStart,
     onStop,
     onPause,
     onResume,
     onRefresh: refresh,
-    onToggleReport: runState.toggleReport,
-    onSelectAllReports: runState.selectAllReports,
+    handlePlaywrightEvent,
+    showLoginDialog,
+    onCloseLoginDialog: () => setShowLoginDialog(false),
   };
 }

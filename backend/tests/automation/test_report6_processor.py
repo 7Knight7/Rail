@@ -107,6 +107,40 @@ def test_filters_station_mode_only(
     assert result.processed_row_count == 2
 
 
+def test_empty_header_only_csv_success(
+    processor: Report6Processor,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    extracted = tmp_path / "extracted" / "report6_station"
+    extracted.mkdir(parents=True, exist_ok=True)
+    empty_csv = extracted / "empty.csv"
+    empty_csv.write_text("Ref. No.,Mode\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "app.automation.processing.report6_processor.config.extracted_data_dir",
+        str(tmp_path / "extracted"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report6_processor.config.output_excel_dir",
+        str(tmp_path / "output" / "excel"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report6_processor.config.output_pdf_dir",
+        str(tmp_path / "output" / "pdf"),
+    )
+    monkeypatch.setattr(processor, "_find_template", lambda: None)
+
+    result = processor.process(source_a_path=empty_csv, report_slug="report6_station")
+
+    assert result.success is True
+    assert result.processed_row_count == 0
+    assert result.excel_path is not None
+    assert result.pdf_path is not None
+    assert Path(result.excel_path).exists()
+    assert Path(result.pdf_path).exists()
+
+
 def test_fails_if_no_station_rows(
     processor: Report6Processor,
     tmp_path: Path,

@@ -1,188 +1,371 @@
-import { useState } from "react";
-import { Download, Eye, FileSpreadsheet, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  Download,
+  Eye,
+  FileSpreadsheet,
+  RefreshCw,
+  Archive,
+} from "lucide-react";
+import {
+  automationApi,
+  type AutomationArtifact,
+  type AutomationRunDetail,
+  type CdpRunSummary,
+  type ReportResult,
+} from "@/api/automation";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { AUTOMATION_REPORTS } from "@/features/automation/constants";
+import { Card, CardBody, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { cn } from "@/utils/cn";
 
-type ReportPeriod = "today" | "yesterday" | "previous";
+const LAST_RUN_KEY = "railmadad_last_run_id";
 
-interface ArchiveReport {
-  id: string;
-  label: string;
-  period: ReportPeriod;
-  generatedAt: string;
-  workflowPath: string;
-  size: string;
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
-const ARCHIVE: ArchiveReport[] = [
-  ...AUTOMATION_REPORTS.map((r) => ({
-    id: `${r.id}-today`,
-    label: r.label,
-    period: "today" as const,
-    generatedAt: "Today, 8:42 AM",
-    workflowPath: r.workflowPath,
-    size: "2.4 MB",
-  })),
-  ...AUTOMATION_REPORTS.slice(0, 4).map((r) => ({
-    id: `${r.id}-yesterday`,
-    label: r.label,
-    period: "yesterday" as const,
-    generatedAt: "Yesterday, 5:42 PM",
-    workflowPath: r.workflowPath,
-    size: "2.3 MB",
-  })),
-  ...AUTOMATION_REPORTS.slice(0, 2).map((r) => ({
-    id: `${r.id}-prev`,
-    label: r.label,
-    period: "previous" as const,
-    generatedAt: "Mar 28, 2026",
-    workflowPath: r.workflowPath,
-    size: "2.1 MB",
-  })),
-];
-
-const PERIOD_LABELS: Record<ReportPeriod, string> = {
-  today: "Today",
-  yesterday: "Yesterday",
-  previous: "Earlier",
-};
-
-const PERIOD_TABS = [
-  { id: "all" as const, label: "All reports" },
-  { id: "today" as const, label: "Today" },
-  { id: "yesterday" as const, label: "Yesterday" },
-  { id: "previous" as const, label: "Earlier" },
-];
-
 export function GeneratedReportsPage() {
-  const [search, setSearch] = useState("");
-  const [period, setPeriod] = useState<ReportPeriod | "all">("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const runIdFromUrl = searchParams.get("run_id");
+  const [runs, setRuns] = useState<CdpRunSummary[]>([]);
+  const [run, setRun] = useState<AutomationRunDetail | null>(null);
+  const [artifacts, setArtifacts] = useState<AutomationArtifact[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  const filtered = ARCHIVE.filter((r) => {
-    const matchesSearch = r.label.toLowerCase().includes(search.toLowerCase());
-    const matchesPeriod = period === "all" || r.period === period;
-    return matchesSearch && matchesPeriod;
-  });
+  const selectedRunId = runIdFromUrl || localStorage.getItem(LAST_RUN_KEY);
+
+  const loadRuns = useCallback(async () => {
+    try {
+      const list = await automationApi.listCdpRuns(30);
+      setRuns(list);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const loadRun = useCallback(async (runId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const detail = await automationApi.getRun(runId);
+      const arts = await automationApi.getRunArtifacts(runId);
+      setRun(detail);
+      setArtifacts(arts);
+      localStorage.setItem(LAST_RUN_KEY, runId);
+      setSearchParams({ run_id: runId }, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load run");
+      setRun(null);
+      setArtifacts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [setSearchParams]);
+
+  useEffect(() => {
+    void loadRuns();
+  }, [loadRuns]);
+
+  useEffect(() => {
+    if (selectedRunId) {
+      void loadRun(selectedRunId);
+    }
+  }, [selectedRunId, loadRun]);
+
+  const artifactsBySlug = useMemo(() => {
+    const map = new Map<string, { pdf?: AutomationArtifact; excel?: AutomationArtifact }>();
+    for (const art of artifacts) {
+      const slug = art.report_slug || art.report_name || "unknown";
+      const entry = map.get(slug) ?? {};
+      if (art.file_type === "pdf") entry.pdf = art;
+      if (art.file_type === "excel") entry.excel = art;
+      map.set(slug, entry);
+    }
+    return map;
+  }, [artifacts]);
+
+  const reports: ReportResult[] = run?.reports?.length
+    ? run.reports
+    : Array.from(artifactsBySlug.keys()).map((slug) => ({
+        slug,
+        status: "success" as const,
+      }));
+
+  const onDownload = async (url: string | null | undefined, filename: string, key: string) => {
+    if (!url) {
+      setError("File is not available yet");
+      return;
+    }
+    setBusy(key);
+    setError(null);
+    try {
+      const { blob, filename: serverName } = await automationApi.downloadBlob(url, filename);
+      triggerBlobDownload(blob, serverName || filename);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Download failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onRetry = async (slug: string) => {
+    setBusy(`retry-${slug}`);
+    setError(null);
+    try {
+      const result = await automationApi.start({ report_slugs: [slug] });
+      if (result.run_id) {
+        await loadRun(result.run_id);
+        await loadRuns();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Retry failed");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
-        title="Generated Reports"
-        description="Your report archive — search, preview and download any previously generated document."
+        title="Run Results"
+        description="Review and download Excel/PDF artifacts from automation runs."
       />
 
-      <Card className="hover:shadow-premium">
-        <CardBody className="space-y-4 p-5">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-rail-muted" />
-            <Input
-              className="h-11 rounded-xl border-rail-line bg-surface pl-10"
-              placeholder="Search by report name…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-wrap gap-1 rounded-xl bg-surface p-1">
-            {PERIOD_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setPeriod(tab.id)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm transition-all duration-200",
-                  period === tab.id
-                    ? "bg-white font-medium text-rail-ink shadow-soft"
-                    : "text-rail-muted hover:text-rail-ink",
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </CardBody>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+        <Card className="h-fit border-rail-line">
+          <CardHeader>
+            <CardTitle className="text-sm">Previous runs</CardTitle>
+            <CardDescription>Select a run to review</CardDescription>
+          </CardHeader>
+          <CardBody className="space-y-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              onClick={() => void loadRuns()}
+            >
+              <RefreshCw className="mr-1 h-3.5 w-3.5" />
+              Refresh
+            </Button>
+            {runs.length === 0 ? (
+              <p className="text-xs text-slate-500">No CDP runs yet.</p>
+            ) : (
+              <ul className="max-h-[28rem] space-y-1 overflow-auto">
+                {runs.map((item) => (
+                  <li key={item.run_id}>
+                    <button
+                      type="button"
+                      className={cn(
+                        "w-full rounded-md px-2 py-2 text-left text-xs",
+                        selectedRunId === item.run_id
+                          ? "bg-slate-900 text-white"
+                          : "hover:bg-slate-100 text-slate-700",
+                      )}
+                      onClick={() => void loadRun(item.run_id)}
+                    >
+                      <div className="font-medium">{item.status}</div>
+                      <div className="opacity-80">
+                        {item.started_at
+                          ? new Date(item.started_at).toLocaleString()
+                          : item.run_id.slice(0, 8)}
+                      </div>
+                      <div className="opacity-70">
+                        ok {item.success_count} / fail {item.failure_count}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
 
-      <div className="overflow-hidden rounded-2xl border border-rail-line bg-white shadow-card">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm">
-              <tr className="border-b border-rail-line">
-                <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-rail-muted">
-                  Report
-                </th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-rail-muted">
-                  Period
-                </th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-rail-muted">
-                  Generated
-                </th>
-                <th className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-rail-muted">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-16 text-center text-sm text-rail-muted">
-                    No reports match your search.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((report, index) => (
-                  <tr
-                    key={report.id}
-                    className={cn(
-                      "border-b border-rail-line/60 transition-colors duration-200 last:border-0",
-                      index % 2 === 0 ? "bg-white" : "bg-surface/30",
-                      "hover:bg-primary/[0.03]",
-                    )}
+        <div className="space-y-4">
+          {error ? (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
+
+          {loading ? <p className="text-sm text-slate-500">Loading run…</p> : null}
+
+          {!loading && !run ? (
+            <Card>
+              <CardBody className="space-y-3 py-10 text-center">
+                <p className="text-sm text-slate-600">
+                  No run selected. Start automation, then return here to review outputs.
+                </p>
+                <Button asChild>
+                  <Link to="/automation">Go to Automation</Link>
+                </Button>
+              </CardBody>
+            </Card>
+          ) : null}
+
+          {run ? (
+            <>
+              <Card className="border-rail-line">
+                <CardHeader className="flex flex-row items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base">Run {run.run_id.slice(0, 8)}…</CardTitle>
+                    <CardDescription>
+                      Status: {run.status}
+                      {run.total_duration_seconds != null
+                        ? ` · ${Math.round(run.total_duration_seconds / 60)}m ${Math.round(
+                            run.total_duration_seconds % 60,
+                          )}s`
+                        : ""}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={!run.download_all_url || busy === "zip"}
+                    onClick={() =>
+                      void onDownload(
+                        run.download_all_url || automationApi.downloadAllUrl(run.run_id),
+                        `Rail_Madad_Reports.zip`,
+                        "zip",
+                      )
+                    }
                   >
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                          <FileSpreadsheet className="h-4 w-4 text-primary" />
+                    <Archive className="mr-1 h-3.5 w-3.5" />
+                    Download All
+                  </Button>
+                </CardHeader>
+              </Card>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {reports.map((report) => {
+                  const arts = artifactsBySlug.get(report.slug) ?? {};
+                  const preview =
+                    arts.pdf?.preview_url ||
+                    report.pdf_preview_url ||
+                    (arts.pdf ? automationApi.artifactPreviewUrl(arts.pdf.id) : null);
+                  const pdfDl =
+                    arts.pdf?.status === "ready"
+                      ? arts.pdf.download_url ||
+                        (arts.pdf ? automationApi.artifactDownloadUrl(arts.pdf.id) : null)
+                      : report.pdf_download_url || automationApi.pdfDownloadUrl(report.slug);
+                  const excelDl =
+                    arts.excel?.download_url ||
+                    report.excel_download_url ||
+                    (arts.excel ? automationApi.artifactDownloadUrl(arts.excel.id) : null);
+                  const pdfReady =
+                    arts.pdf?.status === "ready" ||
+                    Boolean(report.pdf_download_url) ||
+                    report.status === "success";
+                  const excelReady = arts.excel?.status === "ready";
+                  const failed = report.status === "failed" || report.status === "partial_success";
+
+                  return (
+                    <Card key={report.slug} className="border-rail-line">
+                      <CardHeader>
+                        <CardTitle className="text-sm">{report.slug}</CardTitle>
+                        <CardDescription>
+                          {report.status}
+                          {report.row_count != null || report.source_row_count != null
+                            ? ` · ${report.row_count ?? report.source_row_count} rows`
+                            : ""}
+                          {report.duration_seconds != null
+                            ? ` · ${report.duration_seconds.toFixed(1)}s`
+                            : ""}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardBody className="space-y-3">
+                        {report.error ? (
+                          <p className="text-xs text-red-600">{report.error}</p>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={!pdfReady || !preview}
+                            onClick={() => setPreviewUrl(preview)}
+                          >
+                            <Eye className="mr-1 h-3.5 w-3.5" />
+                            Preview PDF
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={!pdfReady || !pdfDl || busy === `pdf-${report.slug}`}
+                            onClick={() =>
+                              void onDownload(
+                                pdfDl || automationApi.pdfDownloadUrl(report.slug),
+                                `${report.slug}.pdf`,
+                                `pdf-${report.slug}`,
+                              )
+                            }
+                          >
+                            <Download className="mr-1 h-3.5 w-3.5" />
+                            Download PDF
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={!excelReady || !excelDl || busy === `xlsx-${report.slug}`}
+                            onClick={() =>
+                              void onDownload(
+                                excelDl,
+                                `${report.slug}.xlsx`,
+                                `xlsx-${report.slug}`,
+                              )
+                            }
+                          >
+                            <FileSpreadsheet className="mr-1 h-3.5 w-3.5" />
+                            Download Excel
+                          </Button>
+                          {failed ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={busy === `retry-${report.slug}`}
+                              onClick={() => void onRetry(report.slug)}
+                            >
+                              Retry
+                            </Button>
+                          ) : null}
                         </div>
-                        <div>
-                          <p className="font-medium text-rail-ink">{report.label}</p>
-                          <p className="text-xs text-rail-muted">{report.size} · Excel</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="status-pill bg-surface text-rail-muted">
-                        {PERIOD_LABELS[report.period]}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-rail-muted">{report.generatedAt}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="secondary" size="sm" className="rounded-xl" asChild>
-                          <Link to={report.workflowPath}>
-                            <Eye className="h-3.5 w-3.5" />
-                            Preview
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" className="rounded-xl" asChild>
-                          <Link to={report.workflowPath}>
-                            <Download className="h-3.5 w-3.5" />
-                            Download
-                          </Link>
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                      </CardBody>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
+
+      {previewUrl ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <h2 className="text-sm font-semibold text-slate-900">PDF Review</h2>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setPreviewUrl(null)}>
+                Close
+              </Button>
+            </div>
+            <iframe title="PDF preview" src={previewUrl} className="h-full w-full flex-1" />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

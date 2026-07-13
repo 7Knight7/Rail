@@ -139,43 +139,56 @@ class FilterService:
     @staticmethod
     async def get_report_root(page: Page) -> ReportRoot:
         """Return the page or iframe containing the report filter form."""
+        deadline = 20_000
         try:
             await page.wait_for_selector(
                 "select, input, textarea, iframe",
-                timeout=10_000,
+                timeout=deadline,
             )
         except PlaywrightTimeoutError:
             logger.warning("Timed out waiting for report form controls")
 
-        iframe_count = await page.locator("iframe").count()
-        for index in range(iframe_count):
-            frame_loc = page.frame_locator("iframe").nth(index)
-            if await frame_loc.locator("input, select, textarea").count() > 0:
-                log_automation_event(
-                    logger,
-                    "report_context_resolved",
-                    location="iframe",
-                    frame_index=index,
-                )
-                return frame_loc
+        # Portal report forms often load asynchronously inside an iframe
+        for _ in range(10):
+            iframe_count = await page.locator("iframe").count()
+            for index in range(iframe_count):
+                frame_loc = page.frame_locator("iframe").nth(index)
+                try:
+                    count = await frame_loc.locator("input, select, textarea").count()
+                except Exception:
+                    count = 0
+                if count > 0:
+                    log_automation_event(
+                        logger,
+                        "report_context_resolved",
+                        location="iframe",
+                        frame_index=index,
+                    )
+                    return frame_loc
 
-        for frame_selector in selectors.report1_frame.split(","):
-            frame_selector = frame_selector.strip()
-            if not frame_selector:
-                continue
-            frame_loc = page.frame_locator(frame_selector).first
-            if await frame_loc.locator("input, select, textarea").count() > 0:
-                log_automation_event(
-                    logger,
-                    "report_context_resolved",
-                    location="iframe",
-                    frame_selector=frame_selector,
-                )
-                return frame_loc
+            for frame_selector in selectors.report1_frame.split(","):
+                frame_selector = frame_selector.strip()
+                if not frame_selector:
+                    continue
+                frame_loc = page.frame_locator(frame_selector).first
+                try:
+                    count = await frame_loc.locator("input, select, textarea").count()
+                except Exception:
+                    count = 0
+                if count > 0:
+                    log_automation_event(
+                        logger,
+                        "report_context_resolved",
+                        location="iframe",
+                        frame_selector=frame_selector,
+                    )
+                    return frame_loc
 
-        if await page.locator("select, input, textarea").count() > 0:
-            log_automation_event(logger, "report_context_resolved", location="main_page")
-            return page
+            if await page.locator("select, input, textarea").count() > 0:
+                log_automation_event(logger, "report_context_resolved", location="main_page")
+                return page
+
+            await asyncio.sleep(0.5)
 
         raise FilterError("Report form not found on the page (no iframe or main-page controls)")
 
@@ -214,18 +227,34 @@ class FilterService:
                 field_value=applied_value,
                 field_label=field.label or field.name,
             )
-            await asyncio.sleep(config.filter_interaction_delay_ms / 1000)
-            if field.field_type == "select" and page is not None:
-                await self._wait_for_dependent_controls(page)
+            # Cascading portal selects need a short settle; others do not.
+            cascading = field.name.lower() in {
+                "zone",
+                "division",
+                "type",
+                "sub_type",
+                "department",
+                "mode",
+                "daterange",
+                "view",
+            }
+            if cascading:
+                delay_ms = min(config.filter_interaction_delay_ms, 200)
+                if delay_ms > 0:
+                    await asyncio.sleep(delay_ms / 1000)
+                if field.field_type == "select" and page is not None:
+                    await self._wait_for_dependent_controls(page)
 
         return applied
 
     @staticmethod
     async def _wait_for_dependent_controls(page: Page) -> None:
         try:
-            await page.wait_for_load_state("networkidle", timeout=5_000)
+            await page.locator("select, input").first.wait_for(
+                state="attached", timeout=1_500
+            )
         except PlaywrightTimeoutError:
-            logger.debug("networkidle wait skipped after filter change")
+            logger.debug("dependent controls wait skipped after filter change")
 
     async def _resolve_field_locator(
         self,

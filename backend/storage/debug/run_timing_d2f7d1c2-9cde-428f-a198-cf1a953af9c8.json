@@ -1,0 +1,77 @@
+{
+  "run_id": "d2f7d1c2-9cde-428f-a198-cf1a953af9c8",
+  "started_at": "2026-07-12T18:39:15.022416+00:00",
+  "completed_at": "2026-07-12T18:39:15.137963+00:00",
+  "total_duration_seconds": 0.116,
+  "spans": {
+    "browser_connect": 0.0,
+    "nav_filter_submit:report1": 0.0,
+    "report:report1": 0.001,
+    "nav_filter_submit:division": 0.0,
+    "report:division": 0.0,
+    "nav_filter_submit:train-no": 0.0,
+    "report:train-no": 0.0,
+    "nav_filter_submit:types": 0.0,
+    "report:types": 0.0,
+    "nav_filter_submit:scr-train": 0.0,
+    "report:scr-train": 0.0,
+    "nav_filter_submit:scr-station": 0.0,
+    "report:scr-station": 0.0
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-12T18:39:15.022782+00:00",
+      "completed_at": "2026-07-12T18:39:15.023429+00:00",
+      "duration_seconds": 0.001,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "division": {
+      "slug": "division",
+      "started_at": "2026-07-12T18:39:15.023491+00:00",
+      "completed_at": "2026-07-12T18:39:15.023690+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "train-no": {
+      "slug": "train-no",
+      "started_at": "2026-07-12T18:39:15.023729+00:00",
+      "completed_at": "2026-07-12T18:39:15.023918+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "types": {
+      "slug": "types",
+      "started_at": "2026-07-12T18:39:15.023957+00:00",
+      "completed_at": "2026-07-12T18:39:15.024162+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "scr-train": {
+      "slug": "scr-train",
+      "started_at": "2026-07-12T18:39:15.024205+00:00",
+      "completed_at": "2026-07-12T18:39:15.024347+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "scr-station": {
+      "slug": "scr-station",
+      "started_at": "2026-07-12T18:39:15.024387+00:00",
+      "completed_at": "2026-07-12T18:39:15.024560+00:00",
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    }
+  }
+}

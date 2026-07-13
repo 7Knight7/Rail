@@ -83,7 +83,11 @@ class ReportGeneratorService:
         timeout_ms = config.timeout * 1000
 
         try:
-            await page.wait_for_load_state("networkidle", timeout=timeout_ms)
+            await page.wait_for_load_state("domcontentloaded", timeout=min(timeout_ms, 15_000))
+        except PlaywrightTimeoutError:
+            logger.debug("domcontentloaded timeout after generate click; continuing")
+        try:
+            await page.wait_for_load_state("networkidle", timeout=5_000)
         except PlaywrightTimeoutError:
             logger.warning("networkidle timeout after generate click; continuing")
 
@@ -98,7 +102,15 @@ class ReportGeneratorService:
             await self._wait_for_loading_indicators(root, min(timeout_ms, 30_000))
             if await self.verify_report_displayed(root):
                 return True
-            await asyncio.sleep(1)
+            try:
+                await root.locator(
+                    "table tbody tr, .dataTables_wrapper, #example, .ui-jqgrid"
+                ).first.wait_for(state="attached", timeout=400)
+            except PlaywrightTimeoutError:
+                try:
+                    await root.locator("table").first.wait_for(state="visible", timeout=250)
+                except PlaywrightTimeoutError:
+                    pass
         return False
 
     async def _wait_for_loading_indicators(self, root: ReportRoot, timeout_ms: int) -> None:

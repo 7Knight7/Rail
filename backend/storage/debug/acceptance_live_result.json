@@ -1,0 +1,36 @@
+{
+  "success": false,
+  "run_id": "d8722688-9c0f-410f-ba0e-f2bbfacb88a3",
+  "total_duration_seconds": 1612.899,
+  "reports_successful": 1,
+  "reports_failed": 1,
+  "error": "Page.bring_to_front: Target page, context or browser has been closed",
+  "error_code": null,
+  "download_all_url": "/api/v1/automation/runs/d8722688-9c0f-410f-ba0e-f2bbfacb88a3/download-all",
+  "reports": [
+    {
+      "slug": "report1",
+      "status": "success",
+      "row_count": 21,
+      "duration_seconds": 179.049,
+      "extraction_seconds": 0.083,
+      "processing_seconds": 0.207,
+      "error": null,
+      "pdf_preview_url": null,
+      "pdf_download_url": "/api/v1/automation/reports/report1/pdf",
+      "excel_download_url": null
+    },
+    {
+      "slug": "division",
+      "status": "failed",
+      "row_count": null,
+      "duration_seconds": 1431.113,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "error": "Locator.count: Target page, context or browser has been closed",
+      "pdf_preview_url": null,
+      "pdf_download_url": null,
+      "excel_download_url": null
+    }
+  ]
+}

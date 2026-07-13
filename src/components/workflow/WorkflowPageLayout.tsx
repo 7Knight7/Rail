@@ -6,6 +6,7 @@ import { PreviewTable } from "./PreviewTable";
 import { OutputCard } from "./OutputCard";
 import { ActionBar } from "./ActionBar";
 import { cn } from "@/utils/cn";
+import { automationApi } from "@/api/automation";
 import {
   FilterBuilder,
   VisibleColumnsSection,
@@ -14,6 +15,16 @@ import {
   type ReportId,
   type ColumnMetadata,
 } from "@/features/report-config";
+
+const REPORT_ID_TO_SLUG: Record<string, string> = {
+  zone: "report1",
+  merging: "report1",
+  division: "division",
+  "train-no": "train-no",
+  types: "types",
+  "scr-train": "scr-train",
+  "scr-station": "scr-station",
+};
 
 interface SettingField {
   id: string;
@@ -100,9 +111,26 @@ export function WorkflowPageLayout({
     setVisibleColumnIds(metadata?.columns.map((column: ColumnMetadata) => column.id) ?? []);
   }, [initialAdvanced, initialSettings, metadata]);
 
-  const handleDownload = useCallback(() => {
-    alert("Download will be available after report generation.");
-  }, []);
+  const handleDownload = useCallback(async () => {
+    if (status !== "completed") {
+      alert("Generate the report first, then download from the Generated Reports page.");
+      return;
+    }
+    const slug = REPORT_ID_TO_SLUG[reportId] ?? reportId;
+    try {
+      const { blob, filename } = await automationApi.downloadPdf(slug);
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename || `${slug}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "PDF download failed. Open Generated Reports.");
+    }
+  }, [reportId, status]);
 
   const datasetSourceLabel = metadata?.sourceFilename ?? "Original RailMadad dataset";
 
