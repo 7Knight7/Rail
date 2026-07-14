@@ -47,7 +47,7 @@ export function computeRemainingMinutes(steps: AutomationStep[]): number {
 
 export function getStepStats(steps: AutomationStep[]): AutomationStepStats {
   return {
-    completed: steps.filter((s) => s.status === "completed").length,
+    completed: steps.filter((s) => s.status === "completed" || s.status === "partial").length,
     failed: steps.filter((s) => s.status === "failed").length,
     running: steps.filter((s) => s.status === "running").length,
     waiting: steps.filter((s) => s.status === "waiting").length,
@@ -60,7 +60,9 @@ export function getCurrentTask(steps: AutomationStep[]): AutomationStep | undefi
 
 export function computeProgressPercent(steps: AutomationStep[]): number {
   if (steps.length === 0) return 0;
-  const completed = steps.filter((s) => s.status === "completed").length;
+  const completed = steps.filter(
+    (s) => s.status === "completed" || s.status === "partial",
+  ).length;
   return Math.round((completed / steps.length) * 100);
 }
 
@@ -68,6 +70,8 @@ export function statusLabel(status: AutomationStepStatus): string {
   switch (status) {
     case "completed":
       return "Done";
+    case "partial":
+      return "Partial";
     case "failed":
       return "Failed";
     case "running":

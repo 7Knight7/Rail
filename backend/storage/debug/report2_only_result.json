@@ -1,0 +1,37 @@
+{
+  "success": true,
+  "run_id": "cc33c93e-9c60-4f2b-9b0b-a1f6f9a181a3",
+  "total_duration_seconds": 143.297,
+  "reports_successful": 1,
+  "reports_failed": 0,
+  "error": null,
+  "error_code": null,
+  "download_all_url": "/api/v1/automation/runs/cc33c93e-9c60-4f2b-9b0b-a1f6f9a181a3/download-all",
+  "reports": [
+    {
+      "slug": "division",
+      "status": "success",
+      "row_count": 26,
+      "row_counts": {
+        "comprehensive": 26,
+        "feedback": 80
+      },
+      "duration_seconds": 141.462,
+      "extraction_seconds": 140.964,
+      "processing_seconds": null,
+      "error": null,
+      "source_csv_path": "storage\\extracted\\division\\report2_division_comprehensive_top25.csv",
+      "source_paths": [
+        "storage\\extracted\\division\\report2_division_comprehensive_top25.csv",
+        "C:\\Users\\bvsri\\OneDrive\\Desktop\\Rail\\backend\\storage\\extracted\\division\\report2_division_feedback_raw.csv"
+      ],
+      "excel_path": "storage\\output\\excel\\division\\Rail_Madad_Report_2_Division_Wise_Bottom_25_13-07-2026_120143.xlsx",
+      "pdf_path": "storage\\output\\pdf\\division\\Rail_Madad_Report_2_Division_Wise_Bottom_25_13-07-2026_120143.pdf",
+      "pdf_preview_url": "/api/v1/automation/artifacts/cc403765-4908-42ee-830a-9bd4cd7f0173/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/cc403765-4908-42ee-830a-9bd4cd7f0173/download",
+      "excel_download_url": "/api/v1/automation/artifacts/105eb5bd-cc4f-45fd-930d-37cdfa7533c4/download",
+      "ingestion_success": true,
+      "processing_success": true
+    }
+  ]
+}

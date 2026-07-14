@@ -32,8 +32,17 @@ function updateStepStatus(
   steps: AutomationStep[],
   stepId: string,
   status: AutomationStep["status"],
+  error?: string,
 ): AutomationStep[] {
-  return steps.map((step) => (step.id === stepId ? { ...step, status } : step));
+  return steps.map((step) =>
+    step.id === stepId
+      ? {
+          ...step,
+          status,
+          ...(error !== undefined ? { error } : status === "failed" ? {} : { error: undefined }),
+        }
+      : step,
+  );
 }
 
 export interface PlaywrightEventResult {
@@ -93,17 +102,44 @@ export function applyPlaywrightEvent(
         ),
       };
 
-    case "step_failed":
+    case "step_partial":
       return {
         ...state,
-        runStatus: "failed",
-        steps: updateStepStatus(state.steps, event.stepId, "failed"),
+        steps: updateStepStatus(
+          state.steps,
+          event.stepId,
+          "partial",
+          event.error ?? event.message,
+        ),
+        activityLog: appendLog(
+          state.activityLog,
+          "warning",
+          event.message ?? event.error ?? `Step partial: ${event.stepId}`,
+        ),
+      };
+
+    case "step_failed": {
+      const steps = updateStepStatus(
+        state.steps,
+        event.stepId,
+        "failed",
+        event.error ?? event.message,
+      );
+      const othersStillActive = steps.some(
+        (s) => s.id !== event.stepId && (s.status === "waiting" || s.status === "running"),
+      );
+      return {
+        ...state,
+        // Keep the run active when sibling reports continue; do not flash "Stopped".
+        runStatus: othersStillActive ? "running" : "failed",
+        steps,
         activityLog: appendLog(
           state.activityLog,
           "error",
           event.message ?? event.error ?? `Step failed: ${event.stepId}`,
         ),
       };
+    }
 
     case "log":
       return {

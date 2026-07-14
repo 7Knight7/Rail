@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import logging
 import re
+from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -63,15 +64,20 @@ class Report1Processor:
         if source_a_path.suffix.lower() == ".pdf":
             return ProcessingResult(success=False, error="PDF cannot be used as processing input")
 
-        feedback_path = source_b_path if source_b_path and source_b_path.exists() else None
-        if feedback_path is None:
-            feedback_path = self._find_feedback_csv(report_slug)
-        if feedback_path is None:
-            expected = resolve_report_dir(config.extracted_data_dir, report_slug) / FEEDBACK_FILENAME
+        # Require explicit current-run Source B path — no filesystem fallback to stale CSVs.
+        if source_b_path is None:
             return ProcessingResult(
                 success=False,
                 source_a_path=str(source_a_path),
-                error=f"Feedback dataset missing: expected {expected}",
+                error="Feedback dataset missing: source_b_path required (no stale fallback)",
+            )
+        feedback_path = Path(source_b_path)
+        if not feedback_path.exists() or feedback_path.stat().st_size <= 0:
+            return ProcessingResult(
+                success=False,
+                source_a_path=str(source_a_path),
+                source_b_path=str(feedback_path),
+                error=f"Feedback dataset missing or empty: {feedback_path}",
             )
 
         source_a_rows, source_a_headers = self._read_csv(source_a_path)
@@ -86,13 +92,16 @@ class Report1Processor:
             merged_rows.append(self._merge_total_row(total_a, total_b, source_a_headers, source_b_headers))
 
         report_date = previous_day_report_date()
+        run_timestamp = datetime.now().strftime("%H%M%S")
         excel_dir = ensure_directory(
             resolve_report_dir(config.output_excel_dir, report_slug)
         )
         pdf_dir = ensure_directory(
             resolve_report_dir(config.output_pdf_dir, report_slug)
         )
-        base_name = f"Rail_Madad_Report_1_Zone_Wise_Complaints_Feedback_{report_date}"
+        base_name = (
+            f"Rail_Madad_Report_1_Zone_Wise_Complaints_Feedback_{report_date}_{run_timestamp}"
+        )
         excel_path = excel_dir / f"{base_name}.xlsx"
         pdf_path = pdf_dir / f"{base_name}.pdf"
 

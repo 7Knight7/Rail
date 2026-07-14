@@ -214,6 +214,10 @@ def r2_inputs(tmp_path: Path) -> Path:
         "S.No.,Organisation,Opening Balance,Received,% Share,Closed,Closing Balance,"
         "% Disposal,Avg. Disposal Time,Avg. Rating,Avg. Pendency Time,Forwarded,Avg. FRT"
     ]
+    feedback_lines = [
+        "S.No.,Organisation,Feedback Received,% Feedback,Excellent,Satisfactory,"
+        "Unsatisfactory,% Unsatisfactory"
+    ]
     portal_snos = [20, 54, 41, 42, 33, 18, 77, 12, 9, 100]
     for i in range(30):
         sno = portal_snos[i % len(portal_snos)] + i
@@ -222,8 +226,14 @@ def r2_inputs(tmp_path: Path) -> Path:
         lines.append(
             f"{sno},{org},1,{received},1,1,1,90,0:10,Satisfactory,0:05,1,0:01"
         )
+        feedback_lines.append(f"{i+1},{org},{received // 2},40,10,5,2,4.0")
     lines.append(",Total,,15000,,30,,,,,,,")
+    feedback_lines.append(",Total,5000,,,,,,")
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (extracted / "report2_division_feedback_raw.csv").write_text(
+        "\n".join(feedback_lines) + "\n",
+        encoding="utf-8",
+    )
     return target
 
 

@@ -121,7 +121,7 @@ export function AutomationWorkspace(props: AutomationWorkspaceProps) {
               </div>
               {isBusy && !isPaused && <StatusBadge variant="info">In progress</StatusBadge>}
               {isComplete && <StatusBadge variant="success">Complete</StatusBadge>}
-              {hasFailed && !isBusy && <StatusBadge variant="error">Stopped</StatusBadge>}
+              {hasFailed && !isBusy && <StatusBadge variant="error">Failed</StatusBadge>}
             </div>
           </CardHeader>
           <CardBody>

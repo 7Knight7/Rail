@@ -1,0 +1,31 @@
+{
+  "run_id": "9a7dcc71-ba0e-4924-875f-604312c365f1",
+  "started_at": "2026-07-14T05:30:52.523538+00:00",
+  "completed_at": "2026-07-14T05:34:14.643662+00:00",
+  "total_duration_seconds": 202.12,
+  "spans": {
+    "browser_connect": 1.236,
+    "nav_filter_submit:types": 0.783,
+    "sorting:types": 3.985,
+    "handler_execute:types": 198.292,
+    "ingestion:types": 0.284,
+    "report:types": 199.994
+  },
+  "reports": {
+    "types": {
+      "slug": "types",
+      "started_at": "2026-07-14T05:30:54.617762+00:00",
+      "completed_at": "2026-07-14T05:34:14.612216+00:00",
+      "duration_seconds": 199.994,
+      "extraction_seconds": 198.292,
+      "processing_seconds": 1.333,
+      "spans": {
+        "nav_filter_submit": 0.783,
+        "sorting": 3.985,
+        "extraction": 198.292,
+        "ingestion": 0.284,
+        "processing": 1.333
+      }
+    }
+  }
+}

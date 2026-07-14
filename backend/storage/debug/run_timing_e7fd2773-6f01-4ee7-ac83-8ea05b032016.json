@@ -1,0 +1,22 @@
+{
+  "run_id": "e7fd2773-6f01-4ee7-ac83-8ea05b032016",
+  "started_at": "2026-07-14T04:51:07.224004+00:00",
+  "completed_at": "2026-07-14T04:51:28.242771+00:00",
+  "total_duration_seconds": 21.019,
+  "spans": {
+    "browser_connect": 5.398,
+    "handler_execute:division": 14.937,
+    "report:division": 15.022
+  },
+  "reports": {
+    "division": {
+      "slug": "division",
+      "started_at": "2026-07-14T04:51:13.144898+00:00",
+      "completed_at": "2026-07-14T04:51:28.166405+00:00",
+      "duration_seconds": 15.022,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    }
+  }
+}

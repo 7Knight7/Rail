@@ -57,7 +57,7 @@
     "field_type": "text",
     "field_label": "",
     "selector": "#fromDate",
-    "current_value": "",
+    "current_value": "2026-07-14",
     "required": true,
     "options": []
   },
@@ -68,7 +68,7 @@
     "field_type": "text",
     "field_label": "",
     "selector": "#toDate",
-    "current_value": "2026-07-13",
+    "current_value": "2026-07-14",
     "required": true,
     "options": []
   },

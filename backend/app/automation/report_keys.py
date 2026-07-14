@@ -10,6 +10,7 @@ CANONICAL_KEYS: frozenset[str] = frozenset(
     {
         "report1",
         "division",
+        "division_feedback",
         "train-no",
         "types",
         "scr-train",
@@ -56,6 +57,7 @@ def is_supported_report_key(key: str) -> bool:
     return canonical in CANONICAL_KEYS or canonical in {
         "report1",
         "division",
+        "division_feedback",
         "train-no",
         "types",
         "scr-train",

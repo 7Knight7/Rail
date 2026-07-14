@@ -28,6 +28,13 @@ FEEDBACK_REQUIRED_HEADERS = frozenset(
     }
 )
 
+# Division Wise Feedback requires only feedback columns - Division/Organisation is checked separately
+FEEDBACK_DIVISION_REQUIRED_HEADERS = frozenset(
+    {
+        "Feedback Received",
+    }
+)
+
 
 @dataclass
 class TableValidationResult:

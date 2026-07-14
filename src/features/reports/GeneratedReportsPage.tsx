@@ -259,17 +259,22 @@ export function GeneratedReportsPage() {
                     arts.pdf?.status === "ready"
                       ? arts.pdf.download_url ||
                         (arts.pdf ? automationApi.artifactDownloadUrl(arts.pdf.id) : null)
-                      : report.pdf_download_url || automationApi.pdfDownloadUrl(report.slug);
+                      : report.pdf_download_url || null;
                   const excelDl =
                     arts.excel?.download_url ||
                     report.excel_download_url ||
                     (arts.excel ? automationApi.artifactDownloadUrl(arts.excel.id) : null);
+                  const hasCurrentPdfUrl = Boolean(preview || pdfDl || report.pdf_download_url);
+                  const hasCurrentExcelUrl = Boolean(excelDl);
                   const pdfReady =
-                    arts.pdf?.status === "ready" ||
-                    Boolean(report.pdf_download_url) ||
-                    report.status === "success";
-                  const excelReady = arts.excel?.status === "ready";
-                  const failed = report.status === "failed" || report.status === "partial_success";
+                    arts.pdf?.status === "ready" || Boolean(report.pdf_download_url);
+                  const excelReady =
+                    arts.excel?.status === "ready" || Boolean(report.excel_download_url);
+                  const failed = report.status === "failed";
+                  const terminalPartial = report.status === "partial_success";
+                  // Terminal success must never show deferred/stale pending error text.
+                  const displayError =
+                    report.status === "success" ? null : report.error || null;
 
                   return (
                     <Card key={report.slug} className="border-rail-line">
@@ -286,15 +291,15 @@ export function GeneratedReportsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardBody className="space-y-3">
-                        {report.error ? (
-                          <p className="text-xs text-red-600">{report.error}</p>
+                        {displayError ? (
+                          <p className="text-xs text-red-600">{displayError}</p>
                         ) : null}
                         <div className="flex flex-wrap gap-2">
                           <Button
                             type="button"
                             size="sm"
                             variant="secondary"
-                            disabled={!pdfReady || !preview}
+                            disabled={!pdfReady || !preview || !hasCurrentPdfUrl}
                             onClick={() => setPreviewUrl(preview)}
                           >
                             <Eye className="mr-1 h-3.5 w-3.5" />
@@ -304,7 +309,7 @@ export function GeneratedReportsPage() {
                             type="button"
                             size="sm"
                             variant="secondary"
-                            disabled={!pdfReady || !pdfDl || busy === `pdf-${report.slug}`}
+                            disabled={!pdfReady || !pdfDl || !hasCurrentPdfUrl || busy === `pdf-${report.slug}`}
                             onClick={() =>
                               void onDownload(
                                 pdfDl || automationApi.pdfDownloadUrl(report.slug),
@@ -320,7 +325,7 @@ export function GeneratedReportsPage() {
                             type="button"
                             size="sm"
                             variant="secondary"
-                            disabled={!excelReady || !excelDl || busy === `xlsx-${report.slug}`}
+                            disabled={!excelReady || !excelDl || !hasCurrentExcelUrl || busy === `xlsx-${report.slug}`}
                             onClick={() =>
                               void onDownload(
                                 excelDl,
@@ -332,7 +337,7 @@ export function GeneratedReportsPage() {
                             <FileSpreadsheet className="mr-1 h-3.5 w-3.5" />
                             Download Excel
                           </Button>
-                          {failed ? (
+                          {failed || terminalPartial ? (
                             <Button
                               type="button"
                               size="sm"

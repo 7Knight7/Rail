@@ -79,6 +79,7 @@ class Report4Processor:
             return ProcessingResult(success=False, error="PDF cannot be used as processing input")
 
         type_configs = get_type_configs()
+        type_by_name = {cfg.name: cfg for cfg in type_configs}
         sections: list[TypeDataset] = []
         total_input_rows = 0
 
@@ -91,27 +92,54 @@ class Report4Processor:
                 sections.append(TypeDataset(type_config=type_config, rows=formatted))
                 total_input_rows += len(data_rows)
         else:
-            base_dir = resolve_report_dir(config.extracted_data_dir, report_slug)
-            for type_config in type_configs:
-                type_slug = type_config.name.lower().replace(" ", "_").replace("&", "and")
-                csv_path = base_dir / f"report4_{type_slug}_raw.csv"
-                
-                if csv_path.exists():
+            # Prefer current-run index paths (never scan stale sibling dirs).
+            index_entries = self._read_combined_index(source_a_path)
+            if index_entries:
+                for type_name in COMPLAINT_TYPES_ORDERED:
+                    entry = index_entries.get(type_name)
+                    type_config = type_by_name.get(type_name)
+                    if type_config is None or entry is None:
+                        continue
+                    if str(entry.get("status", "")).lower() != "success":
+                        continue
+                    csv_path = Path(str(entry.get("csv_path") or ""))
+                    if not csv_path.is_file():
+                        log_automation_event(
+                            logger,
+                            "type_csv_not_found",
+                            type_name=type_name,
+                            expected_path=str(csv_path),
+                        )
+                        continue
                     raw_rows, _ = self._read_csv(csv_path)
                     data_rows = self._exclude_total_rows(raw_rows)
                     top_rows = data_rows[:TOP_N]
                     formatted = self._format_output_rows(top_rows)
                     total_input_rows += len(data_rows)
-                else:
-                    formatted = []
-                    log_automation_event(
-                        logger,
-                        "type_csv_not_found",
-                        type_name=type_config.name,
-                        expected_path=str(csv_path),
+                    sections.append(TypeDataset(type_config=type_config, rows=formatted))
+            else:
+                # Legacy fallback: sibling raw CSVs next to source_a_path only.
+                base_dir = source_a_path.parent
+                for type_config in type_configs:
+                    type_slug = (
+                        type_config.name.lower().replace(" ", "_").replace("&", "and")
                     )
-                
-                sections.append(TypeDataset(type_config=type_config, rows=formatted))
+                    csv_path = base_dir / f"report4_{type_slug}_raw.csv"
+                    if csv_path.exists():
+                        raw_rows, _ = self._read_csv(csv_path)
+                        data_rows = self._exclude_total_rows(raw_rows)
+                        top_rows = data_rows[:TOP_N]
+                        formatted = self._format_output_rows(top_rows)
+                        total_input_rows += len(data_rows)
+                    else:
+                        formatted = []
+                        log_automation_event(
+                            logger,
+                            "type_csv_not_found",
+                            type_name=type_config.name,
+                            expected_path=str(csv_path),
+                        )
+                    sections.append(TypeDataset(type_config=type_config, rows=formatted))
 
         report_date = previous_day_report_date()
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
@@ -160,6 +188,32 @@ class Report4Processor:
             headers = list(reader.fieldnames or [])
             rows = [{header: row.get(header, "") for header in headers} for row in reader]
         return rows, headers
+
+    @staticmethod
+    def _read_combined_index(source_a_path: Path) -> dict[str, dict[str, str]]:
+        """Parse types_combined_index.csv into type_name -> entry map.
+
+        Returns empty dict when source is not an index so callers can fall back.
+        """
+        if source_a_path.name != "types_combined_index.csv":
+            return {}
+        if not source_a_path.is_file():
+            return {}
+        entries: dict[str, dict[str, str]] = {}
+        with source_a_path.open(encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                type_name = (row.get("type_name") or "").strip()
+                if not type_name:
+                    continue
+                entries[type_name] = {
+                    "type_name": type_name,
+                    "csv_path": (row.get("csv_path") or "").strip(),
+                    "row_count": (row.get("row_count") or "0").strip(),
+                    "status": (row.get("status") or "").strip(),
+                    "error": (row.get("error") or "").strip(),
+                }
+        return entries
 
     @staticmethod
     def _is_total_row(row: dict[str, str]) -> bool:

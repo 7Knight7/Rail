@@ -82,6 +82,10 @@ async def _emit_report_activity(
     try:
         from app.features.activity.emit import emit_activity
 
+        # Non-terminal deferred processing must not emit REPORT_FAILED.
+        if status == "partial_success" and error and "ingest/process pending" in error.lower():
+            return
+
         if status == "success":
             await emit_activity(
                 user_id=user_id,
@@ -92,7 +96,17 @@ async def _emit_report_activity(
                 run_id=run_id,
                 dedupe_key=f"report_completed:{run_id}:{slug}",
             )
-        else:
+        elif status == "partial_success":
+            await emit_activity(
+                user_id=user_id,
+                action="REPORT_PARTIAL",
+                message=error or f"Report {slug} partial success",
+                status="warning",
+                report_slug=slug,
+                run_id=run_id,
+                dedupe_key=f"report_partial:{run_id}:{slug}",
+            )
+        elif status == "failed":
             await emit_activity(
                 user_id=user_id,
                 action="REPORT_FAILED",
@@ -102,6 +116,7 @@ async def _emit_report_activity(
                 run_id=run_id,
                 dedupe_key=f"report_failed:{run_id}:{slug}",
             )
+        # skipped/stopped: no per-report completed/failed activity here
     except Exception:
         pass
 
@@ -626,6 +641,15 @@ async def attach_to_railmadad(
             if not found:
                 report_results.append(r)
         await _register_missing_artifacts(ctx, report_results)
+        # Emit terminal activity from merged results (handler emit skipped pending).
+        for r in report_results:
+            await _emit_report_activity(
+                user_id,
+                run_id=run_id,
+                slug=r.slug,
+                status=r.status,
+                error=r.error,
+            )
         result = _finalize_multi_result(
             ctx=ctx,
             connected=True,

@@ -22,3 +22,7 @@ class ProcessingResult:
     source_b_path: str | None = None
     source_a_rows: int = 0
     source_b_rows: int = 0
+    source_a_mtime: float | None = None
+    source_b_mtime: float | None = None
+    output_mtime: float | None = None
+    run_timestamp: str | None = None

@@ -75,8 +75,8 @@ async def test_sort_received_descending_retries_once_then_raises():
     with pytest.raises(ReceivedSortError, match="verification failed"):
         await service.sort_received_descending(root, page)
 
-    assert header.click.await_count == 4
-    assert service._verify_descending_sort.await_count == 2
+    assert header.click.await_count == 6  # 2 attempts × (2 clicks + 1 recovery)
+    assert service._verify_descending_sort.await_count == 4
 
 
 @pytest.mark.asyncio

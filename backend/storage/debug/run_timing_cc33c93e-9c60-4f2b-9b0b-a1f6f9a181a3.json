@@ -1,0 +1,41 @@
+{
+  "run_id": "cc33c93e-9c60-4f2b-9b0b-a1f6f9a181a3",
+  "started_at": "2026-07-14T06:29:20.691022+00:00",
+  "completed_at": "2026-07-14T06:31:43.988296+00:00",
+  "total_duration_seconds": 143.297,
+  "spans": {
+    "browser_connect": 1.271,
+    "nav_filter_submit:division": 64.874,
+    "sorting:division": 0.75,
+    "ingestion_feedback:division_feedback": 0.03,
+    "ingestion:division": 0.04,
+    "handler_execute:division": 141.158,
+    "report:division": 141.462
+  },
+  "reports": {
+    "division": {
+      "slug": "division",
+      "started_at": "2026-07-14T06:29:22.525575+00:00",
+      "completed_at": "2026-07-14T06:31:43.987871+00:00",
+      "duration_seconds": 141.462,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 64.874,
+        "sorting": 0.75,
+        "ingestion": 0.04
+      }
+    },
+    "division_feedback": {
+      "slug": "division_feedback",
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": null,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "ingestion_feedback": 0.03
+      }
+    }
+  }
+}

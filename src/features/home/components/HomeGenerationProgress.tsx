@@ -24,6 +24,8 @@ function StepIcon({ status }: { status: AutomationStepStatus }) {
   switch (status) {
     case "completed":
       return <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden="true" />;
+    case "partial":
+      return <CheckCircle2 className="h-4 w-4 text-amber-500" aria-hidden="true" />;
     case "running":
       return <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />;
     case "failed":
@@ -141,7 +143,7 @@ export function HomeGenerationProgress({
                 )}
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center text-xs text-slate-400">
-                  {step.status === "completed" ? (
+                  {step.status === "completed" || step.status === "partial" ? (
                     <StepIcon status={step.status} />
                   ) : (
                     <span className="tabular-nums">{index + 1}</span>
@@ -155,6 +157,7 @@ export function HomeGenerationProgress({
                     step.status === "waiting" && "text-slate-400",
                     step.status === "running" && "text-primary",
                     step.status === "completed" && "text-emerald-600",
+                    step.status === "partial" && "text-amber-600",
                     step.status === "failed" && "text-red-600",
                   )}
                 >

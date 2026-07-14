@@ -22,6 +22,8 @@ function StepIcon({ status }: { status: AutomationStepStatus }) {
   switch (status) {
     case "completed":
       return <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden="true" />;
+    case "partial":
+      return <CheckCircle2 className="h-4 w-4 text-amber-500" aria-hidden="true" />;
     case "running":
       return <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />;
     case "failed":
@@ -135,7 +137,14 @@ export function AutomationProgressPanel({
             )}
           >
             <StepIcon status={step.status} />
-            <span className="flex-1 font-medium">{step.label}</span>
+            <div className="min-w-0 flex-1">
+              <span className="font-medium">{step.label}</span>
+              {step.status === "failed" && step.error ? (
+                <p className="mt-0.5 truncate text-xs text-red-700" title={step.error}>
+                  {step.error}
+                </p>
+              ) : null}
+            </div>
             <span className="text-xs">{statusLabel(step.status)}</span>
           </li>
         ))}

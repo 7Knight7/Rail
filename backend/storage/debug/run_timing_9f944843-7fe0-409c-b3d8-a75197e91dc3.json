@@ -1,0 +1,25 @@
+{
+  "run_id": "9f944843-7fe0-409c-b3d8-a75197e91dc3",
+  "started_at": "2026-07-14T05:20:24.428359+00:00",
+  "completed_at": "2026-07-14T05:20:31.401780+00:00",
+  "total_duration_seconds": 6.973,
+  "spans": {
+    "browser_connect": 0.868,
+    "nav_filter_submit:types": 5.251,
+    "handler_execute:types": 5.441,
+    "report:types": 5.54
+  },
+  "reports": {
+    "types": {
+      "slug": "types",
+      "started_at": "2026-07-14T05:20:25.663231+00:00",
+      "completed_at": "2026-07-14T05:20:31.202794+00:00",
+      "duration_seconds": 5.54,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 5.251
+      }
+    }
+  }
+}

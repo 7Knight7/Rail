@@ -1,6 +1,6 @@
 /** Shared automation types — designed for Playwright event wiring. */
 
-export type AutomationStepStatus = "waiting" | "running" | "completed" | "failed";
+export type AutomationStepStatus = "waiting" | "running" | "completed" | "partial" | "failed";
 
 export type AutomationRunStatus = "idle" | "running" | "paused" | "completed" | "failed";
 
@@ -12,6 +12,8 @@ export interface AutomationStep {
   id: string;
   label: string;
   status: AutomationStepStatus;
+  /** Backend error text for failed/partial steps (shown in timeline). */
+  error?: string;
 }
 
 export interface AutomationReportOption {
@@ -64,6 +66,7 @@ export type PlaywrightAutomationEvent =
   | { type: "run_started"; runId?: string }
   | { type: "step_started"; stepId: string; message?: string }
   | { type: "step_completed"; stepId: string; message?: string }
+  | { type: "step_partial"; stepId: string; message?: string; error?: string }
   | { type: "step_failed"; stepId: string; message?: string; error?: string }
   | {
       type: "log";

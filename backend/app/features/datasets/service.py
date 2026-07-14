@@ -19,6 +19,7 @@ SUPPORTED_REPORT_IDS = frozenset(
     {
         "merging",
         "division",
+        "division_feedback",
         "train-no",
         "types",
         "scr-train",

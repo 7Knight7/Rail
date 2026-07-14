@@ -1,0 +1,54 @@
+{
+  "success": true,
+  "run_id": "21b1b3f0-13fa-4e84-b627-c4d12e48e455",
+  "total_duration_seconds": 41.11,
+  "reports_successful": 3,
+  "reports_failed": 0,
+  "error": null,
+  "error_code": null,
+  "download_all_url": "/api/v1/automation/runs/21b1b3f0-13fa-4e84-b627-c4d12e48e455/download-all",
+  "reports": [
+    {
+      "slug": "train-no",
+      "status": "success",
+      "error": null,
+      "row_count": 21,
+      "ingestion_success": true,
+      "processing_success": true,
+      "source_csv_path": "C:\\Users\\bvsri\\OneDrive\\Desktop\\Rail\\backend\\storage\\extracted\\train-no\\train-no_2026-07-13_12-31-45_1.csv",
+      "excel_path": "storage\\output\\excel\\train-no\\Rail_Madad_Report_3_Top_20_Trains_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\train-no\\Rail_Madad_Report_3_Top_20_Trains_13-07-2026.pdf",
+      "pdf_preview_url": "/api/v1/automation/artifacts/b80b322e-b1b1-491d-bcaa-8b26a08507d9/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/b80b322e-b1b1-491d-bcaa-8b26a08507d9/download",
+      "excel_download_url": "/api/v1/automation/artifacts/d1c5a186-da04-4b99-a137-05b12d35ca97/download"
+    },
+    {
+      "slug": "scr-train",
+      "status": "success",
+      "error": null,
+      "row_count": 28,
+      "ingestion_success": true,
+      "processing_success": true,
+      "source_csv_path": "storage\\extracted\\scr-train\\scr-train_complaints_raw.csv",
+      "excel_path": "storage\\output\\excel\\scr-train\\Rail_Madad_Report_5_SCR_Train_Unsatisfactory_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\scr-train\\Rail_Madad_Report_5_SCR_Train_Unsatisfactory_13-07-2026.pdf",
+      "pdf_preview_url": "/api/v1/automation/artifacts/235fc1e7-c0af-4cf4-9ccd-989817b90c53/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/235fc1e7-c0af-4cf4-9ccd-989817b90c53/download",
+      "excel_download_url": "/api/v1/automation/artifacts/49e199ad-4e10-4044-b5f2-ad652b21f082/download"
+    },
+    {
+      "slug": "scr-station",
+      "status": "success",
+      "error": null,
+      "row_count": 3,
+      "ingestion_success": true,
+      "processing_success": true,
+      "source_csv_path": "storage\\extracted\\scr-station\\scr-station_complaints_raw.csv",
+      "excel_path": "storage\\output\\excel\\scr-station\\Rail_Madad_Report_6_SCR_Station_Unsatisfactory_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\scr-station\\Rail_Madad_Report_6_SCR_Station_Unsatisfactory_13-07-2026.pdf",
+      "pdf_preview_url": "/api/v1/automation/artifacts/fc5bc026-a836-4b86-b1d4-2f51bf4abe2b/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/fc5bc026-a836-4b86-b1d4-2f51bf4abe2b/download",
+      "excel_download_url": "/api/v1/automation/artifacts/701ae707-a0a6-4518-8bea-a689b21e524d/download"
+    }
+  ]
+}

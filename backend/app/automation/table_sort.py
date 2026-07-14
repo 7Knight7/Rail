@@ -78,6 +78,27 @@ class ReceivedColumnService:
                 )
                 return
 
+            # DataTables cycles unsorted→asc→desc. Two clicks from an
+            # already-sorted table can land on unsorted/asc; one recovery
+            # click typically reaches descending without restarting.
+            await header.click()
+            log_automation_event(
+                logger,
+                "sort_click_recovery",
+                column=column_header,
+                attempt=attempt + 1,
+            )
+            await self._wait_for_table_stable(root, page)
+            if await self._verify_descending_sort(root, page, header, column_header):
+                log_automation_event(
+                    logger,
+                    "sort_verified",
+                    column=column_header,
+                    attempt=attempt + 1,
+                    recovered=True,
+                )
+                return
+
             log_automation_event(
                 logger,
                 "sort_verification_failed",
@@ -227,14 +248,24 @@ class ReceivedColumnService:
         rows = table.locator("tbody tr")
         row_count = await rows.count()
         values: list[int] = []
-        for row_index in range(min(row_count, 10)):
-            cells = rows.nth(row_index).locator("td")
+        for row_index in range(min(row_count, 15)):
+            row = rows.nth(row_index)
+            try:
+                row_text = (await row.inner_text()).strip().lower()
+            except Exception:
+                row_text = ""
+            # Footer/total rows (sum) break numeric descending checks.
+            if "total" in row_text:
+                continue
+            cells = row.locator("td")
             if await cells.count() <= column_index:
                 continue
             raw = (await cells.nth(column_index).inner_text()).strip()
             digits = re.sub(r"[^\d]", "", raw)
             if digits:
                 values.append(int(digits))
+            if len(values) >= 10:
+                break
         return values
 
     async def _read_received_column_values(self, root: ReportRoot) -> list[int]:

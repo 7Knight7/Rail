@@ -1,0 +1,71 @@
+{
+  "run_id": "21b1b3f0-13fa-4e84-b627-c4d12e48e455",
+  "started_at": "2026-07-14T07:01:30.323935+00:00",
+  "completed_at": "2026-07-14T07:02:11.433441+00:00",
+  "total_duration_seconds": 41.11,
+  "spans": {
+    "browser_connect": 0.671,
+    "nav_filter_submit:train-no": 6.902,
+    "sorting:train-no": 0.743,
+    "handler_execute:train-no": 14.484,
+    "ingestion:train-no": 0.08,
+    "report:train-no": 14.736,
+    "nav_filter_submit:scr-train": 3.771,
+    "sorting:scr-train": 0.435,
+    "handler_execute:scr-train": 19.629,
+    "ingestion:scr-train": 0.043,
+    "report:scr-train": 19.966,
+    "nav_filter_submit:scr-station": 2.007,
+    "sorting:scr-station": 0.426,
+    "handler_execute:scr-station": 5.265,
+    "ingestion:scr-station": 0.039,
+    "report:scr-station": 5.512
+  },
+  "reports": {
+    "train-no": {
+      "slug": "train-no",
+      "started_at": "2026-07-14T07:01:31.218464+00:00",
+      "completed_at": "2026-07-14T07:01:45.954693+00:00",
+      "duration_seconds": 14.736,
+      "extraction_seconds": 14.484,
+      "processing_seconds": 0.206,
+      "spans": {
+        "nav_filter_submit": 6.902,
+        "sorting": 0.743,
+        "extraction": 14.484,
+        "ingestion": 0.08,
+        "processing": 0.206
+      }
+    },
+    "scr-train": {
+      "slug": "scr-train",
+      "started_at": "2026-07-14T07:01:45.954758+00:00",
+      "completed_at": "2026-07-14T07:02:05.920872+00:00",
+      "duration_seconds": 19.966,
+      "extraction_seconds": 19.629,
+      "processing_seconds": 0.187,
+      "spans": {
+        "nav_filter_submit": 3.771,
+        "sorting": 0.435,
+        "extraction": 19.629,
+        "ingestion": 0.043,
+        "processing": 0.187
+      }
+    },
+    "scr-station": {
+      "slug": "scr-station",
+      "started_at": "2026-07-14T07:02:05.920934+00:00",
+      "completed_at": "2026-07-14T07:02:11.433144+00:00",
+      "duration_seconds": 5.512,
+      "extraction_seconds": 5.265,
+      "processing_seconds": 0.144,
+      "spans": {
+        "nav_filter_submit": 2.007,
+        "sorting": 0.426,
+        "extraction": 5.265,
+        "ingestion": 0.039,
+        "processing": 0.144
+      }
+    }
+  }
+}

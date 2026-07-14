@@ -57,6 +57,16 @@ class RunContext:
         self._ingested_keys.add(f"{dataset_key}|{file_path}")
 
     def store_partial(self, result: ReportResult) -> None:
+        """Store an intermediate or handler-return result without downgrading terminals.
+
+        If deferred processing already merged a terminal success/failed, a late
+        handler return of ``partial_success`` with ``ingest/process pending``
+        must not overwrite it.
+        """
+        existing = self._results.get(result.slug)
+        if existing is not None and existing.status in {"success", "failed"}:
+            if self._is_deferred_pending(result):
+                return
         self._results[result.slug] = result
         try:
             loop = asyncio.get_running_loop()
@@ -68,15 +78,35 @@ class RunContext:
         except RuntimeError:
             pass
 
+    @staticmethod
+    def _is_deferred_pending(result: ReportResult) -> bool:
+        err = (result.error or "").lower()
+        return (
+            result.status == "partial_success"
+            and "ingest/process pending" in err
+        )
+
     def merge_result(self, result: ReportResult) -> None:
+        """Merge a processing outcome into the stored report result.
+
+        Soft-merge skips ``None`` values so deferred success must explicitly
+        clear sticky fields such as ``error="Extracted; ingest/process pending"``.
+        """
         existing = self._results.get(result.slug)
         if existing is None:
             self._results[result.slug] = result
+        elif existing.status in {"success", "failed"} and self._is_deferred_pending(result):
+            # Do not downgrade a completed report with a late pending partial.
+            return
         else:
             data = existing.model_dump()
             data.update({k: v for k, v in result.model_dump().items() if v is not None})
             if result.status in {"success", "partial_success", "failed"}:
                 data["status"] = result.status
+            # Terminal success/failed must clear stale pending error even when
+            # the incoming result uses error=None (Pydantic default).
+            if result.status in {"success", "failed"}:
+                data["error"] = result.error
             self._results[result.slug] = ReportResult(**data)
         # Fire-and-forget progress persist (best-effort)
         try:

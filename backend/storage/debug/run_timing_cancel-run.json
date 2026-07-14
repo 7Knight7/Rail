@@ -1,19 +1,19 @@
 {
   "run_id": "cancel-run",
-  "started_at": "2026-07-13T15:05:24.805702+00:00",
-  "completed_at": "2026-07-13T15:05:24.807751+00:00",
-  "total_duration_seconds": 0.002,
+  "started_at": "2026-07-13T15:54:40.024662+00:00",
+  "completed_at": "2026-07-13T15:54:40.025462+00:00",
+  "total_duration_seconds": 0.001,
   "spans": {
     "browser_connect": 0.0,
     "handler_execute:report1": 0.0,
-    "report:report1": 0.001
+    "report:report1": 0.0
   },
   "reports": {
     "report1": {
       "slug": "report1",
-      "started_at": "2026-07-13T15:05:24.806351+00:00",
-      "completed_at": "2026-07-13T15:05:24.807402+00:00",
-      "duration_seconds": 0.001,
+      "started_at": "2026-07-13T15:54:40.024937+00:00",
+      "completed_at": "2026-07-13T15:54:40.025338+00:00",
+      "duration_seconds": 0.0,
       "extraction_seconds": null,
       "processing_seconds": null,
       "spans": {}

@@ -94,8 +94,168 @@ DISCOVERY_SCRIPT = """
 class FilterError(AppException):
     """Raised when filter discovery, application, or validation fails."""
 
-    def __init__(self, message: str) -> None:
-        super().__init__(message=message, code="FILTER_ERROR")
+    def __init__(self, message: str, *, code: str = "FILTER_ERROR") -> None:
+        super().__init__(message=message, code=code)
+
+
+class Report2FilterNotFoundError(FilterError):
+    """Raised when Report 2 Source A filter field is not found after retry."""
+
+    def __init__(self, message: str, discovered_fields: list[dict[str, Any]] | None = None) -> None:
+        super().__init__(message=message, code="REPORT2_SOURCE_A_FILTER_NOT_FOUND")
+        self.discovered_fields = discovered_fields or []
+
+
+async def discover_and_log_fields(
+    page: Page,
+    report_slug: str,
+    missing_field: str | None = None,
+) -> list[dict[str, Any]]:
+    """Run field discovery and log all discovered fields for diagnostics.
+
+    Called when a filter field is not found to provide debugging information.
+    Saves discovered fields to a JSON file and logs each field.
+
+    Args:
+        page: The Playwright page to scan.
+        report_slug: Report identifier for the output filename.
+        missing_field: Optional name of the field that was not found (for logging).
+
+    Returns:
+        List of discovered field dictionaries.
+    """
+    from app.automation.report1_filters import normalize_discovered_field
+
+    try:
+        root = await FilterService.get_report_root(page)
+        raw_fields: list[dict[str, Any]] = await root.locator("body").first.evaluate(
+            DISCOVERY_SCRIPT
+        )
+        fields = [normalize_discovered_field(field) for field in raw_fields]
+    except Exception as exc:
+        logger.warning("Failed to discover fields for diagnostics: %s", exc)
+        fields = []
+
+    log_automation_event(
+        logger,
+        "filter_discovery_diagnostic",
+        report_slug=report_slug,
+        missing_field=missing_field,
+        discovered_count=len(fields),
+        discovered_ids=[f.get("field_id") for f in fields if f.get("field_id")],
+        discovered_labels=[f.get("field_label") for f in fields if f.get("field_label")],
+    )
+
+    for field in fields:
+        log_automation_event(
+            logger,
+            "filter_field_diagnostic",
+            report_slug=report_slug,
+            field_id=field.get("field_id"),
+            field_name=field.get("field_name"),
+            field_type=field.get("field_type"),
+            field_label=field.get("field_label"),
+            selector=field.get("selector"),
+            current_value=field.get("current_value"),
+            tag=field.get("tag"),
+        )
+
+    output_path = Path(config.debug_screenshots_dir) / f"{report_slug}_filter_diagnostic.json"
+    ensure_directory(output_path.parent)
+    try:
+        diagnostic_data = {
+            "missing_field": missing_field,
+            "discovered_fields": fields,
+            "field_count": len(fields),
+            "select_fields": [f for f in fields if f.get("tag") == "select"],
+        }
+        output_path.write_text(json.dumps(diagnostic_data, indent=2), encoding="utf-8")
+        log_automation_event(
+            logger,
+            "filter_diagnostic_saved",
+            path=str(output_path),
+            count=len(fields),
+        )
+    except Exception as exc:
+        logger.warning("Failed to save filter diagnostics: %s", exc)
+
+    return fields
+
+
+async def save_filter_failure_artifacts(
+    page: Page,
+    report_slug: str,
+    missing_field: str,
+    discovered_fields: list[dict[str, Any]],
+) -> str | None:
+    """Save screenshot, HTML, and discovered fields on filter failure.
+
+    Args:
+        page: The Playwright page.
+        report_slug: Report identifier.
+        missing_field: Name of the field that was not found.
+        discovered_fields: List of fields that were discovered.
+
+    Returns:
+        Path to screenshot if saved, else None.
+    """
+    from datetime import UTC, datetime
+
+    dest = ensure_directory(Path(config.screenshots_dir) / "filter_failures")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    screenshot_path: str | None = None
+
+    try:
+        url = page.url
+    except Exception:
+        url = None
+
+    meta_lines = [
+        f"report_slug={report_slug}",
+        f"missing_field={missing_field}",
+        f"url={url}",
+        f"timestamp={timestamp}",
+        f"discovered_field_count={len(discovered_fields)}",
+        f"discovered_ids={[f.get('field_id') for f in discovered_fields if f.get('field_id')]}",
+    ]
+    meta_path = dest / f"filter_failure_{timestamp}_{report_slug}.txt"
+    try:
+        meta_path.write_text("\n".join(meta_lines) + "\n", encoding="utf-8")
+    except Exception as exc:
+        logger.warning("Could not write filter failure metadata: %s", exc)
+
+    fields_path = dest / f"filter_failure_{timestamp}_{report_slug}_fields.json"
+    try:
+        fields_path.write_text(json.dumps(discovered_fields, indent=2), encoding="utf-8")
+    except Exception as exc:
+        logger.warning("Could not write discovered fields: %s", exc)
+
+    try:
+        html = await page.content()
+        html_path = dest / f"filter_failure_{timestamp}_{report_slug}.html"
+        html_path.write_text(html, encoding="utf-8")
+    except Exception as exc:
+        logger.warning("Could not write filter failure HTML: %s", exc)
+
+    try:
+        screenshot_file = dest / f"filter_failure_{timestamp}_{report_slug}.png"
+        await page.screenshot(path=str(screenshot_file), full_page=True)
+        screenshot_path = str(screenshot_file)
+    except Exception as exc:
+        logger.warning("Could not capture filter failure screenshot: %s", exc)
+
+    log_automation_event(
+        logger,
+        "filter_failure_artifacts_saved",
+        report_slug=report_slug,
+        missing_field=missing_field,
+        url=url,
+        screenshot_path=screenshot_path,
+        meta_path=str(meta_path),
+        fields_path=str(fields_path),
+    )
+
+    return screenshot_path
 
 
 class FilterDiscoveryService:

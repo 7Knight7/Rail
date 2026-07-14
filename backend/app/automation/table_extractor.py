@@ -38,6 +38,24 @@ FEEDBACK_ZONE_REQUIRED_HEADERS = frozenset(
     }
 )
 
+# Division Wise Feedback table may use "Division" instead of "Organisation"
+FEEDBACK_DIVISION_REQUIRED_HEADERS = frozenset(
+    {
+        "Feedback Received",
+        "% Feedback",
+        "Excellent",
+        "Satisfactory",
+        "Unsatisfactory",
+        "% Unsatisfactory",
+    }
+)
+
+# Headers that are equivalent (either one satisfies the requirement)
+HEADER_ALIASES = {
+    "organisation": {"division", "organisation"},
+    "division": {"division", "organisation"},
+}
+
 
 @dataclass
 class ExtractionResult:
@@ -266,6 +284,30 @@ class TableExtractor:
         required = {self._normalize_header(h) for h in required_headers}
         return required.issubset(normalized)
 
+    def _headers_match_required_with_aliases(
+        self,
+        headers: list[str],
+        required_headers: frozenset[str] | set[str],
+        require_org_or_division: bool = False,
+    ) -> bool:
+        """Match headers with support for Division/Organisation alias.
+
+        If require_org_or_division is True, also checks that at least one of
+        'organisation' or 'division' is present in the headers.
+        """
+        normalized = {self._normalize_header(h) for h in headers}
+        required = {self._normalize_header(h) for h in required_headers}
+
+        if not required.issubset(normalized):
+            return False
+
+        if require_org_or_division:
+            has_org_or_div = "organisation" in normalized or "division" in normalized
+            if not has_org_or_div:
+                return False
+
+        return True
+
     @staticmethod
     def _looks_like_department_wise(headers: list[str]) -> bool:
         normalized = {TableExtractor._normalize_header(h) for h in headers}
@@ -354,6 +396,109 @@ class TableExtractor:
             logger,
             "table_header_match_failed",
             required_headers=sorted(required_headers),
+        )
+        return []
+
+    async def extract_division_feedback_table(
+        self,
+        root: ReportRoot,
+    ) -> list[list[str]]:
+        """Extract the Division Wise Feedback table specifically.
+
+        Looks for a table with:
+        - Either 'Organisation' OR 'Division' column
+        - All feedback columns: Feedback Received, % Feedback, Excellent, etc.
+        - NOT a Department Wise table
+        """
+        tables = root.locator("table")
+        try:
+            count = await tables.count()
+            log_automation_event(
+                logger,
+                "report2_feedback_table_scan_started",
+                table_count=count,
+            )
+        except Exception as exc:
+            log_automation_event(
+                logger,
+                "report2_feedback_table_scan_failed",
+                error=str(exc),
+            )
+            return []
+
+        for index in range(count):
+            table = tables.nth(index)
+            try:
+                if not await table.is_visible():
+                    log_automation_event(
+                        logger,
+                        "report2_feedback_table_not_visible",
+                        table_index=index,
+                    )
+                    continue
+
+                rows = await self._extract_rows_from_table(table)
+                if not rows:
+                    log_automation_event(
+                        logger,
+                        "report2_feedback_table_no_rows",
+                        table_index=index,
+                    )
+                    continue
+
+                headers = rows[0]
+                log_automation_event(
+                    logger,
+                    "report2_feedback_table_headers_found",
+                    table_index=index,
+                    headers=headers,
+                    header_count=len(headers),
+                )
+
+                if self._looks_like_department_wise(headers):
+                    log_automation_event(
+                        logger,
+                        "report2_feedback_table_skipped_department_wise",
+                        table_index=index,
+                        headers=headers,
+                    )
+                    continue
+
+                if self._headers_match_required_with_aliases(
+                    headers, FEEDBACK_DIVISION_REQUIRED_HEADERS, require_org_or_division=True
+                ):
+                    log_automation_event(
+                        logger,
+                        "report2_feedback_table_matched",
+                        table_index=index,
+                        column_count=len(headers),
+                        row_count=len(rows),
+                        headers=headers,
+                    )
+                    return rows
+
+                log_automation_event(
+                    logger,
+                    "report2_feedback_table_headers_mismatch",
+                    table_index=index,
+                    headers=headers,
+                    required=list(FEEDBACK_DIVISION_REQUIRED_HEADERS),
+                )
+
+            except Exception as exc:
+                log_automation_event(
+                    logger,
+                    "report2_feedback_table_extraction_error",
+                    table_index=index,
+                    error=str(exc),
+                )
+                continue
+
+        log_automation_event(
+            logger,
+            "report2_feedback_table_not_found",
+            scanned_tables=count,
+            required_headers=list(FEEDBACK_DIVISION_REQUIRED_HEADERS),
         )
         return []
 

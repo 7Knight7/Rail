@@ -1,0 +1,20 @@
+{
+  "success": false,
+  "run_id": "ecd10ffb-889f-4ba2-8620-cbc617c534db",
+  "total_duration_seconds": 33.548,
+  "report1": {
+    "slug": "report1",
+    "status": "failed",
+    "error": "REPORT1_HANDLER_ERROR: Received column header not found",
+    "source_paths": [],
+    "row_counts": {},
+    "excel_path": null,
+    "pdf_path": null,
+    "processing_success": false,
+    "ingestion_success": false,
+    "pdf_download_url": null,
+    "excel_download_url": null
+  },
+  "error": null,
+  "error_code": null
+}

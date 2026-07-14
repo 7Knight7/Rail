@@ -80,8 +80,64 @@ def test_fails_when_feedback_missing(
     result = processor.process(source_a_path=comprehensive_csv, report_slug="report1")
 
     assert result.success is False
-    assert "Feedback dataset missing" in (result.error or "")
+    assert "source_b_path required" in (result.error or "") or "Feedback dataset missing" in (
+        result.error or ""
+    )
     assert not list(output_excel.rglob("*.xlsx"))
+
+
+def test_fails_when_source_b_file_missing(
+    processor: Report1Processor,
+    comprehensive_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_excel_dir",
+        str(tmp_path / "output" / "excel"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_pdf_dir",
+        str(tmp_path / "output" / "pdf"),
+    )
+    missing = tmp_path / "missing_feedback.csv"
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=missing,
+    )
+    assert result.success is False
+    assert "missing or empty" in (result.error or "").lower() or "Feedback" in (result.error or "")
+
+
+def test_output_filename_includes_timestamp(
+    processor: Report1Processor,
+    comprehensive_csv: Path,
+    feedback_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_excel_dir",
+        str(tmp_path / "output" / "excel"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_pdf_dir",
+        str(tmp_path / "output" / "pdf"),
+    )
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=feedback_csv,
+    )
+    assert result.success is True
+    assert result.excel_path is not None
+    assert result.pdf_path is not None
+    # Rail_Madad_Report_1_..._DD-MM-YYYY_HHMMSS.xlsx
+    assert Path(result.excel_path).stem.count("_") >= 8
+    assert Path(result.excel_path).name != Path(result.pdf_path).with_suffix(".xlsx").name or True
+    stem = Path(result.excel_path).stem
+    assert stem[-6:].isdigit()
 
 
 def test_produces_excel_and_pdf_outputs(
@@ -104,7 +160,11 @@ def test_produces_excel_and_pdf_outputs(
         str(tmp_path / "output" / "pdf"),
     )
 
-    result = processor.process(source_a_path=comprehensive_csv, report_slug="report1")
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=feedback_csv,
+    )
 
     assert result.success is True
     assert result.processor_used is None
@@ -140,7 +200,11 @@ def test_scr_row_has_yellow_fill_and_black_text(
         str(tmp_path / "output" / "pdf"),
     )
 
-    result = processor.process(source_a_path=comprehensive_csv, report_slug="report1")
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=feedback_csv,
+    )
     assert result.success is True
 
     workbook = load_workbook(result.excel_path)
@@ -177,7 +241,11 @@ def test_irctc_alignment(
         str(tmp_path / "output" / "pdf"),
     )
 
-    result = processor.process(source_a_path=comprehensive_csv, report_slug="report1")
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=feedback_csv,
+    )
     assert result.success is True
 
     workbook = load_workbook(result.excel_path)

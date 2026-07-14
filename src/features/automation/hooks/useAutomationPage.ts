@@ -68,26 +68,60 @@ function applyRunDetailToEvents(
   detail: AutomationRunDetail,
   seen: Set<string>,
   emit: (event: Parameters<ReturnType<typeof useAutomationRunState>["handlePlaywrightEvent"]>[0]) => void,
+  activeRunId?: string | null,
 ) {
+  // Ignore stale run payloads from a previous generation.
+  if (activeRunId && detail.run_id && detail.run_id !== activeRunId) {
+    return;
+  }
+
   for (const report of detail.reports ?? []) {
     const stepId = stepIdForSlug(report.slug);
     const key = `${report.slug}:${report.status}:${report.processing_success ? 1 : 0}`;
     if (seen.has(key)) continue;
     seen.add(key);
 
-    if (report.status === "success") {
-      emit({ type: "step_completed", stepId, message: `${report.slug} ready` });
-    } else if (report.status === "partial_success") {
+    // Non-terminal deferred markers must not flip the step to Generating forever.
+    // Leftover pending error on status=success is a merge bug; treat as completed.
+    const pendingDeferred =
+      report.status === "partial_success" &&
+      typeof report.error === "string" &&
+      report.error.toLowerCase().includes("ingest/process pending");
+
+    if (pendingDeferred) {
       emit({
         type: "step_started",
         stepId,
-        message: report.error ?? `${report.slug} in progress`,
+        message: report.error ?? `${report.slug} processing`,
+      });
+      continue;
+    }
+
+    if (report.status === "success") {
+      emit({ type: "step_completed", stepId, message: `${report.slug} ready` });
+      continue;
+    }
+
+    if (report.status === "partial_success") {
+      // Terminal partial — never leave UI on Generating.
+      emit({
+        type: "step_partial",
+        stepId,
+        message: report.error ?? `${report.slug} partial success`,
+        error: report.error ?? undefined,
       });
     } else if (report.status === "failed") {
       emit({
         type: "step_failed",
         stepId,
         message: report.error ?? `${report.slug} failed`,
+        error: report.error ?? undefined,
+      });
+    } else if (report.status === "skipped") {
+      emit({
+        type: "step_failed",
+        stepId,
+        message: report.error ?? `${report.slug} skipped`,
         error: report.error ?? undefined,
       });
     }
@@ -114,6 +148,22 @@ function applyRunDetailToEvents(
         type: "run_failed",
         message: detail.error ?? "Automation failed",
       });
+    }
+  }
+
+  if (detail.status === "stopped" || detail.status === "cancelled") {
+    for (const report of detail.reports ?? []) {
+      const stepId = stepIdForSlug(report.slug);
+      const stepKey = `${report.slug}:stopped`;
+      if (seen.has(stepKey)) continue;
+      seen.add(stepKey);
+      if (report.status !== "success" && report.status !== "partial_success" && report.status !== "failed") {
+        emit({
+          type: "step_failed",
+          stepId,
+          message: "Stopped",
+        });
+      }
     }
   }
 }
@@ -201,7 +251,8 @@ export function useAutomationPage(): UseAutomationPageReturn {
       try {
         const detail = await automationApi.getRun(runId);
         if (stoppingRef.current) return;
-        applyRunDetailToEvents(detail, seenRef.current, handlePlaywrightEvent);
+        if (activeRunIdRef.current && activeRunIdRef.current !== runId) return;
+        applyRunDetailToEvents(detail, seenRef.current, handlePlaywrightEvent, activeRunIdRef.current);
         const prev = lastPolledStatusRef.current;
         lastPolledStatusRef.current = detail.status;
         if (

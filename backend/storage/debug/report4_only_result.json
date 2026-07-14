@@ -1,0 +1,45 @@
+{
+  "success": true,
+  "run_id": "22a42162-4e29-4ee5-83c1-46eb62b286b7",
+  "total_duration_seconds": 123.156,
+  "reports_successful": 1,
+  "reports_failed": 0,
+  "error": null,
+  "error_code": null,
+  "download_all_url": "/api/v1/automation/runs/22a42162-4e29-4ee5-83c1-46eb62b286b7/download-all",
+  "reports": [
+    {
+      "slug": "types",
+      "status": "success",
+      "row_count": 280,
+      "row_counts": {
+        "Security": 40,
+        "Coach Cleanliness": 40,
+        "Bedroll": 40,
+        "Water Availability": 40,
+        "Electrical Equipment": 40,
+        "Catering and Vending Services": 40,
+        "Coach Maintenance": 40
+      },
+      "duration_seconds": 121.801,
+      "extraction_seconds": 121.237,
+      "processing_seconds": 0.282,
+      "error": null,
+      "source_csv_path": "storage\\extracted\\types\\22a42162-4e29-4ee5-83c1-46eb62b286b7\\types_combined_index.csv",
+      "source_paths": [
+        "storage\\extracted\\types\\22a42162-4e29-4ee5-83c1-46eb62b286b7\\report4_security_raw.csv",
+        "storage\\extracted\\types\\22a42162-4e29-4ee5-83c1-46eb62b286b7\\report4_coach_cleanliness_raw.csv",
+        "storage\\extracted\\types\\22a42162-4e29-4ee5-83c1-46eb62b286b7\\report4_bedroll_raw.csv",
+        "storage\\extracted\\types\\22a42162-4e29-4ee5-83c1-46eb62b286b7\\report4_water_availability_raw.csv",
+        "storage\\extracted\\types\\22a42162-4e29-4ee5-83c1-46eb62b286b7\\report4_electrical_equipment_raw.csv",
+        "storage\\extracted\\types\\22a42162-4e29-4ee5-83c1-46eb62b286b7\\report4_catering_and_vending_services_raw.csv",
+        "storage\\extracted\\types\\22a42162-4e29-4ee5-83c1-46eb62b286b7\\report4_coach_maintenance_raw.csv"
+      ],
+      "excel_path": "storage\\output\\excel\\types\\Rail_Madad_Report_4_Cause_Wise_Top_10_Trains_13-07-2026.xlsx",
+      "pdf_path": "storage\\output\\pdf\\types\\Rail_Madad_Report_4_Cause_Wise_Top_10_Trains_13-07-2026.pdf",
+      "pdf_preview_url": "/api/v1/automation/artifacts/7dd1ab79-af49-4451-8b61-040cc1cdc60d/preview",
+      "pdf_download_url": "/api/v1/automation/artifacts/7dd1ab79-af49-4451-8b61-040cc1cdc60d/download",
+      "excel_download_url": "/api/v1/automation/artifacts/db4ee516-f5d7-4f00-89e2-c0552ddca172/download"
+    }
+  ]
+}
