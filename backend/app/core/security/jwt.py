@@ -15,8 +15,14 @@ class JWTHandler:
         self._access_expire = settings.jwt_access_token_expire_minutes
         self._refresh_expire = settings.jwt_refresh_token_expire_days
 
-    def create_access_token(self, subject: str, extra_claims: dict[str, Any] | None = None) -> str:
-        expire = datetime.now(UTC) + timedelta(minutes=self._access_expire)
+    def create_access_token(
+        self,
+        subject: str,
+        extra_claims: dict[str, Any] | None = None,
+        expire_minutes: int | None = None,
+    ) -> str:
+        minutes = expire_minutes if expire_minutes is not None else self._access_expire
+        expire = datetime.now(UTC) + timedelta(minutes=minutes)
         claims = {
             "sub": subject,
             "exp": expire,

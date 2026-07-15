@@ -73,3 +73,18 @@ class SettingsExportResponse(BaseModel):
     version: str = "1.0"
     exported_at: str
     settings: dict[str, Any]
+
+
+class DisplaySettingsResponse(BaseModel):
+    """Resolved display/notification preferences for any signed-in user."""
+
+    organization_name: str = "South Central Railway"
+    timezone: str = "Asia/Kolkata"
+    date_format: str = "DD/MM/YYYY"
+    time_format: str = "12h"
+    default_page_size: int = 50
+    enable_notifications: bool = True
+    notify_on_completion: bool = True
+    notify_on_failure: bool = True
+    notification_sound: bool = False
+    desktop_notifications: bool = False

@@ -64,36 +64,20 @@ export const SETTINGS_CATEGORY_META: Record<
   { label: string; description: string }
 > = {
   general: {
-    label: "General Settings",
-    description: "Organization-wide defaults and notifications",
+    label: "General",
+    description: "Organization, time zone, and display formats",
   },
-  report: {
-    label: "Report Settings",
-    description: "Templates, sorting, filtering, and export formats",
+  notifications: {
+    label: "Notifications",
+    description: "Report completion and failure alerts",
   },
-  upload: {
-    label: "Upload Settings",
-    description: "File types, size limits, and row/column caps",
-  },
-  export: {
-    label: "Export Settings",
-    description: "Excel/PDF formatting and file naming",
-  },
-  summary: {
-    label: "Summary Settings",
-    description: "AI prompt selection and output style",
-  },
-  automation: {
-    label: "Report Generation",
-    description: "Schedules, retries, and download paths",
-  },
-  security: {
-    label: "Security Settings",
-    description: "Session, password policy, and audit",
+  account: {
+    label: "Account",
+    description: "Password and session preferences",
   },
   system: {
-    label: "System Settings",
-    description: "Application name, locale, and theme",
+    label: "System",
+    description: "Live status and maintenance",
   },
 };
 

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 export interface ScheduledReport {
+  /** Backend report catalog slug — cards are matched by slug, never position. */
   id: string;
   name: string;
   icon: LucideIcon;
@@ -24,7 +25,7 @@ export interface ScheduledReport {
 
 export const SCHEDULED_REPORTS: ScheduledReport[] = [
   {
-    id: "zone",
+    id: "report1",
     name: "Zone Wise Complaints",
     icon: MapPin,
     duration: "~2 min",
@@ -40,7 +41,7 @@ export const SCHEDULED_REPORTS: ScheduledReport[] = [
     path: "/workflows/division",
   },
   {
-    id: "train",
+    id: "train-no",
     name: "Top 20 Trains",
     icon: Train,
     duration: "~2 min",
@@ -48,7 +49,7 @@ export const SCHEDULED_REPORTS: ScheduledReport[] = [
     path: "/workflows/train-no",
   },
   {
-    id: "cause",
+    id: "types",
     name: "Cause Wise Analysis",
     icon: BarChart3,
     duration: "~2 min",
@@ -73,33 +74,13 @@ export const SCHEDULED_REPORTS: ScheduledReport[] = [
   },
 ];
 
-export const STATUS_METRICS = [
-  {
-    icon: Clock,
-    title: "Last Generated",
-    value: "Yesterday 5:42 PM",
-    description: "All 7 reports completed successfully",
-  },
-  {
-    icon: FileCheck,
-    title: "Reports Available",
-    value: "7 Reports",
-    description: "Ready to preview and download",
-  },
-  {
-    icon: Timer,
-    title: "Expected Time",
-    value: "2–3 Minutes",
-    description: "Typical daily generation duration",
-  },
-  {
-    icon: Layers,
-    title: "Current Status",
-    value: "Ready",
-    description: "No generation in progress",
-    accent: true,
-  },
-];
+/** Icons for the live status metric cards (values come from /dashboard/summary). */
+export const METRIC_ICONS = {
+  lastGenerated: Clock,
+  reportsAvailable: FileCheck,
+  expectedTime: Timer,
+  currentStatus: Layers,
+} as const;
 
 export const GENERATION_PIPELINE = [
   { step: 1, label: "Collect Report Data" },

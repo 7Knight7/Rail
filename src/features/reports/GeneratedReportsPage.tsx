@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { cn } from "@/utils/cn";
+import { formatDateTime12h } from "@/utils/datetime";
 
 const LAST_RUN_KEY = "railmadad_last_run_id";
 
@@ -178,7 +179,7 @@ export function GeneratedReportsPage() {
                       <div className="font-medium">{item.status}</div>
                       <div className="opacity-80">
                         {item.started_at
-                          ? new Date(item.started_at).toLocaleString()
+                          ? formatDateTime12h(item.started_at)
                           : item.run_id.slice(0, 8)}
                       </div>
                       <div className="opacity-70">

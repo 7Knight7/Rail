@@ -7,7 +7,17 @@ import { HomeRecentActivity } from "@/features/home/components/HomeRecentActivit
 import { HomeReportsGrid } from "@/features/home/components/HomeReportsGrid";
 import { HomeStatsGrid } from "@/features/home/components/HomeStatsGrid";
 import { HomeWelcomeSection } from "@/features/home/components/HomeWelcomeSection";
-import { STATUS_METRICS } from "@/features/home/homeData";
+import { METRIC_ICONS } from "@/features/home/homeData";
+import {
+  currentStatusDisplay,
+  expectedTimeDescription,
+  formatExpectedTime,
+  formatLastGenerated,
+  generatedReportsValue,
+  lastGeneratedDescription,
+  reportsAvailableDescription,
+} from "@/features/home/dashboardDisplay";
+import { useDashboardSummary } from "@/features/home/hooks/useDashboardSummary";
 import { useAutomationPage } from "@/features/automation/hooks/useAutomationPage";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -23,6 +33,46 @@ function pipelineStepFromProgress(percent: number, isRunning: boolean): number {
 export function HomePage() {
   const { isAdmin } = usePermissions();
   const generation = useAutomationPage();
+  const { summary, loading: summaryLoading } = useDashboardSummary();
+
+  const statusDisplay = summary
+    ? currentStatusDisplay(summary.current_status)
+    : { label: summaryLoading ? "Loading…" : "Ready", description: "No generation in progress" };
+
+  const metrics = [
+    {
+      icon: METRIC_ICONS.lastGenerated,
+      title: "Last Generated",
+      value: summary ? formatLastGenerated(summary.last_generated_at) : "—",
+      description: summary ? lastGeneratedDescription(summary) : "Loading…",
+    },
+    {
+      icon: METRIC_ICONS.reportsAvailable,
+      title: "Generated Reports",
+      value: summary ? generatedReportsValue(summary) : "—",
+      description: summary ? reportsAvailableDescription(summary) : "Loading…",
+    },
+    {
+      icon: METRIC_ICONS.expectedTime,
+      title: "Expected Time",
+      value: summary
+        ? formatExpectedTime(
+            summary.estimated_duration_seconds,
+            summary.default_expected_duration_seconds,
+          )
+        : "—",
+      description: summary
+        ? expectedTimeDescription(summary.estimated_duration_seconds)
+        : "Loading…",
+    },
+    {
+      icon: METRIC_ICONS.currentStatus,
+      title: "Current Status",
+      value: statusDisplay.label,
+      description: statusDisplay.description,
+      accent: true,
+    },
+  ];
 
   // Strict gate: progress UI only after an explicit Generate click in this session.
   const started = generation.generationStarted === true;
@@ -99,9 +149,9 @@ export function HomePage() {
           disabled={generation.selectedReportIds.length === 0}
         />
 
-        <HomeStatsGrid metrics={STATUS_METRICS} />
+        <HomeStatsGrid metrics={metrics} />
 
-        <HomeReportsGrid />
+        <HomeReportsGrid liveReports={summary?.reports} />
 
         <HomeRecentActivity />
 

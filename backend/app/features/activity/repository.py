@@ -101,31 +101,20 @@ class ActivityRepository:
         after_row = await self._session.get(UserActivityModel, after_id)
         if not after_row or after_row.user_id != user_id:
             return []
+        cursor_ts = after_row.created_at
+        if cursor_ts is None:
+            return []
 
-        def _aware(dt: datetime | None) -> datetime | None:
-            if dt is None:
-                return None
-            if dt.tzinfo is None:
-                return dt.replace(tzinfo=UTC)
-            return dt
-
-        cursor_ts = _aware(after_row.created_at)
+        # Compare against the raw stored value (same storage form on both sides),
+        # >= so same-second siblings still replay (SSE seen-set dedupes).
         stmt = (
             select(UserActivityModel)
-            .where(UserActivityModel.user_id == user_id)
+            .where(
+                UserActivityModel.user_id == user_id,
+                UserActivityModel.id != after_id,
+                UserActivityModel.created_at >= cursor_ts,
+            )
             .order_by(UserActivityModel.created_at.asc(), UserActivityModel.id.asc())
+            .limit(limit)
         )
-        rows = list((await self._session.execute(stmt)).scalars().all())
-        out: list[UserActivityModel] = []
-        for row in rows:
-            if row.id == after_id:
-                continue
-            row_ts = _aware(row.created_at)
-            if cursor_ts is None or row_ts is None:
-                continue
-            # >= so same-second siblings still replay (SSE seen-set dedupes)
-            if row_ts >= cursor_ts:
-                out.append(row)
-                if len(out) >= limit:
-                    break
-        return out
+        return list((await self._session.execute(stmt)).scalars().all())

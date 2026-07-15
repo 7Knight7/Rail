@@ -1,3 +1,4 @@
+import { useDisplayPrefs } from "@/hooks/useDisplayPrefs";
 import { cn } from "@/utils/cn";
 
 const SIZES = {
@@ -15,6 +16,7 @@ export interface RailMadadLogoProps {
 }
 
 export function RailMadadLogo({ className, size = "md", showWordmark = false }: RailMadadLogoProps) {
+  const { organizationName } = useDisplayPrefs();
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <img
@@ -25,7 +27,7 @@ export function RailMadadLogo({ className, size = "md", showWordmark = false }: 
       {showWordmark && (
         <div className="min-w-0">
         <p className="truncate text-sm font-semibold tracking-tight text-slate-900">RailMadad Report Center</p>
-        <p className="text-xs text-slate-400">South Central Railway</p>
+        <p className="truncate text-xs text-slate-400">{organizationName}</p>
         </div>
       )}
     </div>

@@ -85,9 +85,11 @@ class AuthService:
             )
             raise AuthenticationError("Invalid username or password")
 
+        session_timeout_minutes = await self._session_timeout_minutes()
         access_token = jwt_handler.create_access_token(
             subject=user.id,
             extra_claims={"role": user.role.value, "username": user.username},
+            expire_minutes=session_timeout_minutes,
         )
 
         refresh_expire_days = (
@@ -118,7 +120,7 @@ class AuthService:
 
         token_response = TokenResponse(
             access_token=access_token,
-            expires_in=settings.jwt_access_token_expire_minutes * 60,
+            expires_in=session_timeout_minutes * 60,
         )
 
         return token_response, refresh_token, user
@@ -140,9 +142,11 @@ class AuthService:
 
         await self._token_repo.revoke(refresh_token)
 
+        session_timeout_minutes = await self._session_timeout_minutes()
         new_access = jwt_handler.create_access_token(
             subject=user.id,
             extra_claims={"role": user.role.value, "username": user.username},
+            expire_minutes=session_timeout_minutes,
         )
         new_refresh = jwt_handler.create_refresh_token(subject=user.id)
 
@@ -157,8 +161,19 @@ class AuthService:
 
         return TokenResponse(
             access_token=new_access,
-            expires_in=settings.jwt_access_token_expire_minutes * 60,
+            expires_in=session_timeout_minutes * 60,
         ), new_refresh
+
+    @staticmethod
+    async def _session_timeout_minutes() -> int:
+        """Configured session timeout, falling back to the static default."""
+        try:
+            from app.features.settings.runtime import get_session_timeout_minutes
+
+            return await get_session_timeout_minutes()
+        except Exception:
+            logger.debug("session timeout setting unavailable; using default", exc_info=True)
+            return settings.jwt_access_token_expire_minutes
 
     async def logout(
         self,
@@ -190,6 +205,38 @@ class AuthService:
             )
         except Exception:
             logger.debug("activity logout emit skipped", exc_info=True)
+
+    async def logout_all(
+        self,
+        user_id: str,
+        username: str,
+        ip_address: str | None = None,
+    ) -> None:
+        """Revoke every refresh token for the user (all sessions)."""
+        logger.info("Logout-all for user: %s", username)
+
+        await self._token_repo.revoke_all_for_user(user_id)
+
+        audit_logger.log(
+            AuditAction.LOGOUT,
+            user_id=user_id,
+            username=username,
+            ip_address=ip_address,
+            details={"scope": "all_sessions"},
+        )
+
+        try:
+            from app.features.activity.emit import emit_activity
+
+            await emit_activity(
+                user_id=user_id,
+                action="LOGOUT",
+                message="Signed out of all sessions",
+                status="info",
+                metadata={"ip_address": ip_address} if ip_address else None,
+            )
+        except Exception:
+            logger.debug("activity logout-all emit skipped", exc_info=True)
 
     async def register(
         self,

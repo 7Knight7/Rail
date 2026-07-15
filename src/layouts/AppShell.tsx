@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { TopBar } from "@/layouts/TopBar";
 import { cn } from "@/utils/cn";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useNotificationRuntime } from "@/features/notifications/useNotificationRuntime";
 
 const SIDEBAR_W = 252;
 
@@ -171,6 +172,7 @@ function SidebarPanel({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function AppShell() {
+  useNotificationRuntime();
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/home";

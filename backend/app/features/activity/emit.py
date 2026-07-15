@@ -12,9 +12,17 @@ from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
+_table_ensured = False
+
 
 async def ensure_user_activity_table() -> None:
-    """Best-effort create table when alembic CLI is unavailable."""
+    """Best-effort create table when alembic CLI is unavailable.
+
+    Runs the DDL once per process (called at startup and lazily as a fallback).
+    """
+    global _table_ensured
+    if _table_ensured:
+        return
     try:
         async with SessionLocal() as session:
             await session.execute(
@@ -37,6 +45,7 @@ async def ensure_user_activity_table() -> None:
                 )
             )
             await session.commit()
+        _table_ensured = True
     except Exception as exc:
         logger.debug("ensure_user_activity_table: %s", exc)
 

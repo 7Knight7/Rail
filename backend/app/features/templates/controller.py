@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 
 from app.domain.entities.user import User
+from app.features.activity.emit import emit_activity
 from app.features.auth.dependencies import require_admin, validate_csrf_token
 from app.features.templates.dependencies import get_template_service
 from app.features.templates.schemas import (
@@ -21,6 +22,17 @@ from app.features.templates.schemas import (
 from app.features.templates.service import TemplateService
 
 router = APIRouter(prefix="/admin/templates", tags=["templates"])
+
+
+async def _emit_config_updated(user_id: str, message: str, slug: str | None = None) -> None:
+    """Record CONFIG_UPDATED after the mutation transaction has committed."""
+    await emit_activity(
+        user_id=user_id,
+        action="CONFIG_UPDATED",
+        message=message,
+        status="success",
+        report_slug=slug,
+    )
 
 
 @router.get(
@@ -73,6 +85,11 @@ async def create_template(
 ) -> TemplateResponse:
     """Create a new template."""
     template = await service.create_template(data.model_dump(), user.id)
+    await _emit_config_updated(
+        user.id,
+        f"Report configuration '{template.name}' created",
+        getattr(template, "slug", None),
+    )
     return TemplateResponse(**asdict(template))
 
 
@@ -95,6 +112,11 @@ async def update_template(
         data.model_dump(exclude_unset=True),
         user.id,
     )
+    await _emit_config_updated(
+        user.id,
+        f"Report configuration '{template.name}' updated",
+        getattr(template, "slug", None),
+    )
     return TemplateResponse(**asdict(template))
 
 
@@ -112,6 +134,7 @@ async def delete_template(
 ) -> DeleteResponse:
     """Delete a template."""
     await service.delete_template(template_id, user.id)
+    await _emit_config_updated(user.id, "Report configuration deleted")
     return DeleteResponse(success=True, message="Template deleted successfully")
 
 
@@ -131,6 +154,11 @@ async def duplicate_template(
 ) -> TemplateResponse:
     """Duplicate a template."""
     template = await service.duplicate_template(template_id, data.new_name, user.id)
+    await _emit_config_updated(
+        user.id,
+        f"Report configuration duplicated as '{template.name}'",
+        getattr(template, "slug", None),
+    )
     return TemplateResponse(**asdict(template))
 
 
@@ -149,6 +177,11 @@ async def toggle_template(
     """Toggle template enabled status."""
     template = await service.toggle_template(template_id, user.id)
     status_text = "enabled" if template.is_enabled else "disabled"
+    await _emit_config_updated(
+        user.id,
+        f"Report configuration '{template.name}' {status_text}",
+        getattr(template, "slug", None),
+    )
     return ToggleResponse(
         id=template.id,
         is_enabled=template.is_enabled,

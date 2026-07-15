@@ -8,10 +8,12 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         env_prefix="",
         case_sensitive=False,
+        extra="ignore",
     )
 
     # Application
     app_name: str = "Railway Report Automation Platform"
+    app_version: str = "1.0.0"
     api_prefix: str = "/api/v1"
     environment: str = Field(default="development", description="development, staging, production")
     debug: bool = False
@@ -83,6 +85,12 @@ class Settings(BaseSettings):
     automation_downloads_dir: str = Field(
         default="downloads",
         description="Root directory for automation downloads (shared volume in Docker)",
+    )
+
+    # Dashboard
+    dashboard_expected_minutes_default: int = Field(
+        default=15,
+        description="Default 'Expected Time' shown when no successful run history exists",
     )
 
     # Logging

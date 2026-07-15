@@ -7,6 +7,7 @@ from app.core.exceptions import NotFoundError, ValidationError
 from app.features.settings.cache import CACHE_KEY_ALL, settings_cache
 from app.features.settings.repository import SettingsRepository
 from app.features.settings.schemas import (
+    DisplaySettingsResponse,
     SettingCategorySchema,
     SettingItemSchema,
     SettingOptionSchema,
@@ -277,3 +278,20 @@ class SettingsService:
             return default
         value, _ = self._effective_value(definition)
         return value
+
+    async def get_display_settings(self) -> DisplaySettingsResponse:
+        """Resolved general + notification values for any signed-in user."""
+        response = await self.get_settings(use_cache=True)
+        flat: dict[str, Any] = {}
+        for cat in response.categories:
+            if cat.slug not in {"general", "notifications"}:
+                continue
+            for setting in cat.settings:
+                flat[setting.key] = setting.value
+        defaults = DisplaySettingsResponse()
+        return DisplaySettingsResponse(
+            **{
+                field: flat.get(field, getattr(defaults, field))
+                for field in DisplaySettingsResponse.model_fields
+            }
+        )

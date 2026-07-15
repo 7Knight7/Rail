@@ -51,6 +51,11 @@ export const authApi = {
     setCsrfToken(null);
   },
 
+  async logoutAll(): Promise<void> {
+    await apiRequest("/auth/logout-all", { method: "POST" });
+    setCsrfToken(null);
+  },
+
   async getMe(accessToken?: string, skipAuthRetry = false): Promise<User> {
     const headers: Record<string, string> = {};
     if (accessToken) {

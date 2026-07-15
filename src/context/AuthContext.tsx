@@ -11,6 +11,8 @@ import { closeAllActivityStreams } from "@/api/activity";
 import { authApi, type LoginCredentials, type User } from "@/api/auth";
 import { setCsrfToken } from "@/api/client";
 import { emitClearGenerationUi } from "@/features/automation/utils/generationSession";
+import { clearDashboardCache } from "@/features/home/hooks/useDashboardSummary";
+import { loadDisplayPrefs, resetDisplayPrefs } from "@/utils/displayPrefs";
 
 interface AuthContextType {
   user: User | null;
@@ -18,6 +20,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
+  /** Clear local auth state without calling the logout endpoint (e.g. after
+   * password change or logout-all, when the backend already cleared cookies). */
+  clearSession: () => void;
   refreshUser: () => Promise<void>;
 }
 
@@ -56,18 +61,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const userData = await authApi.getMe(response.access_token);
     setUser(userData);
     setSessionExpired(false);
+    void loadDisplayPrefs();
+  }, []);
+
+  const clearSession = useCallback(() => {
+    closeAllActivityStreams();
+    clearDashboardCache();
+    resetDisplayPrefs();
+    emitClearGenerationUi();
+    setUser(null);
+    setCsrfToken(null);
   }, []);
 
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } finally {
-      closeAllActivityStreams();
-      emitClearGenerationUi();
-      setUser(null);
-      setCsrfToken(null);
+      clearSession();
     }
-  }, []);
+  }, [clearSession]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -75,6 +87,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const userData = await authApi.getMe(undefined, true);
         setUser(userData);
+        void loadDisplayPrefs();
 
         try {
           const refreshResponse = await authApi.refresh();
@@ -98,6 +111,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const handleSessionExpired = () => {
       setSessionExpired(true);
       closeAllActivityStreams();
+      clearDashboardCache();
+      resetDisplayPrefs();
       emitClearGenerationUi();
       setUser(null);
       setCsrfToken(null);
@@ -116,10 +131,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isAuthenticated: !!user,
       login,
       logout,
+      clearSession,
       refreshUser,
       sessionExpired,
     }),
-    [user, isLoading, login, logout, refreshUser, sessionExpired],
+    [user, isLoading, login, logout, clearSession, refreshUser, sessionExpired],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

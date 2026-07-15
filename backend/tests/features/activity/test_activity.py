@@ -113,6 +113,37 @@ def test_scrub_message_redacts_secret_assignments():
     assert "[REDACTED]" in msg
 
 
+def test_created_at_serialized_with_utc_offset():
+    """Naive (SQLite) and aware timestamps must both serialize as aware UTC."""
+    from app.features.activity.service import _created_at_iso
+
+    naive_utc = datetime(2026, 7, 15, 14, 3, 15)
+    assert _created_at_iso(naive_utc) == "2026-07-15T14:03:15+00:00"
+
+    aware = datetime(2026, 7, 15, 14, 3, 15, tzinfo=UTC)
+    assert _created_at_iso(aware) == "2026-07-15T14:03:15+00:00"
+
+    assert _created_at_iso(None) == ""
+
+
+def test_date_filters_normalized_to_utc():
+    """IST day boundaries (+05:30) must convert to UTC before querying."""
+    from datetime import timedelta, timezone
+
+    from app.features.activity.controller import _to_utc
+
+    ist = timezone(timedelta(hours=5, minutes=30))
+    # 15 Jul 00:00:00 IST == 14 Jul 18:30:00 UTC
+    start = _to_utc(datetime(2026, 7, 15, 0, 0, 0, tzinfo=ist))
+    assert start == datetime(2026, 7, 14, 18, 30, 0)
+    assert start.tzinfo is None
+
+    # Naive inputs pass through unchanged (already UTC)
+    naive = datetime(2026, 7, 15, 12, 0, 0)
+    assert _to_utc(naive) is naive
+    assert _to_utc(None) is None
+
+
 @pytest.mark.asyncio
 async def test_activity_user_isolation(
     test_session: AsyncSession, user_a: UserModel, user_b: UserModel

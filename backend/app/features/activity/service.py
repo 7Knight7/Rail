@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -63,6 +63,19 @@ def scrub_message(message: str) -> str:
     return redacted
 
 
+def _created_at_iso(dt: datetime | None) -> str:
+    """UTC ISO-8601 with explicit offset.
+
+    SQLite returns naive datetimes (stored in UTC); without the offset the
+    browser would parse them as local time and show the wrong clock time.
+    """
+    if dt is None:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC).isoformat()
+
+
 def to_entry(row: UserActivityModel) -> ActivityEntry:
     meta: dict[str, Any] = {}
     if row.metadata_json:
@@ -79,7 +92,7 @@ def to_entry(row: UserActivityModel) -> ActivityEntry:
         report_slug=row.report_slug,
         run_id=row.run_id,
         metadata=meta if isinstance(meta, dict) else {},
-        created_at=row.created_at.isoformat() if row.created_at else "",
+        created_at=_created_at_iso(row.created_at),
     )
 
 

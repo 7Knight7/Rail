@@ -6,6 +6,7 @@ import {
   type SettingUpdateItem,
 } from "@/api/settings";
 import { useToast } from "@/components/ui/Toast";
+import { loadDisplayPrefs } from "@/utils/displayPrefs";
 
 function buildDraftMap(categories: SettingCategory[]): Record<string, unknown> {
   const draft: Record<string, unknown> = {};
@@ -93,6 +94,7 @@ export function useAppSettings(activeCategory?: string | null, searchQuery?: str
       await settingsApi.update(updates);
       showToast("success", "Settings saved");
       await load();
+      void loadDisplayPrefs();
     } catch {
       showToast("error", "Failed to save settings");
     } finally {
@@ -107,6 +109,7 @@ export function useAppSettings(activeCategory?: string | null, searchQuery?: str
         await settingsApi.resetCategory(category);
         showToast("success", "Category reset to defaults");
         await load();
+        void loadDisplayPrefs();
       } catch {
         showToast("error", "Failed to reset category");
       } finally {
@@ -159,6 +162,7 @@ export function useAppSettings(activeCategory?: string | null, searchQuery?: str
           showToast("success", `Imported ${result.imported} settings`);
         }
         await load();
+        void loadDisplayPrefs();
       } catch {
         showToast("error", "Import failed");
       }

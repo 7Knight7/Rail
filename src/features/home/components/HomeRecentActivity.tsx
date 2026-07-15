@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
   activityApi,
-  openActivityStream,
+  subscribeActivity,
   type ActivityEntry,
+  type ActivitySubscription,
 } from "@/api/activity";
+import { formatDateTime12h, parseBackendTimestamp } from "@/utils/datetime";
 import { cn } from "@/utils/cn";
 
 function formatRelativeTime(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
+  const date = parseBackendTimestamp(iso);
+  if (!date) return iso;
   const diffMs = date.getTime() - Date.now();
   const absSec = Math.round(Math.abs(diffMs) / 1000);
   const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
@@ -53,7 +55,7 @@ export function HomeRecentActivity() {
 
   useEffect(() => {
     let cancelled = false;
-    let source: EventSource | null = null;
+    let subscription: ActivitySubscription | null = null;
 
     const load = async () => {
       try {
@@ -61,7 +63,7 @@ export function HomeRecentActivity() {
         if (cancelled) return;
         setItems(res.items);
         const newest = res.items[0]?.id;
-        source = openActivityStream({
+        subscription = subscribeActivity({
           afterId: newest,
           onEvent: (entry) => {
             setItems((prev) => {
@@ -81,7 +83,7 @@ export function HomeRecentActivity() {
 
     return () => {
       cancelled = true;
-      source?.close();
+      subscription?.close();
     };
   }, []);
 
@@ -122,7 +124,7 @@ export function HomeRecentActivity() {
               <time
                 className="text-xs tabular-nums text-rail-muted"
                 dateTime={item.created_at}
-                title={new Date(item.created_at).toLocaleString()}
+                title={formatDateTime12h(item.created_at)}
               >
                 {formatRelativeTime(item.created_at)}
               </time>

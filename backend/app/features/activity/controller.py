@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, AsyncIterator
 
 from fastapi import APIRouter, Depends, Header, Query, Request
@@ -20,6 +20,20 @@ from app.features.auth.dependencies import get_current_active_user
 from app.infrastructure.database.session import get_db_session
 
 router = APIRouter(prefix="/activity", tags=["activity"])
+
+
+def _to_utc(dt: datetime | None) -> datetime | None:
+    """Normalize filter datetimes to naive UTC wall time.
+
+    Rows are stored as naive UTC; SQLite's bind processor drops tzinfo
+    without converting, so aware inputs (e.g. +05:30) must be converted
+    here or the boundary would be off by the offset.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(UTC).replace(tzinfo=None)
 
 
 @router.get("", response_model=ActivityListResponse)
@@ -39,8 +53,8 @@ async def list_activity(
         offset=offset,
         status=status,
         report_slug=report_slug,
-        date_from=date_from,
-        date_to=date_to,
+        date_from=_to_utc(date_from),
+        date_to=_to_utc(date_to),
     )
 
 

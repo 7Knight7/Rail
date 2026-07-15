@@ -6,12 +6,14 @@ from fastapi import APIRouter, Depends, Query
 
 from app.domain.entities.user import User
 from app.features.auth.dependencies import (
+    get_current_active_user,
     require_admin,
     require_officer_or_admin,
     validate_csrf_token,
 )
 from app.features.settings.dependencies import get_settings_service
 from app.features.settings.schemas import (
+    DisplaySettingsResponse,
     SettingsExportResponse,
     SettingsImportRequest,
     SettingsImportResponse,
@@ -37,6 +39,15 @@ async def get_settings(
 ) -> SettingsResponse:
     """Get all settings grouped by category, optionally filtered."""
     return await service.get_settings(category=category, search=search)
+
+
+@router.get("/display", response_model=DisplaySettingsResponse)
+async def get_display_settings(
+    service: Annotated[SettingsService, Depends(get_settings_service)],
+    _user: Annotated[User, Depends(get_current_active_user)],
+) -> DisplaySettingsResponse:
+    """Resolved display/notification preferences for any signed-in user."""
+    return await service.get_display_settings()
 
 
 @router.put(

@@ -36,6 +36,7 @@ def _set_auth_cookies(
     refresh_token: str,
     csrf_session: str | None = None,
     remember_me: bool = False,
+    access_max_age: int | None = None,
 ) -> None:
     refresh_expire_days = (
         settings.jwt_refresh_token_expire_days_remember
@@ -49,7 +50,7 @@ def _set_auth_cookies(
         httponly=settings.cookie_httponly,
         secure=settings.cookie_secure,
         samesite=settings.cookie_samesite,
-        max_age=settings.jwt_access_token_expire_minutes * 60,
+        max_age=access_max_age or settings.jwt_access_token_expire_minutes * 60,
         domain=settings.cookie_domain,
     )
     response.set_cookie(
@@ -98,7 +99,14 @@ async def login(
     )
 
     csrf_session, csrf_token = csrf_protection.generate_session_and_token()
-    _set_auth_cookies(response, token_response.access_token, refresh_token, csrf_session, body.remember_me)
+    _set_auth_cookies(
+        response,
+        token_response.access_token,
+        refresh_token,
+        csrf_session,
+        body.remember_me,
+        access_max_age=token_response.expires_in,
+    )
 
     token_response.csrf_token = csrf_token
     return token_response
@@ -136,7 +144,13 @@ async def refresh_tokens(
     )
 
     csrf_session, csrf_token = csrf_protection.generate_session_and_token()
-    _set_auth_cookies(response, token_response.access_token, new_refresh, csrf_session)
+    _set_auth_cookies(
+        response,
+        token_response.access_token,
+        new_refresh,
+        csrf_session,
+        access_max_age=token_response.expires_in,
+    )
 
     token_response.csrf_token = csrf_token
     return token_response
@@ -158,6 +172,23 @@ async def logout(
             username=user.username,
             ip_address=ip_address,
         )
+    _clear_auth_cookies(response)
+
+
+@router.post("/logout-all", status_code=204)
+async def logout_all(
+    response: Response,
+    user: User = Depends(get_current_active_user),
+    service: AuthService = Depends(get_auth_service),
+    ip_address: str | None = Depends(get_client_ip),
+    _csrf: None = Depends(validate_csrf_token),
+) -> None:
+    """Revoke every refresh token for the user and clear this session's cookies."""
+    await service.logout_all(
+        user_id=user.id,
+        username=user.username,
+        ip_address=ip_address,
+    )
     _clear_auth_cookies(response)
 
 
