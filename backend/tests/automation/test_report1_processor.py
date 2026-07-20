@@ -250,11 +250,16 @@ def test_irctc_alignment(
 
     workbook = load_workbook(result.excel_path)
     worksheet = workbook.active
+    headers = [
+        str(worksheet.cell(row=2, column=col).value or "")
+        for col in range(1, worksheet.max_column + 1)
+    ]
+    feedback_col = headers.index("Feedback Received") + 1
     catering_feedback = None
     online_feedback = None
     for row_idx in range(3, worksheet.max_row + 1):
         org_value = str(worksheet.cell(row=row_idx, column=2).value or "")
-        feedback_received = worksheet.cell(row=row_idx, column=16).value
+        feedback_received = worksheet.cell(row=row_idx, column=feedback_col).value
         if "Irctc-Catering" in org_value:
             catering_feedback = feedback_received
         if "Irctc-Online" in org_value:
@@ -262,3 +267,193 @@ def test_irctc_alignment(
 
     assert catering_feedback == "420"
     assert online_feedback in ("", None)
+
+
+def test_report1_total_avg_disposal_time_in_excel_and_pdf(
+    processor: Report1Processor,
+    comprehensive_csv: Path,
+    feedback_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.extracted_data_dir",
+        str(tmp_path / "extracted"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_excel_dir",
+        str(tmp_path / "output" / "excel"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_pdf_dir",
+        str(tmp_path / "output" / "pdf"),
+    )
+
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=feedback_csv,
+    )
+    assert result.success is True
+
+    ws = load_workbook(result.excel_path).active
+    headers = [
+        str(ws.cell(row=2, column=col).value or "")
+        for col in range(1, ws.max_column + 1)
+    ]
+    avg_col = headers.index("Avg. Disposal Time") + 1
+    avg_total = str(ws.cell(row=ws.max_row, column=avg_col).value or "")
+    assert avg_total == "0:36"
+    assert str(ws.cell(row=ws.max_row, column=2).value or "") == "Total"
+
+    pdf_bytes = Path(result.pdf_path).read_bytes()
+    assert pdf_bytes[:5] == b"%PDF-"
+    assert len(pdf_bytes) > 100
+
+
+def test_report1_serial_renumbered_after_column_projection(
+    processor: Report1Processor,
+    comprehensive_csv: Path,
+    feedback_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_excel_dir",
+        str(tmp_path / "output" / "excel"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_pdf_dir",
+        str(tmp_path / "output" / "pdf"),
+    )
+    subset = [
+        "report1.source_a.sno",
+        "report1.source_a.organisation",
+        "report1.source_a.received",
+    ]
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=feedback_csv,
+        column_selection={
+            "report_slug": "report1",
+            "selected_column_ids": subset,
+            "column_order": subset,
+            "configuration_source": "manual_snapshot",
+        },
+    )
+    assert result.success is True
+
+    ws = load_workbook(result.excel_path).active
+    headers = [
+        str(ws.cell(row=2, column=col).value or "")
+        for col in range(1, ws.max_column + 1)
+    ]
+    sno_col = headers.index("S.No.") + 1
+    serials = [
+        ws.cell(row=row, column=sno_col).value
+        for row in range(3, ws.max_row)
+    ]
+    data_serials = [int(s) for s in serials if s not in ("", None)]
+    assert data_serials == list(range(1, len(data_serials) + 1))
+    assert ws.cell(row=ws.max_row, column=sno_col).value in ("", None)
+
+
+def test_report1_scr_highlight_when_organisation_hidden(
+    processor: Report1Processor,
+    comprehensive_csv: Path,
+    feedback_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_excel_dir",
+        str(tmp_path / "output" / "excel"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_pdf_dir",
+        str(tmp_path / "output" / "pdf"),
+    )
+    subset = [
+        "report1.source_a.received",
+        "report1.source_a.avg_disposal_time",
+        "report1.source_b.feedback_received",
+        "report1.source_b.unsatisfactory",
+    ]
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=feedback_csv,
+        column_selection={
+            "report_slug": "report1",
+            "selected_column_ids": subset,
+            "column_order": subset,
+            "configuration_source": "manual_snapshot",
+        },
+    )
+    assert result.success is True
+
+    ws = load_workbook(result.excel_path).active
+    headers = [
+        str(ws.cell(row=2, column=col).value or "")
+        for col in range(1, ws.max_column + 1)
+    ]
+    received_col = headers.index("Received") + 1
+    scr_row = None
+    for row_idx in range(3, ws.max_row + 1):
+        received = ws.cell(row=row_idx, column=received_col).value
+        if str(received) == "232":
+            scr_row = row_idx
+            break
+    assert scr_row is not None
+    for col_idx in range(1, ws.max_column + 1):
+        cell = ws.cell(row=scr_row, column=col_idx)
+        assert cell.fill.fgColor.rgb in {"00FFFF00", "FFFF00", "FFFFFF00"}
+        assert cell.font.color.rgb in {"00000000", "FF000000", "000000"}
+
+
+def test_report1_five_column_manual_acceptance_headers(
+    processor: Report1Processor,
+    comprehensive_csv: Path,
+    feedback_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_excel_dir",
+        str(tmp_path / "output" / "excel"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report1_processor.config.output_pdf_dir",
+        str(tmp_path / "output" / "pdf"),
+    )
+    subset = [
+        "report1.source_a.organisation",
+        "report1.source_a.received",
+        "report1.source_a.avg_disposal_time",
+        "report1.source_b.feedback_received",
+        "report1.source_b.unsatisfactory",
+    ]
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="report1",
+        source_b_path=feedback_csv,
+        column_selection={
+            "report_slug": "report1",
+            "selected_column_ids": subset,
+            "column_order": subset,
+            "configuration_source": "manual_snapshot",
+        },
+    )
+    assert result.success is True
+    headers = [
+        str(load_workbook(result.excel_path).active.cell(row=2, column=c).value or "")
+        for c in range(1, 6)
+    ]
+    assert headers == [
+        "Organisation",
+        "Received",
+        "Avg. Disposal Time",
+        "Feedback Received",
+        "Unsatisfactory",
+    ]

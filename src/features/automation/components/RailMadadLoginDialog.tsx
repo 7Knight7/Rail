@@ -24,7 +24,8 @@ export function RailMadadLoginDialog({ open, onClose }: RailMadadLoginDialogProp
             <DialogTitle>RailMadad Login Required</DialogTitle>
           </div>
           <DialogDescription className="pt-2">
-            Please log in to RailMadad in Chrome before generating reports.
+            Start Chrome with remote debugging enabled (port 9222), open RailMadad,
+            and log in before generating reports.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

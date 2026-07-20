@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { RailMadadLoginDialog } from "@/features/automation/components/RailMadadLoginDialog";
+import { ChromeConnectionDialog } from "@/features/automation/components/ChromeConnectionDialog";
 import { HomeGenerationProgress } from "@/features/home/components/HomeGenerationProgress";
 import { HomeGenerationTimeline } from "@/features/home/components/HomeGenerationTimeline";
 import { HomeQuickActions } from "@/features/home/components/HomeQuickActions";
@@ -99,6 +100,11 @@ export function HomePage() {
           open={generation.showLoginDialog}
           onClose={generation.onCloseLoginDialog}
         />
+        <ChromeConnectionDialog
+          open={generation.showChromeDialog}
+          onClose={generation.onCloseChromeDialog}
+          detail={generation.chromeConnectionDetail}
+        />
         <div className="animate-fade-in space-y-8">
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="lg:col-span-3">
@@ -108,8 +114,10 @@ export function HomePage() {
                 isBusy={generation.isBusy}
                 isPaused={generation.isPaused}
                 hasFailed={generation.hasFailed}
+                isStopped={generation.isStopped}
                 isComplete={generation.isComplete}
                 acting={generation.acting}
+                failureMessage={generation.failureMessage}
                 onPause={generation.onPause}
                 onResume={generation.onResume}
                 onStop={generation.onStop}
@@ -124,9 +132,11 @@ export function HomePage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => void generation.onStop()}
+                onClick={() =>
+                  void (generation.hasFailed ? generation.onDismiss() : generation.onStop())
+                }
               >
-                Cancel generation
+                {generation.hasFailed ? "Back to home" : "Cancel generation"}
               </Button>
             </div>
           )}
@@ -140,6 +150,11 @@ export function HomePage() {
       <RailMadadLoginDialog
         open={generation.showLoginDialog}
         onClose={generation.onCloseLoginDialog}
+      />
+      <ChromeConnectionDialog
+        open={generation.showChromeDialog}
+        onClose={generation.onCloseChromeDialog}
+        detail={generation.chromeConnectionDetail}
       />
       <div className="space-y-12 pb-4">
         <HomeWelcomeSection

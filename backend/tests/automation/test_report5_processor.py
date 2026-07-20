@@ -6,7 +6,8 @@ import pytest
 from openpyxl import load_workbook
 
 from app.automation.processing.registry import PROCESSORS
-from app.automation.processing.report5_processor import Report5Processor, OUTPUT_HEADERS
+from app.automation.processing.output_columns import REPORT5_VISIBLE_LABELS
+from app.automation.processing.report5_processor import Report5Processor
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures" / "report5"
 
@@ -81,10 +82,11 @@ def test_filters_train_mode_only(
     
     mixed_csv = extracted / "mixed_complaints.csv"
     mixed_csv.write_text(
-        "Ref. No.,Complaint Date,Train/Station,Mode,Type,Sub Type,Department,Status\n"
-        "REF001,2026-07-10,Train A,Train,Type1,SubType1,Dept1,Pending\n"
-        "REF002,2026-07-10,Station A,Station,Type2,SubType2,Dept2,Pending\n"
-        "REF003,2026-07-10,Train B,Train,Type3,SubType3,Dept3,Pending\n",
+        "Ref. No.,Mode,Registration Date,Train/Station,Type,Sub Type,Department,Status,Zone,Div,"
+        "feedbackRemark,trainNameForReport/Station Name,complaintDesc,remarks,userId\n"
+        "REF001,Train,15-07-26,Train A,Type1,SubType1,Dept1,Pending,SC,HYB,,Train A,Desc1,Rem1,u1\n"
+        "REF002,Station,15-07-26,Station A,Type2,SubType2,Dept2,Pending,SC,HYB,,Station A,Desc2,Rem2,u2\n"
+        "REF003,Train,15-07-26,Train B,Type3,SubType3,Dept3,Pending,SC,HYB,,Train B,Desc3,Rem3,u3\n",
         encoding="utf-8",
     )
 
@@ -117,8 +119,9 @@ def test_fails_if_no_train_rows(
     
     station_only_csv = extracted / "station_only.csv"
     station_only_csv.write_text(
-        "Ref. No.,Complaint Date,Train/Station,Mode,Type,Sub Type,Department,Status\n"
-        "REF001,2026-07-10,Station A,Station,Type1,SubType1,Dept1,Pending\n",
+        "Ref. No.,Mode,Registration Date,Train/Station,Type,Sub Type,Department,Status,Zone,Div,"
+        "feedbackRemark,trainNameForReport/Station Name,complaintDesc,remarks,userId\n"
+        "REF001,Station,15-07-26,Station A,Type1,SubType1,Dept1,Pending,SC,HYB,,Stn A,Desc,Rem,u1\n",
         encoding="utf-8",
     )
 
@@ -141,12 +144,14 @@ def test_fails_if_no_train_rows(
     assert "Train" in (result.error or "")
 
 
-def test_scr_row_highlighted(
+def test_scr_row_not_highlighted(
     processor: Report5Processor,
     train_complaints_csv: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    from app.automation.formatting.scr import cell_has_yellow_fill
+
     monkeypatch.setattr(
         "app.automation.processing.report5_processor.config.extracted_data_dir",
         str(tmp_path / "extracted"),
@@ -163,19 +168,11 @@ def test_scr_row_highlighted(
     result = processor.process(source_a_path=train_complaints_csv, report_slug="report5")
     assert result.success is True
 
-    workbook = load_workbook(result.excel_path)
-    worksheet = workbook.active
-    
-    scr_found = False
+    worksheet = load_workbook(result.excel_path).active
     for row_idx in range(3, worksheet.max_row + 1):
         for col_idx in range(1, worksheet.max_column + 1):
             cell = worksheet.cell(row=row_idx, column=col_idx)
-            if cell.value and "south central railway" in str(cell.value).lower():
-                scr_found = True
-                assert cell.fill.fgColor.rgb in {"00FFFF00", "FFFF00", "FFFFFF00"}
-                break
-    
-    assert scr_found
+            assert not cell_has_yellow_fill(cell)
 
 
 def test_output_headers_match_spec(
@@ -207,7 +204,7 @@ def test_output_headers_match_spec(
     workbook = load_workbook(result.excel_path)
     worksheet = workbook.active
 
-    for col_idx, expected in enumerate(OUTPUT_HEADERS, start=1):
+    for col_idx, expected in enumerate(REPORT5_VISIBLE_LABELS, start=1):
         actual = worksheet.cell(row=2, column=col_idx).value
         assert actual == expected
 
@@ -243,3 +240,50 @@ def test_report_title_contains_train(
     title = worksheet.cell(row=1, column=1).value
     
     assert "Train" in title or "Report No 5" in title
+
+
+def test_report5_pdf_survives_tall_text_cell(
+    processor: Report5Processor,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    import csv
+
+    long_text = "Word " * 500
+    extracted = tmp_path / "extracted" / "report5"
+    extracted.mkdir(parents=True, exist_ok=True)
+    csv_path = extracted / "report5_complaints_raw.csv"
+    with (FIXTURES_DIR / "train_complaints_raw.csv").open(encoding="utf-8", newline="") as src:
+        rows = list(csv.DictReader(src))
+    rows[0]["complaintDesc"] = long_text
+    rows[0]["remarks"] = long_text
+    rows[0]["feedbackRemark"] = long_text
+    with csv_path.open("w", encoding="utf-8", newline="") as dst:
+        writer = csv.DictWriter(dst, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    monkeypatch.setattr(
+        "app.automation.processing.report5_processor.config.extracted_data_dir",
+        str(tmp_path / "extracted"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report5_processor.config.output_excel_dir",
+        str(tmp_path / "output" / "excel"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report5_processor.config.output_pdf_dir",
+        str(tmp_path / "output" / "pdf"),
+    )
+    monkeypatch.setattr(
+        "app.automation.processing.report5_processor.Report5Processor._find_template",
+        lambda self: None,
+    )
+
+    result = processor.process(source_a_path=csv_path, report_slug="report5")
+    assert result.success is True, result.error
+    pdf_path = Path(result.pdf_path or "")
+    assert pdf_path.is_file()
+    assert pdf_path.read_bytes()[:5] == b"%PDF-"
+    assert result.processed_row_count == len(rows)
+    assert len(result.output_columns or []) == 13

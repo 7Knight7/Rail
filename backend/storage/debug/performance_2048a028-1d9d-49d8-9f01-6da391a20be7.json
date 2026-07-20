@@ -1,0 +1,80 @@
+{
+  "run_id": "2048a028-1d9d-49d8-9f01-6da391a20be7",
+  "started_at": "2026-07-19T18:27:20.229138+00:00",
+  "completed_at": "2026-07-19T18:28:26.395627+00:00",
+  "total_duration_seconds": 66.166,
+  "portal_wait_seconds": 195.186,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.8,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.64,
+    "nav_filter_submit:division": 64.637,
+    "handler_execute:division": 64.895,
+    "report:division": 65.014
+  },
+  "per_report": {
+    "division": {
+      "duration_seconds": 65.014,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 64.637
+      }
+    }
+  },
+  "critical_path_report": "division",
+  "critical_path_seconds": 65.014,
+  "top_bottlenecks": [
+    [
+      "report:division",
+      65.014
+    ],
+    [
+      "handler_execute:division",
+      64.895
+    ],
+    [
+      "nav_filter_submit:division",
+      64.637
+    ],
+    [
+      "browser_connect",
+      0.64
+    ]
+  ]
+}

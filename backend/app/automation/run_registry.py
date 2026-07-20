@@ -80,6 +80,7 @@ def validate_artifact_file(
     *,
     require_pdf_header: bool = False,
     file_type: str | None = None,
+    min_mtime: float | None = None,
 ) -> Path:
     if ".." in path.parts:
         raise ArtifactPathError("Path traversal blocked", status_code=400)
@@ -100,13 +101,38 @@ def validate_artifact_file(
 
     if not resolved.is_file():
         raise ArtifactPathError("File not found", status_code=404)
-    if resolved.stat().st_size <= 0:
+    stat = resolved.stat()
+    if stat.st_size <= 0:
         raise ArtifactPathError("Empty file", status_code=404)
+    if min_mtime is not None and stat.st_mtime < min_mtime:
+        raise ArtifactPathError("Stale artifact file", status_code=500)
     if require_pdf_header:
         header = resolved.read_bytes()[:5]
         if header != b"%PDF-":
             raise ArtifactPathError("Invalid PDF", status_code=500)
     return resolved
+
+
+def build_dual_artifact_metadata(
+    *,
+    selected_column_ids: list[str] | None,
+    column_order: list[str] | None = None,
+    configuration_source: str | None = None,
+    run_id: str | None = None,
+    report_slug: str | None = None,
+) -> dict[str, Any]:
+    order = list(column_order or selected_column_ids or [])
+    metadata: dict[str, Any] = {
+        "selected_column_ids": list(selected_column_ids or order),
+        "column_order": order,
+    }
+    if configuration_source:
+        metadata["configuration_source"] = configuration_source
+    if run_id:
+        metadata["run_id"] = run_id
+    if report_slug:
+        metadata["report_slug"] = report_slug
+    return metadata
 
 
 async def ensure_schema_columns(session: AsyncSession) -> None:
@@ -117,6 +143,7 @@ async def ensure_schema_columns(session: AsyncSession) -> None:
         "ALTER TABLE automation_runs ADD COLUMN result_json TEXT",
         "ALTER TABLE automation_artifacts ADD COLUMN report_slug VARCHAR(64)",
         "ALTER TABLE automation_artifacts ADD COLUMN status VARCHAR(32) DEFAULT 'ready'",
+        "ALTER TABLE automation_artifacts ADD COLUMN metadata_json TEXT",
     ]
     for stmt in statements:
         try:
@@ -175,16 +202,22 @@ async def create_cdp_run(
     *,
     user_id: str | None = None,
     run_id: str | None = None,
+    trigger_type: str = "cdp_in_process",
+    manual_config: dict | None = None,
 ) -> AutomationRunModel:
     profile = await ensure_cdp_profile(session)
     run = AutomationRunModel(
         id=run_id or str(uuid4()),
         profile_id=profile.id,
         status="running",
-        trigger_type="cdp_in_process",
+        trigger_type=trigger_type,
         started_at=datetime.now(UTC),
         created_by=user_id,
     )
+    if manual_config is not None:
+        import json
+
+        run.result_json = json.dumps({"manual_config": manual_config})
     session.add(run)
     await session.commit()
     await session.refresh(run)
@@ -226,7 +259,20 @@ async def persist_run_progress(
                 reports_failed=failed,
                 download_all_url=f"/api/v1/automation/runs/{run_id}/download-all",
             )
-            run.result_json = partial.model_dump_json()
+            manual_config = None
+            if run.result_json:
+                try:
+                    existing = json.loads(run.result_json)
+                    if isinstance(existing, dict) and "manual_config" in existing:
+                        manual_config = existing.get("manual_config")
+                except Exception:
+                    manual_config = None
+            if manual_config is not None:
+                run.result_json = json.dumps(
+                    {"manual_config": manual_config, "result": partial.model_dump()}
+                )
+            else:
+                run.result_json = partial.model_dump_json()
             run.success_count = success
             run.failure_count = failed
             # Never clobber pause/stop control states with mid-run "running".
@@ -266,15 +312,49 @@ async def finalize_cdp_run(
         run.status = "stopped"
     elif result.success:
         run.status = "completed"
+    elif success > 0 and failed > 0:
+        run.status = "completed"
+    elif success > 0:
+        run.status = "completed"
     else:
         run.status = "failed"
     run.success_count = success
     run.failure_count = failed
     run.completed_at = datetime.now(UTC)
     run.error_message = result.error
-    run.result_json = result.model_dump_json()
+    manual_config = None
+    if run.result_json:
+        try:
+            import json
+
+            existing = json.loads(run.result_json)
+            if isinstance(existing, dict) and "manual_config" in existing:
+                manual_config = existing.get("manual_config")
+        except Exception:
+            manual_config = None
+    if manual_config is not None:
+        import json
+
+        run.result_json = json.dumps(
+            {
+                "manual_config": manual_config,
+                "result": result.model_dump(),
+            }
+        )
+    else:
+        run.result_json = result.model_dump_json()
     await session.commit()
     await session.refresh(run)
+
+    log_automation_event(
+        logger,
+        "run_terminal_status",
+        run_id=run_id,
+        run_status=run.status,
+        reports_successful=success,
+        reports_failed=failed,
+        user_stopped=user_stopped,
+    )
 
     actor = user_id or run.created_by
     if actor and not user_stopped:
@@ -300,6 +380,16 @@ async def finalize_cdp_run(
             )
         except Exception:
             pass
+
+    # Auto-generate Daily Summary after run reaches terminal state (non-blocking).
+    if actor and run.trigger_type != "manual_report":
+        try:
+            from app.features.daily_summary.service import generate_daily_summary_after_run
+
+            await generate_daily_summary_after_run(session, run_id, actor)
+        except Exception:
+            logger.exception("finalize_cdp_run daily summary hook failed run_id=%s", run_id)
+
     return run
 
 
@@ -393,13 +483,23 @@ async def register_artifact(
     file_type: str,
     file_path: str | Path,
     status: str = "ready",
+    metadata: dict[str, Any] | None = None,
 ) -> AutomationArtifactModel | None:
     path = Path(file_path)
+    run = await session.get(AutomationRunModel, run_id)
+    min_mtime: float | None = None
+    if run and run.started_at:
+        started = run.started_at
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=UTC)
+        min_mtime = started.timestamp() - 2.0
+
     try:
         validated = validate_artifact_file(
             path,
             require_pdf_header=(file_type == "pdf"),
             file_type=file_type,
+            min_mtime=min_mtime,
         )
         size = validated.stat().st_size
         final_status = status
@@ -417,6 +517,7 @@ async def register_artifact(
         report_name=report_name or report_slug,
         report_slug=canonicalize_report_key(report_slug),
         status=final_status,
+        metadata_json=json.dumps(metadata) if metadata else None,
     )
     session.add(artifact)
     await session.commit()
@@ -464,7 +565,9 @@ async def list_run_artifacts(
     session: AsyncSession, run_id: str
 ) -> list[AutomationArtifactModel]:
     result = await session.execute(
-        select(AutomationArtifactModel).where(AutomationArtifactModel.run_id == run_id)
+        select(AutomationArtifactModel)
+        .where(AutomationArtifactModel.run_id == run_id)
+        .order_by(AutomationArtifactModel.created_at.desc())
     )
     return list(result.scalars().all())
 

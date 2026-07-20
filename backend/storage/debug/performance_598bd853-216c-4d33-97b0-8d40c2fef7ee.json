@@ -1,0 +1,90 @@
+{
+  "run_id": "598bd853-216c-4d33-97b0-8d40c2fef7ee",
+  "started_at": "2026-07-19T15:48:52.184560+00:00",
+  "completed_at": "2026-07-19T15:49:01.061497+00:00",
+  "total_duration_seconds": 8.877,
+  "portal_wait_seconds": 17.886,
+  "application_seconds": 0.341,
+  "fixed_sleep_seconds": 0.8,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.916,
+    "nav_filter_submit:scr-train": 2.843,
+    "sorting:scr-train": 0.44,
+    "handler_execute:scr-train": 6.529,
+    "ingestion:scr-train": 0.341,
+    "report:scr-train": 7.158
+  },
+  "per_report": {
+    "scr-train": {
+      "duration_seconds": 7.158,
+      "extraction_seconds": 6.52,
+      "processing_seconds": 0.64,
+      "spans": {
+        "nav_filter_submit": 2.843,
+        "sorting": 0.44,
+        "extraction": 6.52,
+        "ingestion": 0.341,
+        "processing": 0.64
+      }
+    }
+  },
+  "critical_path_report": "scr-train",
+  "critical_path_seconds": 7.158,
+  "top_bottlenecks": [
+    [
+      "report:scr-train",
+      7.158
+    ],
+    [
+      "handler_execute:scr-train",
+      6.529
+    ],
+    [
+      "nav_filter_submit:scr-train",
+      2.843
+    ],
+    [
+      "browser_connect",
+      0.916
+    ],
+    [
+      "sorting:scr-train",
+      0.44
+    ]
+  ]
+}

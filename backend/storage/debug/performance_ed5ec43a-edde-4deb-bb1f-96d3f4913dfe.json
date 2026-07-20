@@ -1,0 +1,56 @@
+{
+  "run_id": "ed5ec43a-edde-4deb-bb1f-96d3f4913dfe",
+  "started_at": "2026-07-20T05:58:26.372563+00:00",
+  "completed_at": "2026-07-20T05:58:30.038291+00:00",
+  "total_duration_seconds": 3.666,
+  "portal_wait_seconds": 5.956,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.2,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 1,
+  "spans": {
+    "browser_connect": 0.75,
+    "nav_filter_submit:division": 0.413,
+    "handler_execute:division": 2.301,
+    "report:division": 2.492
+  },
+  "per_report": {
+    "division": {
+      "duration_seconds": 2.492,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 0.413
+      }
+    }
+  },
+  "critical_path_report": "division",
+  "critical_path_seconds": 2.492,
+  "top_bottlenecks": [
+    [
+      "report:division",
+      2.492
+    ],
+    [
+      "handler_execute:division",
+      2.301
+    ],
+    [
+      "browser_connect",
+      0.75
+    ],
+    [
+      "nav_filter_submit:division",
+      0.413
+    ]
+  ]
+}

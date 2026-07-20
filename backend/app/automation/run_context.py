@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 _current: ContextVar["RunContext | None"] = ContextVar("automation_run_context", default=None)
 
-PROCESS_CONCURRENCY = 2
+PROCESS_CONCURRENCY = 3
 
 
 def get_run_context() -> "RunContext | None":
@@ -43,6 +43,11 @@ class RunContext:
     defer_processing: bool = True
     process_semaphore: asyncio.Semaphore = field(
         default_factory=lambda: asyncio.Semaphore(PROCESS_CONCURRENCY)
+    )
+    manual_config: dict | None = None
+    current_run_sources: dict[str, str] = field(default_factory=dict)
+    run_started_at: str = field(
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     _tasks: list[asyncio.Task] = field(default_factory=list)
     _results: dict[str, ReportResult] = field(default_factory=dict)

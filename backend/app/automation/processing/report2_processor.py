@@ -9,17 +9,32 @@ from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Border, Font, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
+from app.automation.formatting.pdf_fonts import pdf_font_bold, pdf_title_style
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
+from app.automation.formatting.excel_print import apply_column_formatting, apply_report_print_setup
 from app.automation.formatting.pdf_table import build_fitted_table
-from app.automation.formatting.scr import highlight_south_central_railway_rows, row_contains_scr
-from app.automation.formatting.serial import apply_serial_number
+from app.automation.formatting.text_pipeline import (
+    normalize_report_title,
+    prepare_output_for_rendering,
+    verify_text_rendering,
+)
+from app.automation.formatting.pdf_verify import verify_report_output
+from app.automation.formatting.scr import SCR_FILL, SCR_FONT, row_contains_scr
+from app.automation.formatting.serial import apply_serial_number, is_serial_header, renumber_data_rows
 from app.automation.processing.base import ProcessingResult
+from app.automation.processing.column_config import project_for_output, resolve_projection_column_keys
+from app.automation.processing.output_columns import (
+    REPORT2_HIDDEN_COLUMNS,
+    SOURCE_B_DATA_COLUMNS,
+    build_report2_display_total_row,
+)
+
+HIDDEN_COLUMNS = REPORT2_HIDDEN_COLUMNS
 from app.automation.utils import (
     ensure_directory,
     log_automation_event,
@@ -34,16 +49,6 @@ PROCESSOR_NAME = "report2_division_wise_processor"
 TOP_N = 25
 
 FEEDBACK_FILENAME = "report2_division_feedback_raw.csv"
-SOURCE_B_DATA_COLUMNS = [
-    "Feedback Received",
-    "% Feedback",
-    "Excellent",
-    "Satisfactory",
-    "Unsatisfactory",
-    "% Unsatisfactory",
-]
-
-HIDDEN_COLUMNS = {3, 7, 8, 10, 11, 12, 13, 14, 15}
 
 THIN_BORDER = Border(
     left=Side(style="thin"),
@@ -64,6 +69,7 @@ class Report2Processor:
         source_a_path: Path,
         report_slug: str,
         source_b_path: Path | None = None,
+        column_selection: dict | None = None,
     ) -> ProcessingResult:
         log_automation_event(
             logger,
@@ -114,12 +120,9 @@ class Report2Processor:
         source_b_mtime = feedback_path.stat().st_mtime
 
         source_a_rows, source_a_headers = self._read_csv(source_a_path)
-        data_a, total_a = self._split_total_row(source_a_rows)
-
-        top_n_rows = data_a[:TOP_N]
+        data_a, _total_a = self._split_total_row(source_a_rows)
 
         source_b_rows, source_b_headers = self._read_csv(feedback_path)
-        data_b, total_b = self._split_total_row(source_b_rows)
 
         # Verify Source B has the required feedback columns
         missing_feedback_cols = [col for col in SOURCE_B_DATA_COLUMNS if col not in source_b_headers]
@@ -131,6 +134,7 @@ class Report2Processor:
                 available=source_b_headers,
                 error="Source B is missing required feedback columns",
             )
+            data_b, _ = self._split_total_row(source_b_rows)
             return ProcessingResult(
                 success=False,
                 source_a_path=str(source_a_path),
@@ -149,22 +153,14 @@ class Report2Processor:
             available=source_b_headers,
         )
 
-        merged_headers = source_a_headers + ["S.No.", "Organisation"] + SOURCE_B_DATA_COLUMNS
-        merged_rows, matched_count, unmatched_source_a, unmatched_source_b, matched_pairs = (
-            self._merge_rows(top_n_rows, source_a_headers, data_b, source_b_headers)
+        merge_result = self.build_merged_table(
+            source_a_rows,
+            source_a_headers,
+            source_b_rows,
+            source_b_headers,
         )
-
-        # Validate merge quality - fail if no divisions matched
-        if matched_count == 0:
-            log_automation_event(
-                logger,
-                "report2_merge_failed_no_matches",
-                source_a_count=len(top_n_rows),
-                source_b_count=len(data_b),
-                source_a_sample=[r.get("Division", "") or r.get("Organisation", "") for r in top_n_rows[:3]],
-                source_b_sample=[r.get("Organisation", "") or r.get("Division", "") for r in data_b[:3]],
-                error="No divisions matched between Source A and Source B",
-            )
+        if merge_result is None:
+            data_b, _ = self._split_total_row(source_b_rows)
             return ProcessingResult(
                 success=False,
                 source_a_path=str(source_a_path),
@@ -173,38 +169,65 @@ class Report2Processor:
                 source_b_rows=len(data_b),
                 source_a_mtime=source_a_mtime,
                 source_b_mtime=source_b_mtime,
-                error="REPORT2_MERGE_FAILED: No divisions matched between Source A and Source B. "
-                      "Check division name formats in both sources.",
+                error="REPORT2_MERGE_FAILED: Could not merge division and feedback datasets.",
             )
 
-        # Validate merge quality - fail if all feedback columns are blank
-        feedback_col_start = len(source_a_headers) + 2  # After Source A cols + S.No. + Organisation
-        all_feedback_blank = all(
-            all(cell == "" for cell in row[feedback_col_start:])
-            for row in merged_rows
+        merged_headers, merged_rows, scr_row_flags = merge_result
+        data_b, _ = self._split_total_row(source_b_rows)
+        matched_count = max(len(merged_rows) - 1, 0)
+
+        log_automation_event(
+            logger,
+            "report2_merge_completed",
+            source_a_rows=len(data_a),
+            source_b_rows=len(data_b),
+            merged_row_count=len(merged_rows),
+            matched_count=matched_count,
         )
-        if all_feedback_blank:
+
+        selected_keys, config_source = resolve_projection_column_keys(
+            report_slug,
+            column_selection=column_selection,
+        )
+        output_headers, output_rows, visible_columns, selected_column_ids, config_source = (
+            project_for_output(
+                report_slug,
+                full_headers=merged_headers,
+                rows=merged_rows,
+                selected_keys=selected_keys,
+                config_source=config_source,
+            )
+        )
+        log_automation_event(
+            logger,
+            "report2_columns_projected",
+            selected_column_count=len(selected_column_ids),
+            selected_column_ids=selected_column_ids,
+            configuration_source=config_source,
+            final_headers=output_headers,
+            final_row_count=len(output_rows),
+        )
+
+        if any(is_serial_header(header) for header in output_headers):
+            output_rows = renumber_data_rows(output_headers, output_rows)
             log_automation_event(
                 logger,
-                "report2_merge_failed_all_blank",
-                matched_count=matched_count,
-                sample_matched=matched_pairs[:3],
-                error="All Feedback columns are blank after merge",
-            )
-            return ProcessingResult(
-                success=False,
-                source_a_path=str(source_a_path),
-                source_b_path=str(feedback_path),
-                source_a_rows=len(data_a),
-                source_b_rows=len(data_b),
-                source_a_mtime=source_a_mtime,
-                source_b_mtime=source_b_mtime,
-                error="REPORT2_MERGE_FAILED: All Feedback columns are blank after merge. "
-                      "Source B data may not have been read correctly.",
+                "report2_serial_numbers_regenerated",
+                final_row_count=len(output_rows),
             )
 
-        if total_a:
-            merged_rows.append(self._merge_total_row(total_a, total_b, source_a_headers, source_b_headers))
+        scr_row_indices = {
+            idx
+            for idx, is_scr in enumerate(scr_row_flags)
+            if is_scr and idx < len(output_rows)
+        }
+        if scr_row_indices:
+            log_automation_event(
+                logger,
+                "report2_scr_highlight_applied",
+                scr_row_indices=sorted(scr_row_indices),
+            )
+
         source_b_path_str = str(feedback_path)
         source_b_row_count = len(data_b)
 
@@ -217,7 +240,12 @@ class Report2Processor:
             feedback_columns_present=len(feedback_cols_in_merged),
             feedback_columns=feedback_cols_in_merged,
             matched_count=matched_count,
-            sample_matched_pairs=matched_pairs[:3],
+        )
+
+        output_headers, output_rows = prepare_output_for_rendering(
+            report_slug,
+            output_headers,
+            output_rows,
         )
 
         report_date = previous_day_report_date()
@@ -238,8 +266,27 @@ class Report2Processor:
         )
 
         try:
-            self._write_excel(excel_path, merged_headers, merged_rows, report_date=report_date)
-            self._write_pdf(pdf_path, merged_headers, merged_rows, report_date=report_date)
+            self._write_excel(
+                excel_path,
+                output_headers,
+                output_rows,
+                report_date=report_date,
+                scr_row_indices=scr_row_indices,
+            )
+            self._write_pdf(
+                pdf_path,
+                output_headers,
+                output_rows,
+                report_date=report_date,
+                scr_row_indices=scr_row_indices,
+            )
+            verify_report_output(
+                report_slug=report_slug,
+                headers=output_headers,
+                rows=output_rows,
+                pdf_path=pdf_path,
+                excel_path=excel_path,
+            )
         except Exception as exc:
             return ProcessingResult(
                 input_row_count=len(data_a),
@@ -263,7 +310,7 @@ class Report2Processor:
             source_a=str(source_a_path),
             source_b=source_b_path_str,
             input_row_count=len(data_a),
-            top_n_selected=len(top_n_rows),
+            top_n_selected=max(len(merged_rows) - 1, 0),
             source_a_mtime=source_a_mtime,
             source_b_mtime=source_b_mtime,
             output_mtime=output_mtime,
@@ -284,7 +331,54 @@ class Report2Processor:
             source_b_mtime=source_b_mtime,
             output_mtime=output_mtime,
             run_timestamp=run_timestamp,
+            output_columns=output_headers,
+            visible_columns=visible_columns,
+            selected_column_ids=selected_column_ids,
+            column_order=list(selected_column_ids),
+            configuration_source=config_source,
         )
+
+    def build_merged_table(
+        self,
+        source_a_rows: list[dict[str, str]],
+        source_a_headers: list[str],
+        source_b_rows: list[dict[str, str]],
+        source_b_headers: list[str],
+    ) -> tuple[list[str], list[list[str]], list[bool]] | None:
+        """Build full merged table including totals; None when merge validation fails."""
+        data_a, _total_a = self._split_total_row(source_a_rows)
+        top_n_rows = data_a[:TOP_N]
+        data_b, _total_b = self._split_total_row(source_b_rows)
+
+        merged_headers = source_a_headers + ["S.No.", "Organisation"] + SOURCE_B_DATA_COLUMNS
+        merged_rows, matched_count, _, _, _matched_pairs, scr_flags = self._merge_rows(
+            top_n_rows,
+            source_a_headers,
+            data_b,
+            source_b_headers,
+        )
+        if matched_count == 0:
+            return None
+
+        feedback_col_start = len(source_a_headers) + 2
+        all_feedback_blank = all(
+            all(cell == "" for cell in row[feedback_col_start:])
+            for row in merged_rows
+        )
+        if all_feedback_blank:
+            return None
+
+        merged_rows.append(
+            build_report2_display_total_row(
+                merged_headers=merged_headers,
+                data_rows=merged_rows,
+                source_a_headers=source_a_headers,
+                source_b_headers=source_b_headers,
+                source_b_columns=SOURCE_B_DATA_COLUMNS,
+            )
+        )
+        scr_flags.append(False)
+        return merged_headers, merged_rows, scr_flags
 
     def _find_feedback_csv(self, report_slug: str) -> Path | None:
         """DEPRECATED: Filesystem fallback search for feedback CSV.
@@ -372,6 +466,25 @@ class Report2Processor:
             return rows[:-1], rows[-1]
         return rows, None
 
+    @staticmethod
+    def _load_portal_total_sidecar(
+        source_a_path: Path,
+        source_a_headers: list[str],
+    ) -> dict[str, str] | None:
+        """Load portal total row saved before top-25 trim (Report 2 only)."""
+        import json
+
+        sidecar = source_a_path.parent / "report2_division_comprehensive_portal_total.json"
+        if not sidecar.is_file():
+            return None
+        try:
+            payload = json.loads(sidecar.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        return {header: str(payload.get(header, "")) for header in source_a_headers}
+
     def _build_feedback_lookup(
         self,
         source_b_rows: list[dict[str, str]],
@@ -437,20 +550,29 @@ class Report2Processor:
             return [matched_row.get(column, "") for column in SOURCE_B_DATA_COLUMNS], matched_row
         return [""] * len(SOURCE_B_DATA_COLUMNS), None
 
+    @staticmethod
+    def _is_scr_division(division: str) -> bool:
+        from app.automation.formatting.scr import SCR_PATTERN
+
+        text = re.sub(r"\s+", " ", division.strip())
+        return bool(SCR_PATTERN.search(text))
+
     def _merge_rows(
         self,
         source_a_rows: list[dict[str, str]],
         source_a_headers: list[str],
         source_b_rows: list[dict[str, str]],
         source_b_headers: list[str],
-    ) -> tuple[list[list[str]], int, list[str], list[str], list[dict]]:
+    ) -> tuple[list[list[str]], int, list[str], list[str], list[dict], list[bool]]:
         """Merge Source A rows with Source B feedback using base-name matching.
 
         Returns:
-            tuple of (merged_rows, matched_count, unmatched_source_a, unmatched_source_b, matched_pairs)
+            tuple of (merged_rows, matched_count, unmatched_source_a, unmatched_source_b,
+            matched_pairs, scr_row_flags)
         """
         lookup, duplicates, base_to_orgs = self._build_feedback_lookup(source_b_rows)
         merged: list[list[str]] = []
+        scr_flags: list[bool] = []
         unmatched_source_a: list[str] = []
         matched_count = 0
         matched_pairs: list[dict] = []
@@ -486,6 +608,7 @@ class Report2Processor:
                 unmatched_source_a.append(org_a)
 
             merged.append(source_a_values + [b_sno, b_org] + b_values)
+            scr_flags.append(self._is_scr_division(org_a))
 
         # Find Source B divisions not matched to any Source A
         source_a_bases = {self._extract_base_division(r.get("Division", "") or r.get("Organisation", ""))
@@ -528,26 +651,7 @@ class Report2Processor:
                 info="These Source B divisions were not in Source A Top 25",
             )
 
-        return merged, matched_count, unmatched_source_a, unmatched_source_b, matched_pairs
-
-    def _merge_total_row(
-        self,
-        total_a: dict[str, str],
-        total_b: dict[str, str] | None,
-        source_a_headers: list[str],
-        source_b_headers: list[str],
-    ) -> list[str]:
-        a_values = apply_serial_number(
-            source_a_headers,
-            [total_a.get(header, "") for header in source_a_headers],
-            None,
-        )
-        b_values = [
-            (total_b or {}).get(column, "") for column in SOURCE_B_DATA_COLUMNS
-        ]
-        b_sno = ""
-        b_org = total_b.get("Organisation", "All Divisions") if total_b else "All Divisions"
-        return a_values + [b_sno, b_org] + b_values
+        return merged, matched_count, unmatched_source_a, unmatched_source_b, matched_pairs, scr_flags
 
     def _write_excel(
         self,
@@ -556,15 +660,17 @@ class Report2Processor:
         rows: list[list[str]],
         *,
         report_date: str,
+        scr_row_indices: set[int] | None = None,
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
         workbook = Workbook()
         worksheet = workbook.active
         worksheet.title = "Report 2"
 
-        title = (
+        title = normalize_report_title(
             f"Rail Madad Report No 2 - Division Wise Complaints & Feedback Report "
-            f"- Bottom 25 Divisions on date {report_date}"
+            f"- Bottom 25 Divisions on date {report_date}",
+            report_slug="division",
         )
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
         title_cell = worksheet.cell(row=1, column=1, value=title)
@@ -584,29 +690,47 @@ class Report2Processor:
                 cell = worksheet.cell(row=row_idx, column=col_idx, value=value)
                 cell.border = THIN_BORDER
 
-        for col_idx in HIDDEN_COLUMNS:
-            if col_idx <= len(headers):
-                worksheet.column_dimensions[get_column_letter(col_idx)].hidden = True
+        for col_idx in range(1, len(headers) + 1):
+            worksheet.column_dimensions[get_column_letter(col_idx)].hidden = False
 
-        highlight_south_central_railway_rows(
-            worksheet,
-            start_row=data_start,
-            end_row=worksheet.max_row,
-            start_col=1,
-            end_col=len(headers),
-        )
+        if scr_row_indices:
+            for row_offset in scr_row_indices:
+                if row_offset >= len(rows):
+                    continue
+                row_idx = data_start + row_offset
+                for col_idx in range(1, len(headers) + 1):
+                    cell = worksheet.cell(row=row_idx, column=col_idx)
+                    cell.fill = SCR_FILL
+                    cell.font = SCR_FONT
+        else:
+            from app.automation.formatting.scr import highlight_south_central_railway_rows
+
+            highlight_south_central_railway_rows(
+                worksheet,
+                start_row=data_start,
+                end_row=worksheet.max_row,
+                start_col=1,
+                end_col=len(headers),
+            )
 
         if rows:
             totals_row = worksheet.max_row
+            totals_fill = PatternFill(fill_type="solid", fgColor="E8E8E8")
             for col_idx in range(1, len(headers) + 1):
                 cell = worksheet.cell(row=totals_row, column=col_idx)
                 cell.font = Font(bold=True)
+                cell.fill = totals_fill
+
+        apply_column_formatting(
+            worksheet,
+            headers,
+            header_row=header_row,
+            data_start_row=data_start,
+        )
+        apply_report_print_setup(worksheet, col_count=len(headers))
 
         workbook.save(temp_path)
         temp_path.replace(target_path)
-
-    def _visible_column_indices(self, headers: list[str]) -> list[int]:
-        return [idx for idx in range(1, len(headers) + 1) if idx not in HIDDEN_COLUMNS]
 
     def _write_pdf(
         self,
@@ -615,30 +739,37 @@ class Report2Processor:
         rows: list[list[str]],
         *,
         report_date: str,
+        scr_row_indices: set[int] | None = None,
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
-        visible_indices = self._visible_column_indices(headers)
-        visible_headers = [headers[idx - 1] for idx in visible_indices]
+        visible_indices = list(range(1, len(headers) + 1))
+        visible_headers = headers
 
         table_data: list[list[str]] = [visible_headers]
-        scr_row_indices: set[int] = set()
-        for row_values in rows:
+        pdf_scr_indices: set[int] = set()
+        for row_offset, row_values in enumerate(rows):
             visible_row = [row_values[idx - 1] if idx <= len(row_values) else "" for idx in visible_indices]
             table_data.append(visible_row)
-            if row_contains_scr(visible_row):
-                scr_row_indices.add(len(table_data) - 1)
+            if scr_row_indices is not None:
+                if row_offset in scr_row_indices:
+                    pdf_scr_indices.add(len(table_data) - 1)
+            elif row_contains_scr(visible_row):
+                pdf_scr_indices.add(len(table_data) - 1)
 
         style_commands: list[tuple] = [
             ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 0), (-1, 0), pdf_font_bold()),
         ]
-        for row_idx in scr_row_indices:
+        for row_idx in pdf_scr_indices:
             style_commands.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.yellow))
             style_commands.append(("TEXTCOLOR", (0, row_idx), (-1, row_idx), colors.black))
         if rows:
             style_commands.append(
-                ("FONTNAME", (0, len(table_data) - 1), (-1, len(table_data) - 1), "Helvetica-Bold")
+                ("FONTNAME", (0, len(table_data) - 1), (-1, len(table_data) - 1), pdf_font_bold())
+            )
+            style_commands.append(
+                ("BACKGROUND", (0, len(table_data) - 1), (-1, len(table_data) - 1), colors.HexColor("#E8E8E8"))
             )
 
         table, pagesize, margin = build_fitted_table(table_data, style_commands)
@@ -650,14 +781,14 @@ class Report2Processor:
             topMargin=margin,
             bottomMargin=margin,
         )
-        styles = getSampleStyleSheet()
         story = [
             Paragraph(
-                (
-                    f"Rail Madad Report No 2 - Division Wise Complaints &amp; Feedback Report "
-                    f"- Bottom 25 Divisions on date {report_date}"
+                normalize_report_title(
+                    f"Rail Madad Report No 2 - Division Wise Complaints & Feedback Report "
+                    f"- Bottom 25 Divisions on date {report_date}",
+                    report_slug="division",
                 ),
-                styles["Title"],
+                pdf_title_style("Report2Title"),
             ),
             Spacer(1, 12),
             table,

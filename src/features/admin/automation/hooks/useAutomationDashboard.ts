@@ -72,6 +72,16 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
           return result;
         }
 
+        if (options?.async_mode && !result.success) {
+          showToast(
+            "error",
+            "Cannot start automation",
+            result.error ?? "Chrome is not connected for report generation",
+          );
+          await refresh();
+          return result;
+        }
+
         if (result.success) {
           showToast(
             "success",

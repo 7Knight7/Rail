@@ -1,0 +1,88 @@
+{
+  "run_id": "5e7443d7-045d-48a3-a2bf-bddfa7f05b51",
+  "started_at": "2026-07-20T05:12:41.393390+00:00",
+  "completed_at": "2026-07-20T05:12:41.660236+00:00",
+  "total_duration_seconds": 0.267,
+  "portal_wait_seconds": 0.002,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.0,
+  "fixed_sleep_events": [],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.0,
+    "handler_execute:report1": 0.0,
+    "report:report1": 0.001,
+    "handler_execute:division": 0.0,
+    "report:division": 0.001,
+    "handler_execute:train-no": 0.0,
+    "report:train-no": 0.0,
+    "handler_execute:types": 0.0,
+    "report:types": 0.0,
+    "handler_execute:scr-train": 0.0,
+    "report:scr-train": 0.0,
+    "handler_execute:scr-station": 0.0,
+    "report:scr-station": 0.0
+  },
+  "per_report": {
+    "report1": {
+      "duration_seconds": 0.001,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "division": {
+      "duration_seconds": 0.001,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "train-no": {
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "types": {
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "scr-train": {
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "scr-station": {
+      "duration_seconds": 0.0,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    }
+  },
+  "critical_path_report": "report1",
+  "critical_path_seconds": 0.001,
+  "top_bottlenecks": [
+    [
+      "report:report1",
+      0.001
+    ],
+    [
+      "report:division",
+      0.001
+    ],
+    [
+      "browser_connect",
+      0.0
+    ],
+    [
+      "handler_execute:report1",
+      0.0
+    ],
+    [
+      "handler_execute:division",
+      0.0
+    ]
+  ]
+}

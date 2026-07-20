@@ -94,9 +94,9 @@ class Report1Handler(BaseReportHandler):
         terminal: ReportResult | None = None
 
         try:
-            page = await self.ensure_mis_page(page, session, f"{report.slug}_start")
+            page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
             await self.navigation.navigate_to_report(page, report)
-            page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav")
+            page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
 
             report_root, _, row_count = await self.apply_filters_and_submit(
                 page, report, session=session
@@ -161,10 +161,9 @@ class Report1Handler(BaseReportHandler):
             row_counts["comprehensive"] = rows_a
             log_automation_event(
                 logger,
-                "report1_comprehensive_csv_verified",
+                "report1_source_a_extracted",
                 csv_path=str(comprehensive_csv_path),
                 row_count=rows_a,
-                size=comprehensive_csv_path.stat().st_size,
             )
 
             page = await self.ensure_mis_page(page, session, "feedback_extraction")
@@ -220,10 +219,9 @@ class Report1Handler(BaseReportHandler):
             row_counts["feedback"] = rows_b
             log_automation_event(
                 logger,
-                "report1_feedback_csv_verified",
+                "report1_source_b_extracted",
                 csv_path=str(feedback_csv_path),
                 row_count=rows_b,
-                size=feedback_csv_path.stat().st_size,
             )
 
             # Ingest both current-run CSVs before Phase 8 (order: feedback then comprehensive)
@@ -259,7 +257,9 @@ class Report1Handler(BaseReportHandler):
                 )
                 return terminal
 
-            page = await self.ensure_mis_page(page, session, "comprehensive_regenerate")
+            page = await self.ensure_mis_page(
+                page, session, "comprehensive_regenerate", report=report
+            )
             report_root, _, _ = await regenerate_comprehensive_for_pdf(
                 page,
                 self.navigation,
@@ -272,54 +272,63 @@ class Report1Handler(BaseReportHandler):
             )
 
             archive_path: str | None = None
-            downloader = ReportDownloader(downloads_dir=Path(config.downloads_dir))
-            pdf_cm = (
-                ctx.timing.report_span("report1", "phase6_pdf_download")
-                if ctx is not None
-                else None
-            )
-
-            async def _download():
-                return await downloader.download_report(
-                    report_root, page, report_slug=report.slug
-                )
-
-            if pdf_cm is not None:
-                with pdf_cm:
-                    download_result = await _download()
-            else:
-                download_result = await _download()
-
+            skip_portal_pdf = ctx is not None and ctx.skip_portal_archive
             phase6_pdf_path = None
-            if (
-                download_result.file_path
-                and download_result.file_path.suffix.lower() == ".pdf"
-            ):
-                phase6_pdf_path = download_result.file_path
 
-            page = await self.ensure_mis_page(page, session, "pdf_archive")
-            archive_dir = resolve_report_dir(config.pdf_archive_dir, report.slug)
-            archiver = PdfArchiver(archive_dir=archive_dir)
-            archive_cm = (
-                ctx.timing.report_span("report1", "archive") if ctx is not None else None
-            )
-
-            async def _archive():
-                return await archiver.archive_pdf(
-                    page,
-                    report_root,
-                    report.slug,
-                    use_print=False,
-                    existing_pdf_path=phase6_pdf_path,
+            if skip_portal_pdf:
+                log_automation_event(
+                    logger,
+                    "phase6_pdf_download_skipped",
+                    reason="processor_pdf_preferred",
+                )
+            else:
+                downloader = ReportDownloader(downloads_dir=Path(config.downloads_dir))
+                pdf_cm = (
+                    ctx.timing.report_span("report1", "phase6_pdf_download")
+                    if ctx is not None
+                    else None
                 )
 
-            if archive_cm is not None:
-                with archive_cm:
+                async def _download():
+                    return await downloader.download_report(
+                        report_root, page, report_slug=report.slug
+                    )
+
+                if pdf_cm is not None:
+                    with pdf_cm:
+                        download_result = await _download()
+                else:
+                    download_result = await _download()
+
+                if (
+                    download_result.file_path
+                    and download_result.file_path.suffix.lower() == ".pdf"
+                ):
+                    phase6_pdf_path = download_result.file_path
+
+                page = await self.ensure_mis_page(page, session, "pdf_archive")
+                archive_dir = resolve_report_dir(config.pdf_archive_dir, report.slug)
+                archiver = PdfArchiver(archive_dir=archive_dir)
+                archive_cm = (
+                    ctx.timing.report_span("report1", "archive") if ctx is not None else None
+                )
+
+                async def _archive():
+                    return await archiver.archive_pdf(
+                        page,
+                        report_root,
+                        report.slug,
+                        use_print=False,
+                        existing_pdf_path=phase6_pdf_path,
+                    )
+
+                if archive_cm is not None:
+                    with archive_cm:
+                        archive_result = await _archive()
+                else:
                     archive_result = await _archive()
-            else:
-                archive_result = await _archive()
-            if archive_result.file_path:
-                archive_path = str(archive_result.file_path)
+                if archive_result.file_path:
+                    archive_path = str(archive_result.file_path)
 
             t_proc = time.perf_counter()
             processing_result = await self.invoke_processor(
@@ -389,11 +398,17 @@ class Report1Handler(BaseReportHandler):
                 ingestion_success=True,
                 source_csv_path=str(comprehensive_csv_path),
                 source_row_count=rows_a,
+                output_columns=processing_result.output_columns,
+                visible_columns=processing_result.visible_columns,
+                selected_column_ids=processing_result.selected_column_ids,
+                column_order=processing_result.column_order,
+                configuration_source=processing_result.configuration_source,
             )
             result.started_at = started_at
             result.completed_at = datetime.now(UTC).isoformat()
             result.extraction_seconds = extraction_seconds
             result.row_count = rows_a
+            result = await self._register_report1_artifacts(result)
             terminal = result
             return terminal
 
@@ -466,4 +481,71 @@ class Report1Handler(BaseReportHandler):
         result.pdf_preview_url = None
         result.started_at = started_at
         result.completed_at = datetime.now(UTC).isoformat()
+        return result
+
+    async def _register_report1_artifacts(self, result: ReportResult) -> ReportResult:
+        """Register current-run processed Excel/PDF so preview/download URLs are fresh."""
+        ctx = get_run_context()
+        if ctx is None:
+            return result
+        from app.automation.run_registry import build_dual_artifact_metadata, register_artifact
+        from app.infrastructure.database.session import SessionLocal
+
+        artifact_metadata = build_dual_artifact_metadata(
+            selected_column_ids=result.selected_column_ids,
+            column_order=result.column_order,
+            run_id=ctx.run_id,
+            report_slug=result.slug,
+        )
+
+        async with SessionLocal() as session:
+            artifact_ids: dict[str, str] = {}
+            if result.excel_path:
+                art = await register_artifact(
+                    session,
+                    run_id=ctx.run_id,
+                    report_slug=result.slug,
+                    report_name=result.slug,
+                    file_type="excel",
+                    file_path=result.excel_path,
+                    metadata=artifact_metadata,
+                )
+                if art:
+                    artifact_ids["excel"] = art.id
+                    ctx.remember_artifact(result.slug, "excel", art.id)
+            if result.pdf_path:
+                art = await register_artifact(
+                    session,
+                    run_id=ctx.run_id,
+                    report_slug=result.slug,
+                    report_name=result.slug,
+                    file_type="pdf",
+                    file_path=result.pdf_path,
+                    metadata=artifact_metadata,
+                )
+                if art:
+                    artifact_ids["pdf"] = art.id
+                    ctx.remember_artifact(result.slug, "pdf", art.id)
+            if artifact_ids.get("pdf"):
+                result.pdf_download_url = (
+                    f"/api/v1/automation/artifacts/{artifact_ids['pdf']}/download"
+                )
+                result.pdf_preview_url = (
+                    f"/api/v1/automation/artifacts/{artifact_ids['pdf']}/preview"
+                )
+            if artifact_ids.get("excel"):
+                result.excel_download_url = (
+                    f"/api/v1/automation/artifacts/{artifact_ids['excel']}/download"
+                )
+            log_automation_event(
+                logger,
+                "report1_final_artifact_registered",
+                run_id=ctx.run_id,
+                excel_path=result.excel_path,
+                pdf_path=result.pdf_path,
+                excel_artifact_id=artifact_ids.get("excel"),
+                pdf_artifact_id=artifact_ids.get("pdf"),
+                selected_column_ids=result.selected_column_ids,
+                configuration_source=result.configuration_source,
+            )
         return result

@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   RefreshCw,
   Archive,
+  FileText,
 } from "lucide-react";
 import {
   automationApi,
@@ -14,6 +15,7 @@ import {
   type CdpRunSummary,
   type ReportResult,
 } from "@/api/automation";
+import { dailySummaryApi, type DailySummary } from "@/api/dailySummary";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -43,6 +45,7 @@ export function GeneratedReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
 
   const selectedRunId = runIdFromUrl || localStorage.getItem(LAST_RUN_KEY);
 
@@ -65,10 +68,17 @@ export function GeneratedReportsPage() {
       setArtifacts(arts);
       localStorage.setItem(LAST_RUN_KEY, runId);
       setSearchParams({ run_id: runId }, { replace: true });
+      try {
+        const summary = await dailySummaryApi.getForRun(runId);
+        setDailySummary(summary);
+      } catch {
+        setDailySummary(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load run");
       setRun(null);
       setArtifacts([]);
+      setDailySummary(null);
     } finally {
       setLoading(false);
     }
@@ -86,11 +96,16 @@ export function GeneratedReportsPage() {
 
   const artifactsBySlug = useMemo(() => {
     const map = new Map<string, { pdf?: AutomationArtifact; excel?: AutomationArtifact }>();
-    for (const art of artifacts) {
+    const sorted = [...artifacts].sort((a, b) => {
+      const aTime = a.created_at ? Date.parse(a.created_at) : 0;
+      const bTime = b.created_at ? Date.parse(b.created_at) : 0;
+      return bTime - aTime;
+    });
+    for (const art of sorted) {
       const slug = art.report_slug || art.report_name || "unknown";
       const entry = map.get(slug) ?? {};
-      if (art.file_type === "pdf") entry.pdf = art;
-      if (art.file_type === "excel") entry.excel = art;
+      if (art.file_type === "pdf" && !entry.pdf) entry.pdf = art;
+      if (art.file_type === "excel" && !entry.excel) entry.excel = art;
       map.set(slug, entry);
     }
     return map;
@@ -252,10 +267,13 @@ export function GeneratedReportsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 {reports.map((report) => {
                   const arts = artifactsBySlug.get(report.slug) ?? {};
-                  const preview =
+                  const previewBase =
                     arts.pdf?.preview_url ||
                     report.pdf_preview_url ||
                     (arts.pdf ? automationApi.artifactPreviewUrl(arts.pdf.id) : null);
+                  const preview = previewBase
+                    ? automationApi.withCacheBust(previewBase, arts.pdf?.id, run.run_id)
+                    : null;
                   const pdfDl =
                     arts.pdf?.status === "ready"
                       ? arts.pdf.download_url ||
@@ -313,7 +331,7 @@ export function GeneratedReportsPage() {
                             disabled={!pdfReady || !pdfDl || !hasCurrentPdfUrl || busy === `pdf-${report.slug}`}
                             onClick={() =>
                               void onDownload(
-                                pdfDl || automationApi.pdfDownloadUrl(report.slug),
+                                pdfDl,
                                 `${report.slug}.pdf`,
                                 `pdf-${report.slug}`,
                               )
@@ -354,6 +372,38 @@ export function GeneratedReportsPage() {
                   );
                 })}
               </div>
+
+              <Card className="border-rail-line">
+                <CardHeader className="flex flex-row items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileText size={16} />
+                      Daily Summary
+                    </CardTitle>
+                    <CardDescription>
+                      {dailySummary
+                        ? `${dailySummary.status} · report date ${dailySummary.report_date || "—"}`
+                        : "Not generated yet for this run"}
+                    </CardDescription>
+                  </div>
+                  <Button asChild size="sm" variant="secondary">
+                    <Link to={`/daily-summary?run_id=${run.run_id}`}>Open Daily Summary</Link>
+                  </Button>
+                </CardHeader>
+                {dailySummary?.text ? (
+                  <CardBody>
+                    {dailySummary.missing_reports.length > 0 ? (
+                      <p className="mb-2 text-xs text-amber-700">
+                        Missing: {dailySummary.missing_reports.join(", ")}
+                      </p>
+                    ) : null}
+                    <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-surface p-3 text-xs text-rail-ink font-sans">
+                      {dailySummary.text.slice(0, 800)}
+                      {dailySummary.text.length > 800 ? "…" : ""}
+                    </pre>
+                  </CardBody>
+                ) : null}
+              </Card>
             </>
           ) : null}
         </div>

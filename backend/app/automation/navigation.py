@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeoutError
 
@@ -16,6 +17,24 @@ from app.core.exceptions import AppException
 logger = logging.getLogger(__name__)
 
 JSP_QUERY_SUFFIX = "archiveFlag=N&Id=null&mobile=null&email=null"
+
+
+def url_matches_report_fragment(page_url: str, fragment: str) -> bool:
+    """True when page URL targets the exact MIS report path (not a prefix sibling).
+
+    ``mis_reports/report1`` must not match ``mis_reports/report16``.
+    """
+    if not page_url or not fragment:
+        return False
+    needle = fragment.strip("/").lower()
+    hay = page_url.lower()
+    parsed = urlparse(hay)
+    page_param = parse_qs(parsed.query).get("page", [""])[0].strip("/").lower()
+    if page_param:
+        return page_param == needle or page_param.endswith("/" + needle)
+    # Fallback: fragment as whole path segment, not a numeric prefix of another report
+    pattern = re.compile(rf"(?:^|[?&/=]){re.escape(needle)}(?!\d)")
+    return pattern.search(hay) is not None
 
 
 class NavigationError(AppException):
@@ -43,7 +62,7 @@ class NavigationService:
 
     async def verify_report_page(self, page: Page, report: ReportDefinition) -> bool:
         """Return True when the page URL matches the expected report."""
-        return report.url_fragment in page.url
+        return url_matches_report_fragment(page.url, report.url_fragment)
 
     def _log_report_verified(self, report: ReportDefinition, page: Page) -> None:
         log_automation_event(

@@ -10,6 +10,7 @@ import { HomePage } from "@/features/home";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
 import { AutomationPage } from "@/features/automation";
 import { GeneratedReportsPage } from "@/features/reports";
+import { DailySummaryPage } from "@/features/daily-summary";
 import {
   MergingPage,
   DivisionPage,
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
               {
                 path: "reports",
                 element: <GeneratedReportsPage />,
+              },
+              {
+                path: "daily-summary",
+                element: <DailySummaryPage />,
               },
               {
                 path: "automation",

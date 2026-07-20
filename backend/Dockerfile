@@ -9,6 +9,8 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
+    fonts-dejavu-core \
+    fonts-noto-core \
     && rm -rf /var/lib/apt/lists/*
 
 FROM base AS builder

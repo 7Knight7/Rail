@@ -16,7 +16,14 @@ from app.automation.report5_filters import REPORT_5_FILTERS
 from app.automation.reports import ReportDefinition
 from app.automation.schemas import ReportResult
 from app.automation.table_extractor import FEEDBACK_ZONE_REQUIRED_HEADERS
-from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
+from app.automation.scr_field_map import (
+    REPORT5_CANONICAL_CSV_HEADERS,
+    build_csv_fieldnames,
+    canonicalize_scr_rows,
+    verify_scr_csv,
+)
+from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir, resolve_run_scoped_dir
+from app.automation.wait_utils import poll_until, tracked_sleep
 
 from .base import BaseReportHandler
 
@@ -34,6 +41,9 @@ class Report5Handler(BaseReportHandler):
     """Execute Report 5 SCR Train Unsatisfactory workflow."""
 
     expected_mode = "Train"
+    scr_report_num = 5
+    canonical_csv_headers = REPORT5_CANONICAL_CSV_HEADERS
+    _last_unsatisfactory_percent: float | None = None
 
     async def execute(
         self,
@@ -43,9 +53,9 @@ class Report5Handler(BaseReportHandler):
     ) -> ReportResult:
         started_at = datetime.now(UTC).isoformat()
         t0 = time.perf_counter()
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_start")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
         await self.navigation.navigate_to_report(page, report)
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
 
         report_root, _, _ = await self.apply_filters_and_submit(
             page, report, filters=REPORT_5_FILTERS, session=session
@@ -58,14 +68,32 @@ class Report5Handler(BaseReportHandler):
             page, report_root, report.slug
         )
 
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_modal")
+        page = await self.ensure_mis_page(
+            page, session, f"{report.slug}_after_modal", report=report
+        )
 
         if error:
-            return self.build_failed_result(report.slug, error)
+            prefix = (
+                "REPORT6_FRESH_EXTRACTION_FAILED"
+                if report.slug == "scr-station"
+                else "REPORT5_FRESH_EXTRACTION_FAILED"
+            )
+            return self.build_failed_result(report.slug, f"{prefix}: {error}")
 
         csv_path = self._save_complaints_csv(complaints, report.slug)
+        validation_error = await self._validate_scr_extraction(
+            page, report.slug, complaints, csv_path
+        )
+        if validation_error:
+            return validation_error
+
         source_paths = [str(csv_path)]
-        row_counts = {"unsatisfactory": len(complaints), "expected": expected_count}
+        row_counts: dict[str, int | float] = {
+            "unsatisfactory": len(complaints),
+            "expected": expected_count,
+        }
+        if self._last_unsatisfactory_percent is not None:
+            row_counts["unsatisfactory_percent"] = self._last_unsatisfactory_percent
 
         if len(complaints) != expected_count:
             return self.build_failed_result(
@@ -87,6 +115,7 @@ class Report5Handler(BaseReportHandler):
             slug=report.slug,
             extracted_count=len(complaints),
             expected_count=expected_count,
+            unsatisfactory_percent=self._last_unsatisfactory_percent,
             duration_seconds=round(extraction_seconds, 3),
         )
         return await self.finalize_after_extract(
@@ -147,8 +176,31 @@ class Report5Handler(BaseReportHandler):
                 return table
         return None
 
-    async def _extract_table_headers(self, table) -> list[str]:
+    async def _extract_table_headers(self, table, page: "Page | None" = None) -> list[str]:
         headers: list[str] = []
+        if page is not None:
+            try:
+                js_headers = await page.evaluate(
+                    """(tableEl) => {
+                      if (!tableEl) return [];
+                      const seen = new Set();
+                      const out = [];
+                      const push = (text) => {
+                        const t = (text || '').replace(/\\s+/g, ' ').trim();
+                        if (t && !seen.has(t)) { seen.add(t); out.push(t); }
+                      };
+                      tableEl.querySelectorAll('thead th, thead td').forEach(el => push(el.textContent));
+                      if (out.length) return out;
+                      const first = tableEl.querySelector('tr');
+                      if (first) first.querySelectorAll('th, td').forEach(el => push(el.textContent));
+                      return out;
+                    }""",
+                    await table.element_handle(),
+                )
+                if js_headers:
+                    return list(js_headers)
+            except Exception:
+                pass
         # Prefer explicit thead
         thead_cells = table.locator("thead tr").first.locator("th, td")
         if await table.locator("thead tr").count() > 0 and await thead_cells.count() > 0:
@@ -181,21 +233,56 @@ class Report5Handler(BaseReportHandler):
                     return idx
         return None
 
+    @staticmethod
+    def _parse_percent(text: str) -> float | None:
+        cleaned = (text or "").strip().replace("%", "").replace(",", "")
+        if not cleaned:
+            return None
+        try:
+            return float(cleaned)
+        except ValueError:
+            digits = re.sub(r"[^\d.]", "", cleaned)
+            if not digits:
+                return None
+            try:
+                return float(digits)
+            except ValueError:
+                return None
+
+    async def _read_row_percent(
+        self, cells, percent_idx: int | None
+    ) -> float | None:
+        if percent_idx is None:
+            return None
+        if await cells.count() <= percent_idx:
+            return None
+        return self._parse_percent(await cells.nth(percent_idx).inner_text())
+
     async def _get_scr_unsatisfactory_target(
         self, table
     ) -> tuple[int, int | None]:
         """Return (count, row_index) for SCR or Total row.
 
-        When Zone is already South Central Railway, Zone Wise shows SCR divisions
-        and the Total row holds the zone Unsatisfactory count.
+        Also sets ``_last_unsatisfactory_percent`` from the same target row's
+        ``% Unsatisfactory`` cell when available.
         """
+        self._last_unsatisfactory_percent = None
         headers = await self._extract_table_headers(table)
         org_idx = self._column_index(headers, "Organisation", "Organization")
         unsat_idx = self._column_index(headers, "Unsatisfactory")
+        # Prefer exact "% Unsatisfactory" over substring match on "Unsatisfactory"
+        percent_idx = self._column_index(headers, "% Unsatisfactory")
+        if percent_idx is None:
+            for idx, header in enumerate(headers):
+                if header.strip().lower().startswith("%") and "unsatisfactory" in header.lower():
+                    percent_idx = idx
+                    break
         if org_idx is None or unsat_idx is None:
             # Common layout with leading S.No.
             org_idx = 1 if len(headers) > 1 else 0
             unsat_idx = 6 if len(headers) > 6 else 5
+            if percent_idx is None and len(headers) > 7:
+                percent_idx = 7
 
         rows = table.locator("tbody tr, tfoot tr")
         row_count = await rows.count()
@@ -205,8 +292,10 @@ class Report5Handler(BaseReportHandler):
             row_count = await rows.count()
         total_row_idx: int | None = None
         total_count = 0
+        total_percent: float | None = None
         scr_row_idx: int | None = None
         scr_count = 0
+        scr_percent: float | None = None
 
         start = 0
         # Skip header row if scanning all tr
@@ -229,6 +318,7 @@ class Report5Handler(BaseReportHandler):
                 count = int(digits) if digits else 0
             except ValueError:
                 count = 0
+            percent = await self._read_row_percent(cells, percent_idx)
 
             org_lower = org_text.lower()
             if (
@@ -238,9 +328,11 @@ class Report5Handler(BaseReportHandler):
             ):
                 scr_row_idx = idx
                 scr_count = count
+                scr_percent = percent
             if org_lower == "total" or org_lower.startswith("total"):
                 total_row_idx = idx
                 total_count = count
+                total_percent = percent
 
         # Fallback: if Zone is SCR-filtered and no Total/SCR row, sum division Unsatisfactory
         if scr_row_idx is None and total_row_idx is None and row_count > start:
@@ -273,12 +365,22 @@ class Report5Handler(BaseReportHandler):
                         continue
                     link = cells.nth(unsat_idx).locator("a")
                     if await link.count() > 0:
+                        self._last_unsatisfactory_percent = await self._read_row_percent(
+                            cells, percent_idx
+                        )
                         return summed, idx
+                if last_data_idx is not None:
+                    cells = rows.nth(last_data_idx).locator("td")
+                    self._last_unsatisfactory_percent = await self._read_row_percent(
+                        cells, percent_idx
+                    )
                 return summed, last_data_idx
 
         if scr_row_idx is not None and scr_count > 0:
+            self._last_unsatisfactory_percent = scr_percent
             return scr_count, scr_row_idx
         if total_row_idx is not None and total_count > 0:
+            self._last_unsatisfactory_percent = total_percent
             return total_count, total_row_idx
         return 0, None
 
@@ -331,6 +433,85 @@ class Report5Handler(BaseReportHandler):
             return False
         return await self._click_unsatisfactory_row(page, table, row_idx)
 
+    async def _extract_modal_page_rows(
+        self, page: "Page", modal_table, headers: list[str]
+    ) -> list[dict[str, str]]:
+        """Extract all visible modal rows in one browser evaluate (includes hidden cells)."""
+        try:
+            handle = await modal_table.element_handle()
+            if handle is None:
+                return []
+            payload = await page.evaluate(
+                """(tableEl) => {
+                  if (!tableEl) return { headers: [], rows: [] };
+                  const norm = (t) => (t || '').replace(/\\s+/g, ' ').trim();
+                  const headerEls = tableEl.querySelectorAll('thead th, thead td');
+                  let headers = [...headerEls].map(el => norm(el.textContent)).filter(Boolean);
+                  if (!headers.length) {
+                    const first = tableEl.querySelector('tr');
+                    if (first) {
+                      headers = [...first.querySelectorAll('th, td')]
+                        .map(el => norm(el.textContent)).filter(Boolean);
+                    }
+                  }
+                  const rows = [];
+                  tableEl.querySelectorAll('tbody tr').forEach(tr => {
+                    const cells = [...tr.querySelectorAll('td')].map(el => norm(el.textContent));
+                    if (cells.length >= 3) rows.push(cells);
+                  });
+                  return { headers, rows };
+                }""",
+                handle,
+            )
+        except Exception:
+            return []
+
+        if not isinstance(payload, dict):
+            return []
+        js_headers = list(payload.get("headers") or [])
+        effective_headers = js_headers if js_headers else headers
+        page_rows: list[dict[str, str]] = []
+        for cells in payload.get("rows") or []:
+            if not isinstance(cells, list):
+                continue
+            row_data: dict[str, str] = {}
+            for col_idx, value in enumerate(cells):
+                header = (
+                    effective_headers[col_idx]
+                    if col_idx < len(effective_headers)
+                    else f"Col{col_idx}"
+                )
+                row_data[header] = str(value or "").strip()
+            if row_data:
+                page_rows.append(row_data)
+        return page_rows
+
+    async def _read_modal_portal_total(self, page: "Page") -> int | None:
+        """Parse DataTables info text, e.g. 'Showing 1 to 6 of 6 entries'."""
+        import re
+
+        try:
+            text = await page.evaluate(
+                """() => {
+                  const el = document.querySelector(
+                    '.modal.show .dataTables_info, #exampleModal .dataTables_info, ' +
+                    '.modal .dataTables_info, .dataTables_info'
+                  );
+                  return el ? (el.textContent || '') : '';
+                }"""
+            )
+        except Exception:
+            return None
+        if not text:
+            return None
+        match = re.search(r"of\s+([\d,]+)\s+entries", str(text), flags=re.IGNORECASE)
+        if not match:
+            return None
+        try:
+            return int(match.group(1).replace(",", ""))
+        except ValueError:
+            return None
+
     async def _extract_modal_pages(self, page: "Page") -> list[dict[str, str]]:
         all_complaints: list[dict[str, str]] = []
         seen_refs: set[str] = set()
@@ -346,8 +527,7 @@ class Report5Handler(BaseReportHandler):
             except Exception:
                 break
 
-            headers = await self._extract_table_headers(modal_table)
-            rows = modal_table.locator("tbody tr")
+            headers = await self._extract_table_headers(modal_table, page)
             try:
                 await page.wait_for_function(
                     """() => {
@@ -358,23 +538,12 @@ class Report5Handler(BaseReportHandler):
                 )
             except Exception:
                 pass
-            row_count = await rows.count()
 
-            if row_count == 0:
+            page_rows = await self._extract_modal_page_rows(page, modal_table, headers)
+            if not page_rows:
                 break
 
-            for row_idx in range(row_count):
-                row = rows.nth(row_idx)
-                cells = row.locator("td")
-                cell_count = await cells.count()
-                if cell_count < 3:
-                    continue
-
-                row_data: dict[str, str] = {}
-                for col_idx in range(min(cell_count, len(headers))):
-                    header = headers[col_idx] if col_idx < len(headers) else f"Col{col_idx}"
-                    row_data[header] = (await cells.nth(col_idx).inner_text()).strip()
-
+            for row_data in page_rows:
                 ref_no = row_data.get("Ref. No.", "")
                 if ref_no and ref_no not in seen_refs:
                     seen_refs.add(ref_no)
@@ -388,16 +557,33 @@ class Report5Handler(BaseReportHandler):
             )
             if await next_button.count() > 0 and await next_button.first.is_visible():
                 await next_button.first.click()
-                try:
-                    await page.locator(
-                        ".modal table tbody tr, [role='dialog'] table tbody tr"
-                    ).first.wait_for(state="attached", timeout=2_000)
-                except Exception:
-                    await page.wait_for_timeout(150)
+                advanced = await poll_until(
+                    lambda: self._modal_has_rows(page),
+                    interval_seconds=0.08,
+                    timeout_seconds=3.0,
+                    reason="scr_modal_pagination",
+                )
+                if not advanced:
+                    await tracked_sleep(0.08, reason="scr_modal_pagination_fallback")
             else:
                 break
 
         return all_complaints
+
+    async def _modal_has_rows(self, page: "Page") -> bool:
+        return (await self._modal_row_count(page)) > 0
+
+    async def _modal_row_count(self, page: "Page") -> int:
+        try:
+            count = await page.evaluate(
+                """() => {
+                  const t = document.querySelector('#exampleModal.show table tbody, .modal.show table tbody');
+                  return t ? t.querySelectorAll('tr').length : 0;
+                }"""
+            )
+            return int(count or 0)
+        except Exception:
+            return 0
 
     async def _close_modal(self, page: "Page") -> None:
         close_buttons = page.locator(
@@ -412,26 +598,136 @@ class Report5Handler(BaseReportHandler):
             except Exception:
                 pass
 
+    async def _validate_scr_extraction(
+        self,
+        page: "Page",
+        report_slug: str,
+        complaints: list[dict[str, str]],
+        csv_path: Path,
+    ) -> ReportResult | None:
+        verification = verify_scr_csv(
+            complaints,
+            report_num=self.scr_report_num,
+            report_slug=report_slug,
+            source_csv_path=str(csv_path),
+        )
+        log_automation_event(
+            logger,
+            "scr_csv_verification",
+            slug=report_slug,
+            source_csv_path=str(csv_path),
+            source_row_count=verification.row_count,
+            source_headers=verification.source_headers,
+            canonical_fields_mapped=verification.canonical_fields_mapped,
+            missing_required_fields=verification.missing_required_fields,
+            empty_required_fields=verification.empty_required_fields,
+            sample_values=verification.sample_values,
+        )
+        if complaints and not verification.ok:
+            await self._save_extraction_debug_artifacts(page, report_slug, verification)
+            missing = verification.missing_required_fields + verification.empty_required_fields
+            return self.build_failed_result(
+                report_slug,
+                f"SCR extraction missing required fields: {', '.join(missing)}",
+                source_paths=[str(csv_path)],
+                source_csv_path=str(csv_path),
+                source_row_count=len(complaints),
+            )
+        return None
+
+    async def _save_extraction_debug_artifacts(
+        self,
+        page: "Page",
+        report_slug: str,
+        verification,
+    ) -> None:
+        debug_dir = ensure_directory(Path(config.debug_screenshots_dir))
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+        try:
+            screenshot = debug_dir / f"scr_extract_fail_{report_slug}_{timestamp}.png"
+            await page.screenshot(path=str(screenshot), full_page=True)
+        except Exception:
+            pass
+        try:
+            html_path = debug_dir / f"scr_extract_fail_{report_slug}_{timestamp}.html"
+            html_path.write_text(await page.content(), encoding="utf-8")
+        except Exception:
+            pass
+        try:
+            import json
+
+            meta_path = debug_dir / f"scr_extract_fail_{report_slug}_{timestamp}_headers.json"
+            meta_path.write_text(
+                json.dumps(
+                    {
+                        "source_headers": verification.source_headers,
+                        "missing_required_fields": verification.missing_required_fields,
+                        "empty_required_fields": verification.empty_required_fields,
+                        "canonical_fields_mapped": verification.canonical_fields_mapped,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    def _uses_run_scoped_extract(self) -> bool:
+        from app.automation.run_context import get_run_context
+        from app.features.reports.scr_fresh import is_scr_manual_fresh
+
+        ctx = get_run_context()
+        if ctx is None:
+            return False
+        return is_scr_manual_fresh(ctx.manual_config)
+
     def _save_complaints_csv(
         self,
         complaints: list[dict[str, str]],
         report_slug: str,
     ) -> Path:
-        extracted_dir = ensure_directory(resolve_report_dir(config.extracted_data_dir, report_slug))
+        from app.automation.run_context import get_run_context
+
+        ctx = get_run_context()
+        if self._uses_run_scoped_extract() and ctx is not None:
+            extracted_dir = ensure_directory(
+                resolve_run_scoped_dir(config.extracted_data_dir, report_slug, ctx.run_id)
+            )
+            log_automation_event(
+                logger,
+                "current_run_source_saved",
+                run_id=ctx.run_id,
+                report_slug=report_slug,
+                source_dir=str(extracted_dir),
+            )
+        else:
+            extracted_dir = ensure_directory(resolve_report_dir(config.extracted_data_dir, report_slug))
         csv_path = extracted_dir / f"{report_slug}_complaints_raw.csv"
 
         if not complaints:
-            csv_path.write_text("Ref. No.,Mode\n", encoding="utf-8")
-            return csv_path
+            csv_path.write_text(
+                ",".join(self.canonical_csv_headers) + "\n",
+                encoding="utf-8",
+            )
+        else:
+            canonical_rows = canonicalize_scr_rows(complaints)
+            headers = build_csv_fieldnames(complaints)
 
-        all_keys: set[str] = set()
-        for complaint in complaints:
-            all_keys.update(complaint.keys())
-        headers = ["Ref. No.", "Mode"] + sorted(all_keys - {"Ref. No.", "Mode"})
+            with csv_path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=headers, extrasaction="ignore")
+                writer.writeheader()
+                for row in canonical_rows:
+                    writer.writerow({h: row.get(h, "") for h in headers})
 
-        with csv_path.open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=headers, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(complaints)
+        if ctx is not None and self._uses_run_scoped_extract():
+            ctx.current_run_sources[report_slug] = str(csv_path.resolve())
+            log_automation_event(
+                logger,
+                "current_run_source_verified",
+                run_id=ctx.run_id,
+                report_slug=report_slug,
+                source_path=str(csv_path),
+                row_count=len(complaints),
+            )
 
         return csv_path

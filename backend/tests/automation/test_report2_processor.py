@@ -139,7 +139,7 @@ def test_top_25_selection(
     assert data_rows <= TOP_N
 
 
-def test_columns_hidden(
+def test_columns_not_hidden(
     processor: Report2Processor,
     comprehensive_csv: Path,
     feedback_csv: Path,
@@ -160,10 +160,10 @@ def test_columns_hidden(
 
     from openpyxl.utils import get_column_letter
 
-    for col_idx in HIDDEN_COLUMNS:
+    for col_idx in range(1, worksheet.max_column + 1):
         col_letter = get_column_letter(col_idx)
         if col_letter in worksheet.column_dimensions:
-            assert worksheet.column_dimensions[col_letter].hidden is True
+            assert worksheet.column_dimensions[col_letter].hidden is not True
 
 
 def test_scr_row_has_yellow_fill_and_black_text(
@@ -537,7 +537,7 @@ def test_shuffled_source_b_matches_correctly(
     feedback_col = None
     for col_idx in range(1, worksheet.max_column + 1):
         header = worksheet.cell(row=2, column=col_idx).value
-        if header == "Organisation":
+        if header in {"Division", "Organisation"}:
             org_col = col_idx
         elif header == "Feedback Received":
             feedback_col = col_idx
@@ -593,7 +593,7 @@ def test_unmatched_source_a_leaves_feedback_blank(
     feedback_col = None
     for col_idx in range(1, worksheet.max_column + 1):
         header = worksheet.cell(row=2, column=col_idx).value
-        if header == "Organisation":
+        if header in {"Division", "Organisation"}:
             org_col = col_idx
         elif header == "Feedback Received":
             feedback_col = col_idx
@@ -698,9 +698,9 @@ def test_divn_normalizes_to_match_division(
     # Source A uses DIVN
     comprehensive = extracted / "comprehensive_divn.csv"
     comprehensive.write_text(
-        """S.No.,Organisation,Opening Balance,Received,% Share,Closed,Closing Balance
-1,JALANDHAR DIVN (Northern Railway),10,100,50.00,90,20
-2,Total,,100,,90,
+        """S.No.,Organisation,Opening Balance,Received,% Share,Closed,Closing Balance,% Disposal
+1,JALANDHAR DIVN (Northern Railway),10,100,50.00,90,20,90.00
+2,Total,,100,,90,,
 """,
         encoding="utf-8",
     )
@@ -736,3 +736,126 @@ def test_divn_normalizes_to_match_division(
     # Row 3 should have the feedback value
     feedback_val = worksheet.cell(row=3, column=feedback_col).value
     assert str(feedback_val) == "50", f"DIVN/DIVISION mismatch - got: {feedback_val}"
+
+
+def test_report2_serial_renumbered_after_column_projection(
+    processor: Report2Processor,
+    comprehensive_csv: Path,
+    feedback_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    _patch_outputs(monkeypatch, tmp_path)
+    subset = [
+        "division.source_a.sno",
+        "division.source_a.division",
+        "division.source_a.received",
+    ]
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="division",
+        source_b_path=feedback_csv,
+        column_selection={
+            "report_slug": "division",
+            "selected_column_ids": subset,
+            "column_order": subset,
+            "configuration_source": "manual_snapshot",
+        },
+    )
+    assert result.success is True
+
+    ws = load_workbook(result.excel_path).active
+    headers = [
+        str(ws.cell(row=2, column=col).value or "")
+        for col in range(1, ws.max_column + 1)
+    ]
+    sno_col = headers.index("S.No.") + 1
+    serials = [ws.cell(row=row, column=sno_col).value for row in range(3, ws.max_row)]
+    data_serials = [int(s) for s in serials if s not in ("", None)]
+    assert data_serials == list(range(1, len(data_serials) + 1))
+    assert ws.cell(row=ws.max_row, column=sno_col).value in ("", None)
+
+
+def test_report2_scr_highlight_when_division_hidden(
+    processor: Report2Processor,
+    comprehensive_csv: Path,
+    feedback_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    _patch_outputs(monkeypatch, tmp_path)
+    subset = [
+        "division.source_a.received",
+        "division.source_a.percent_disposal",
+        "division.source_b.feedback_received",
+        "division.source_b.unsatisfactory",
+    ]
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="division",
+        source_b_path=feedback_csv,
+        column_selection={
+            "report_slug": "division",
+            "selected_column_ids": subset,
+            "column_order": subset,
+            "configuration_source": "manual_snapshot",
+        },
+    )
+    assert result.success is True
+
+    ws = load_workbook(result.excel_path).active
+    headers = [
+        str(ws.cell(row=2, column=col).value or "")
+        for col in range(1, ws.max_column + 1)
+    ]
+    received_col = headers.index("Received") + 1
+    scr_row = None
+    for row_idx in range(3, ws.max_row + 1):
+        if str(ws.cell(row=row_idx, column=received_col).value) == "540":
+            scr_row = row_idx
+            break
+    assert scr_row is not None
+    for col_idx in range(1, ws.max_column + 1):
+        cell = ws.cell(row=scr_row, column=col_idx)
+        assert cell.fill.fgColor.rgb in {"00FFFF00", "FFFF00", "FFFFFF00"}
+        assert cell.font.color.rgb in {"00000000", "FF000000", "000000"}
+
+
+def test_report2_five_column_manual_acceptance_headers(
+    processor: Report2Processor,
+    comprehensive_csv: Path,
+    feedback_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    _patch_outputs(monkeypatch, tmp_path)
+    subset = [
+        "division.source_a.division",
+        "division.source_a.received",
+        "division.source_a.percent_disposal",
+        "division.source_b.feedback_received",
+        "division.source_b.unsatisfactory",
+    ]
+    result = processor.process(
+        source_a_path=comprehensive_csv,
+        report_slug="division",
+        source_b_path=feedback_csv,
+        column_selection={
+            "report_slug": "division",
+            "selected_column_ids": subset,
+            "column_order": subset,
+            "configuration_source": "manual_snapshot",
+        },
+    )
+    assert result.success is True
+    headers = [
+        str(load_workbook(result.excel_path).active.cell(row=2, column=c).value or "")
+        for c in range(1, 6)
+    ]
+    assert headers == [
+        "Division",
+        "Received",
+        "% Disposal",
+        "Feedback Received",
+        "Unsatisfactory",
+    ]

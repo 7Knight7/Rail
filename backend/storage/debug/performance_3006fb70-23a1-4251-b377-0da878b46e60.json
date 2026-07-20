@@ -1,0 +1,62 @@
+{
+  "run_id": "3006fb70-23a1-4251-b377-0da878b46e60",
+  "started_at": "2026-07-19T15:52:14.890964+00:00",
+  "completed_at": "2026-07-19T15:52:44.771872+00:00",
+  "total_duration_seconds": 29.881,
+  "portal_wait_seconds": 51.196,
+  "application_seconds": 0.238,
+  "fixed_sleep_seconds": 0.1,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.804,
+    "nav_filter_submit:scr-station": 3.266,
+    "sorting:scr-station": 1.053,
+    "handler_execute:scr-station": 22.729,
+    "ingestion:scr-station": 0.238,
+    "report:scr-station": 23.344
+  },
+  "per_report": {
+    "scr-station": {
+      "duration_seconds": 23.344,
+      "extraction_seconds": 22.713,
+      "processing_seconds": 5.512,
+      "spans": {
+        "nav_filter_submit": 3.266,
+        "sorting": 1.053,
+        "extraction": 22.713,
+        "ingestion": 0.238,
+        "processing": 5.512
+      }
+    }
+  },
+  "critical_path_report": "scr-station",
+  "critical_path_seconds": 23.344,
+  "top_bottlenecks": [
+    [
+      "report:scr-station",
+      23.344
+    ],
+    [
+      "handler_execute:scr-station",
+      22.729
+    ],
+    [
+      "nav_filter_submit:scr-station",
+      3.266
+    ],
+    [
+      "sorting:scr-station",
+      1.053
+    ],
+    [
+      "browser_connect",
+      0.804
+    ]
+  ]
+}

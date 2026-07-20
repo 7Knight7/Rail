@@ -1,0 +1,8 @@
+type_name,csv_path,row_count,status,error
+Security,storage\extracted\types\25fa5467-0848-4020-bde7-4ad1faec5b71\report4_security_raw.csv,40,success,
+Coach Cleanliness,storage\extracted\types\25fa5467-0848-4020-bde7-4ad1faec5b71\report4_coach_cleanliness_raw.csv,40,success,
+Bedroll,storage\extracted\types\25fa5467-0848-4020-bde7-4ad1faec5b71\report4_bedroll_raw.csv,40,success,
+Water Availability,storage\extracted\types\25fa5467-0848-4020-bde7-4ad1faec5b71\report4_water_availability_raw.csv,40,success,
+Electrical Equipment,storage\extracted\types\25fa5467-0848-4020-bde7-4ad1faec5b71\report4_electrical_equipment_raw.csv,40,success,
+Catering and Vending Services,storage\extracted\types\25fa5467-0848-4020-bde7-4ad1faec5b71\report4_catering_and_vending_services_raw.csv,40,success,
+Coach Maintenance,storage\extracted\types\25fa5467-0848-4020-bde7-4ad1faec5b71\report4_coach_maintenance_raw.csv,40,success,

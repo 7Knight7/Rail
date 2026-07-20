@@ -10,6 +10,7 @@ interface ActionBarProps {
   resetDisabled?: boolean;
   downloadDisabled?: boolean;
   isProcessing?: boolean;
+  showDownload?: boolean;
 }
 
 export function ActionBar({
@@ -21,6 +22,7 @@ export function ActionBar({
   resetDisabled = false,
   downloadDisabled = true,
   isProcessing = false,
+  showDownload = true,
 }: ActionBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-rail-line bg-white p-4 shadow-card transition-all duration-200 hover:shadow-premium">
@@ -39,10 +41,12 @@ export function ActionBar({
         Reset
       </Button>
       <div className="flex-1" />
-      <Button variant="secondary" onClick={onDownload} disabled={downloadDisabled || isProcessing}>
-        <Download className="mr-2 h-4 w-4" />
-        Download
-      </Button>
+      {showDownload && (
+        <Button variant="secondary" onClick={onDownload} disabled={downloadDisabled || isProcessing}>
+          <Download className="mr-2 h-4 w-4" />
+          Download
+        </Button>
+      )}
     </div>
   );
 }

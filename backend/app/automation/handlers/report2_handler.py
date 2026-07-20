@@ -27,6 +27,7 @@ from app.automation.schemas import ReportResult
 from app.automation.table_extractor import TableExtractor
 from app.automation.table_sort import ReceivedSortError
 from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
+from app.automation.wait_utils import poll_until, tracked_sleep
 from app.automation.workflow import (
     extract_with_retry,
     ingest_downloaded_file,
@@ -135,9 +136,24 @@ class Report2Handler(BaseReportHandler):
                     report_slug=report.slug,
                     attempt=attempt,
                 )
-                page = await self.ensure_mis_page(page, session, f"{report.slug}_filter_retry")
+                page = await self.ensure_mis_page(
+                    page, session, f"{report.slug}_filter_retry", report=report
+                )
                 await self.navigation.navigate_to_report(page, report)
-                await asyncio.sleep(1.0)
+                retry_ctx = get_run_context()
+                if retry_ctx is not None:
+                    retry_ctx.timing.record_retry(reason=f"{report.slug}_filter_form")
+
+                async def _form_ready() -> bool:
+                    ready, _ = await self._validate_filter_form_ready(page, report.slug)
+                    return ready
+
+                await poll_until(
+                    _form_ready,
+                    interval_seconds=0.2,
+                    timeout_seconds=5.0,
+                    reason="report2_filter_form_retry",
+                )
 
             form_valid, found_ids = await self._validate_filter_form_ready(page, report.slug)
 
@@ -206,9 +222,9 @@ class Report2Handler(BaseReportHandler):
     ) -> ReportResult:
         started_at = datetime.now(UTC).isoformat()
         t0 = time.perf_counter()
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_start")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
         await self.navigation.navigate_to_report(page, report)
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
 
         try:
             report_root, _, row_count = await self._apply_filters_with_retry(
@@ -279,6 +295,11 @@ class Report2Handler(BaseReportHandler):
         if extraction_result.data:
             header = extraction_result.data[0]
             body = extraction_result.data[1:]
+            portal_total: list[str] | None = None
+            for row in body:
+                if self._is_total_data_row(row):
+                    portal_total = row
+                    break
             body = [r for r in body if not self._is_total_data_row(r)]
             top_data = [header] + body[:25]
             csv_path = extracted_dir / "report2_division_comprehensive_top25.csv"
@@ -287,15 +308,35 @@ class Report2Handler(BaseReportHandler):
 
                 writer = _csv.writer(handle)
                 writer.writerows(top_data)
+            if portal_total and header:
+                import json
+
+                total_dict = {
+                    header[i]: (portal_total[i] if i < len(portal_total) else "")
+                    for i in range(len(header))
+                }
+                total_sidecar = extracted_dir / "report2_division_comprehensive_portal_total.json"
+                total_sidecar.write_text(json.dumps(total_dict), encoding="utf-8")
+                log_automation_event(
+                    logger,
+                    "report2_portal_total_saved",
+                    path=str(total_sidecar),
+                )
             extraction_result.csv_path = csv_path
             extraction_result.data = top_data
             extraction_result.row_count = len(top_data)
             extraction_result.success = True
             log_automation_event(
                 logger,
-                "report2_source_a_saved",
+                "report2_source_a_extracted",
                 path=str(csv_path),
                 row_count=max(len(top_data) - 1, 0),
+            )
+            log_automation_event(
+                logger,
+                "report2_top25_selected",
+                row_count=max(len(top_data) - 1, 0),
+                csv_path=str(csv_path),
             )
 
 
@@ -367,8 +408,9 @@ class Report2Handler(BaseReportHandler):
             row_counts["feedback"] = feedback_result.row_count
             log_automation_event(
                 logger,
-                "report2_feedback_csv_verified",
+                "report2_source_b_extracted",
                 csv_path=str(feedback_csv_path),
+                row_count=feedback_result.row_count,
                 size=feedback_csv_size,
                 mtime=feedback_csv_path.stat().st_mtime,
             )
@@ -478,6 +520,11 @@ class Report2Handler(BaseReportHandler):
             ingestion_success=True,
             source_csv_path=str(extraction_result.csv_path),
             source_row_count=extraction_result.row_count,
+            output_columns=processing_result.output_columns,
+            visible_columns=processing_result.visible_columns,
+            selected_column_ids=processing_result.selected_column_ids,
+            column_order=processing_result.column_order,
+            configuration_source=processing_result.configuration_source,
         )
         result.started_at = started_at
         result.extraction_seconds = round(extraction_seconds, 3)
@@ -532,8 +579,15 @@ class Report2Handler(BaseReportHandler):
         ctx = get_run_context()
         if ctx is None:
             return result
-        from app.automation.run_registry import register_artifact
+        from app.automation.run_registry import build_dual_artifact_metadata, register_artifact
         from app.infrastructure.database.session import SessionLocal
+
+        artifact_metadata = build_dual_artifact_metadata(
+            selected_column_ids=result.selected_column_ids,
+            column_order=result.column_order,
+            run_id=ctx.run_id,
+            report_slug=result.slug,
+        )
 
         async with SessionLocal() as session:
             artifact_ids: dict[str, str] = {}
@@ -545,6 +599,7 @@ class Report2Handler(BaseReportHandler):
                     report_name=result.slug,
                     file_type="excel",
                     file_path=result.excel_path,
+                    metadata=artifact_metadata,
                 )
                 if art:
                     artifact_ids["excel"] = art.id
@@ -557,6 +612,7 @@ class Report2Handler(BaseReportHandler):
                     report_name=result.slug,
                     file_type="pdf",
                     file_path=result.pdf_path,
+                    metadata=artifact_metadata,
                 )
                 if art:
                     artifact_ids["pdf"] = art.id
@@ -574,9 +630,14 @@ class Report2Handler(BaseReportHandler):
                 )
             log_automation_event(
                 logger,
-                "report2_artifacts_registered",
+                "report2_final_artifact_registered",
+                run_id=ctx.run_id,
                 excel_path=result.excel_path,
                 pdf_path=result.pdf_path,
+                excel_artifact_id=artifact_ids.get("excel"),
+                pdf_artifact_id=artifact_ids.get("pdf"),
+                selected_column_ids=result.selected_column_ids,
+                configuration_source=result.configuration_source,
                 pdf_preview_url=result.pdf_preview_url,
                 excel_download_url=result.excel_download_url,
             )

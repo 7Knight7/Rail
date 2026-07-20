@@ -59,7 +59,13 @@ async def verify_mis_session_or_raise(
     log_automation_event(logger, "mis_session_verified", context=context)
 
 
-async def ingest_downloaded_file(file_path: Path, report_slug: str, source: str) -> bool:
+async def ingest_downloaded_file(
+    file_path: Path,
+    report_slug: str,
+    source: str,
+    *,
+    expected_row_count: int | None = None,
+) -> bool:
     """Ingest the downloaded CSV into the dataset system using canonical keys.
 
     Never ingests PDF. Verifies DB row_count matches CSV after commit.
@@ -134,10 +140,39 @@ async def ingest_downloaded_file(file_path: Path, report_slug: str, source: str)
             with ctx.timing.report_span(canonical, span_name):
                 await _do_ingest()
             ctx.mark_ingested(canonical, resolved)
+            if canonical in {"scr-train", "scr-station"}:
+                ctx.current_run_sources[canonical] = resolved
+                log_automation_event(
+                    logger,
+                    "current_run_dataset_ingested",
+                    run_id=ctx.run_id,
+                    report_slug=canonical,
+                    source_path=resolved,
+                    row_count=getattr(meta, "row_count", None) if meta else None,
+                )
         else:
             await _do_ingest()
 
         duration_ms = int((time.perf_counter() - t0) * 1000)
+        ingested_rows = getattr(meta, "row_count", None) if meta else None
+        if (
+            canonical == "scr-station"
+            and expected_row_count is not None
+            and ingested_rows is not None
+            and ingested_rows != expected_row_count
+        ):
+            log_automation_event(
+                logger,
+                "ingestion_failed",
+                file_path=str(file_path),
+                report_slug=canonical,
+                source=source,
+                error=(
+                    f"REPORT6_INGESTION_COUNT_MISMATCH: expected {expected_row_count}, "
+                    f"ingested {ingested_rows}"
+                ),
+            )
+            return False
         log_automation_event(
             logger,
             "ingestion_completed",

@@ -9,7 +9,7 @@ import {
 } from "react";
 import { closeAllActivityStreams } from "@/api/activity";
 import { authApi, type LoginCredentials, type User } from "@/api/auth";
-import { setCsrfToken } from "@/api/client";
+import { ensureCsrfToken, setCsrfToken } from "@/api/client";
 import { emitClearGenerationUi } from "@/features/automation/utils/generationSession";
 import { clearDashboardCache } from "@/features/home/hooks/useDashboardSummary";
 import { loadDisplayPrefs, resetDisplayPrefs } from "@/utils/displayPrefs";
@@ -89,14 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(userData);
         void loadDisplayPrefs();
 
-        try {
-          const refreshResponse = await authApi.refresh();
-          if (refreshResponse.csrf_token) {
-            setCsrfToken(refreshResponse.csrf_token);
-          }
-        } catch {
-          // Keep authenticated session when access cookie is valid but refresh fails.
-        }
+        await ensureCsrfToken();
       } catch {
         setUser(null);
       } finally {

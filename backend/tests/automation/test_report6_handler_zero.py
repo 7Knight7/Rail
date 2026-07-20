@@ -32,6 +32,14 @@ def test_zone_wise_requires_full_header_set():
     assert Report6Handler._is_zone_wise_table(ZONE_HEADERS) is True
 
 
+def test_report6_scr_filters_use_sc_zone_and_station_mode():
+    from app.automation.report6_scr_filters import REPORT_6_SCR_FILTERS
+
+    by_name = {f.name: f for f in REPORT_6_SCR_FILTERS}
+    assert by_name["zone"].value == "SC"
+    assert by_name["mode"].value == "Station"
+
+
 def test_wrong_table_skipped():
     dept_headers = ["S.No.", "Organisation", "Department", "Received"]
     assert Report6Handler._is_zone_wise_table(dept_headers) is False
@@ -110,6 +118,7 @@ async def test_extract_count_positive_opens_modal():
             AsyncMock(return_value=(_TargetStatus.FOUND, 2, 5)),
         ),
         patch.object(handler, "_click_unsatisfactory_row_exact", AsyncMock(return_value=True)),
+        patch.object(handler, "_read_modal_portal_total", AsyncMock(return_value=2)),
         patch.object(handler, "_extract_modal_pages", AsyncMock(return_value=modal_rows)),
         patch.object(handler, "_close_modal", AsyncMock()),
     ):
@@ -213,7 +222,7 @@ async def test_execute_zero_count_success_empty_csv(tmp_path: Path, monkeypatch)
     call_kwargs = finalize.await_args.kwargs
     assert call_kwargs["source_row_count"] == 0
     assert Path(call_kwargs["csv_path"]).exists()
-    assert Path(call_kwargs["csv_path"]).read_text(encoding="utf-8").startswith("Ref. No.,Mode")
+    assert Path(call_kwargs["csv_path"]).read_text(encoding="utf-8").startswith("complaintRefNo,")
 
 
 class _FakeText:
@@ -304,6 +313,137 @@ async def test_get_target_blank_unsatisfactory_is_zero():
 
     assert status == _TargetStatus.FOUND
     assert count == 0
+    assert row_idx == 1
+
+
+class _FakeRowWithCellTags:
+    """Simulates tbody (td) vs tfoot Total (th) row layouts."""
+
+    def __init__(
+        self,
+        *,
+        td_texts: list[str] | None = None,
+        th_texts: list[str] | None = None,
+    ) -> None:
+        self._td = td_texts or []
+        self._th = th_texts if th_texts is not None else list(self._td)
+
+    def locator(self, sel: str) -> _FakeCells:
+        if sel == "td":
+            return _FakeCells(self._td)
+        if "th" in sel:
+            return _FakeCells(self._th)
+        return _FakeCells([])
+
+
+class _FakeRowsWithCellTags:
+    def __init__(self, rows: list[_FakeRowWithCellTags]) -> None:
+        self._rows = rows
+
+    def nth(self, idx: int) -> _FakeRowWithCellTags:
+        return self._rows[idx]
+
+    async def count(self) -> int:
+        return len(self._rows)
+
+
+class _FakeTableTfootTh:
+    def __init__(self, headers: list[str], body_rows: list[_FakeRowWithCellTags]) -> None:
+        self._headers = headers
+        self._body_rows = body_rows
+
+    def locator(self, sel: str):
+        if sel == "tbody tr, tfoot tr":
+            return _FakeRowsWithCellTags(self._body_rows)
+        if sel == "tr":
+            return _FakeRows([r._td or r._th for r in self._body_rows])
+        if sel.startswith("thead"):
+            return _FakeEmpty()
+        return _FakeEmpty()
+
+
+@pytest.mark.asyncio
+async def test_get_target_prefers_scr_over_total_when_both_present():
+    handler = Report6Handler()
+    body = [
+        ["1", "South Central Railway", "10", "50", "5", "5", "6", "30"],
+        ["", "Total", "179", "100%", "66", "42", "113", "39.66"],
+    ]
+    table = _FakeTable(ZONE_HEADERS, body)
+
+    async def fake_headers(_table):
+        return ZONE_HEADERS
+
+    with patch.object(handler, "_extract_table_headers", side_effect=fake_headers):
+        status, count, row_idx = await handler._get_station_unsatisfactory_target(table)
+
+    assert status == _TargetStatus.FOUND
+    assert count == 6
+    assert row_idx == 0
+
+
+@pytest.mark.asyncio
+async def test_extract_portal_total_mismatch_fails():
+    handler = Report6Handler()
+    modal_rows = [{"Ref. No.": "R1", "Mode": "Station"}]
+    with (
+        patch.object(handler, "_find_zone_wise_table", AsyncMock(return_value=MagicMock())),
+        patch.object(
+            handler,
+            "_get_station_unsatisfactory_target",
+            AsyncMock(return_value=(_TargetStatus.FOUND, 6, 1)),
+        ),
+        patch.object(handler, "_click_unsatisfactory_row_exact", AsyncMock(return_value=True)),
+        patch.object(handler, "_read_modal_portal_total", AsyncMock(return_value=6)),
+        patch.object(handler, "_extract_modal_pages", AsyncMock(return_value=modal_rows)),
+        patch.object(handler, "_close_modal", AsyncMock()),
+    ):
+        count, complaints, error = await handler._extract_scr_complaints(
+            AsyncMock(), MagicMock(), "scr-station"
+        )
+    assert len(complaints) == 1
+    assert error is not None
+    assert "REPORT6_PORTAL_EXTRACTION_COUNT_MISMATCH" in error
+    assert count == 6
+
+
+def test_report6_uses_run_scoped_extract_when_context_present():
+    handler = Report6Handler()
+    from app.automation.run_context import RunContext, set_run_context, reset_run_context
+    from app.automation.timing import RunTiming
+
+    ctx = RunContext(run_id="run-r6", timing=RunTiming(run_id="run-r6"))
+    token = set_run_context(ctx)
+    try:
+        assert handler._uses_run_scoped_extract() is True
+    finally:
+        reset_run_context(token)
+
+
+@pytest.mark.asyncio
+async def test_get_target_tfoot_total_row_uses_th_cells():
+    """Live portal puts Zone=ALL station Total in tfoot with th-only cells."""
+    handler = Report6Handler()
+    # NR zone row in tbody (td); aggregate Total in tfoot (th) — no SCR row.
+    body = [
+        _FakeRowWithCellTags(
+            td_texts=["1", "Northern Railway", "27", "15.08", "4", "7", "16", "59.26"]
+        ),
+        _FakeRowWithCellTags(
+            td_texts=[],
+            th_texts=["", "Total", "179", "100%", "66", "42", "71", "39.66"],
+        ),
+    ]
+    table = _FakeTableTfootTh(ZONE_HEADERS, body)
+
+    async def fake_headers(_table):
+        return ZONE_HEADERS
+
+    with patch.object(handler, "_extract_table_headers", side_effect=fake_headers):
+        status, count, row_idx = await handler._get_station_unsatisfactory_target(table)
+
+    assert status == _TargetStatus.FOUND
+    assert count == 71
     assert row_idx == 1
 
 

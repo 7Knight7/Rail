@@ -15,6 +15,7 @@ from app.features.auth.dependencies import (
     validate_csrf_token,
 )
 from app.features.auth.schemas import (
+    CsrfTokenResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
@@ -190,6 +191,25 @@ async def logout_all(
         ip_address=ip_address,
     )
     _clear_auth_cookies(response)
+
+
+@router.post("/csrf", response_model=CsrfTokenResponse)
+async def issue_csrf_token(
+    response: Response,
+    _user: User = Depends(get_current_active_user),
+) -> CsrfTokenResponse:
+    """Issue a CSRF token for an authenticated session (e.g. after page reload)."""
+    csrf_session, csrf_token = csrf_protection.generate_session_and_token()
+    response.set_cookie(
+        key="csrf_session",
+        value=csrf_session,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
+        domain=settings.cookie_domain,
+    )
+    return CsrfTokenResponse(csrf_token=csrf_token)
 
 
 @router.get("/me", response_model=UserResponse)

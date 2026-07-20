@@ -1,0 +1,10 @@
+{
+  "run_id": "35313701-93c0-46bb-9cf3-4f04be8fec8b",
+  "started_at": "2026-07-17T10:18:48.609529+00:00",
+  "completed_at": "2026-07-17T10:18:48.611414+00:00",
+  "total_duration_seconds": 0.002,
+  "spans": {
+    "browser_connect": 0.0
+  },
+  "reports": {}
+}

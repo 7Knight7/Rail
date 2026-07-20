@@ -71,7 +71,7 @@ class ReportResult(BaseModel):
     source_paths: list[str] = Field(default_factory=list)
     source_csv_path: str | None = None
     source_row_count: int | None = None
-    row_counts: dict[str, int] = Field(default_factory=dict)
+    row_counts: dict[str, int | float] = Field(default_factory=dict)
     ingestion_success: bool = False
     excel_path: str | None = None
     pdf_path: str | None = None
@@ -91,6 +91,11 @@ class ReportResult(BaseModel):
     extraction_seconds: float | None = None
     processing_seconds: float | None = None
     row_count: int | None = None
+    output_columns: list[str] | None = None
+    visible_columns: list[str] | None = None
+    selected_column_ids: list[str] | None = None
+    column_order: list[str] | None = None
+    configuration_source: str | None = None
 
 
 class MultiReportResult(BaseModel):

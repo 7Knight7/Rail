@@ -1,30 +1,27 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { SettingsCard } from "./SettingsCard";
 import { PreviewTable } from "./PreviewTable";
+import { SectionedPreviewTable } from "./SectionedPreviewTable";
 import { OutputCard } from "./OutputCard";
 import { ActionBar } from "./ActionBar";
+import { useManualReportGeneration } from "./useManualReportGeneration";
 import { cn } from "@/utils/cn";
-import { automationApi } from "@/api/automation";
+import { formatFileSize, reportsApi } from "@/api/reports";
 import {
   FilterBuilder,
   VisibleColumnsSection,
+  GroupedOutputColumnsSection,
   useDatasetMetadata,
+  useOutputColumnCatalog,
+  usesOutputColumnCatalog,
+  useReactiveOutputPreview,
+  usesReactiveOutputPreview,
   type FilterCondition,
   type ReportId,
   type ColumnMetadata,
 } from "@/features/report-config";
-
-const REPORT_ID_TO_SLUG: Record<string, string> = {
-  zone: "report1",
-  merging: "report1",
-  division: "division",
-  "train-no": "train-no",
-  types: "types",
-  "scr-train": "scr-train",
-  "scr-station": "scr-station",
-};
 
 interface SettingField {
   id: string;
@@ -48,8 +45,14 @@ interface WorkflowPageLayoutProps {
   breadcrumbs?: { label: string; href?: string }[];
   settingsFields: SettingField[];
   advancedFields?: SettingField[];
-  previewColumns: Column[];
+  previewColumns?: Column[];
   mockPreviewData?: Record<string, string | number>[];
+}
+
+function previousDayIsoDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().split("T")[0];
 }
 
 export function WorkflowPageLayout({
@@ -59,24 +62,132 @@ export function WorkflowPageLayout({
   breadcrumbs = [{ label: "Report Configuration" }, { label: title }],
   settingsFields: initialSettings,
   advancedFields: initialAdvanced = [],
-  previewColumns,
-  mockPreviewData = [],
+  previewColumns: defaultPreviewColumns = [],
 }: WorkflowPageLayoutProps) {
+  const outputCatalogMode = usesOutputColumnCatalog(reportId);
+  const reactivePreviewMode = usesReactiveOutputPreview(reportId);
   const { metadata, loading: metadataLoading, error: metadataError } = useDatasetMetadata(reportId);
-  const [settings, setSettings] = useState(initialSettings);
+  const {
+    columns: outputColumns,
+    defaultColumnIds,
+    loading: outputLoading,
+    error: outputError,
+  } = useOutputColumnCatalog(reportId);
+  const columnPickerColumns = outputCatalogMode ? outputColumns : metadata?.columns ?? [];
+  const columnPickerLoading = outputCatalogMode ? outputLoading : metadataLoading;
+  const columnPickerError = outputCatalogMode ? outputError : metadataError;
+  const [settings, setSettings] = useState(() =>
+    initialSettings.map((field) =>
+      field.id === "reportDate" ? { ...field, value: previousDayIsoDate() } : field,
+    ),
+  );
   const [advancedSettings, setAdvancedSettings] = useState(initialAdvanced);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [status, setStatus] = useState<"idle" | "processing" | "completed" | "error">("idle");
-  const [previewData, setPreviewData] = useState<Record<string, string | number>[]>([]);
   const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([]);
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>([]);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const userTouchedColumnsRef = useRef(false);
+
+  const columnLabelMap = useMemo(
+    () =>
+      Object.fromEntries(
+        columnPickerColumns.map((column: ColumnMetadata) => [
+          column.id,
+          column.displayName,
+        ]),
+      ),
+    [columnPickerColumns],
+  );
+
+  const handleVisibleColumnIdsChange = useCallback((next: string[]) => {
+    userTouchedColumnsRef.current = true;
+    if (reportId === "merging") {
+      console.info("report1_selected_columns_changed", {
+        selected_column_ids: next,
+        count: next.length,
+      });
+    } else if (reportId === "division") {
+      console.info("report2_selected_columns_changed", {
+        selected_column_ids: next,
+        count: next.length,
+      });
+    }
+    setVisibleColumnIds(next);
+  }, [reportId]);
+
+  const {
+    status,
+    manualStatus,
+    runState,
+    previewData,
+    previewColumns: dynamicPreviewColumns,
+    errorMessage,
+    handleGenerate,
+    handleSaveConfiguration,
+    handleDownload,
+    handleDownloadExcel,
+    handleDownloadPdf,
+    handlePreviewPdf,
+    resetGeneration,
+    canDownload,
+    canDownloadExcel,
+    canDownloadPdf,
+    canPreviewPdf,
+    dualOutputMode,
+  } = useManualReportGeneration({
+    reportId,
+    visibleColumnIds,
+    columnLabels: columnLabelMap,
+    filterConditions,
+    settings,
+  });
+
+  const reactivePreview = useReactiveOutputPreview({
+    reportId,
+    selectedColumnIds: visibleColumnIds,
+    enabled: reactivePreviewMode && status !== "processing",
+  });
 
   useEffect(() => {
+    if (outputCatalogMode) {
+      if (!outputColumns.length) return;
+      setVisibleColumnIds((current) =>
+        current.length > 0
+          ? current
+          : defaultColumnIds.length > 0
+            ? defaultColumnIds
+            : outputColumns.map((column: ColumnMetadata) => column.id),
+      );
+      return;
+    }
     if (!metadata?.columns.length) return;
     setVisibleColumnIds((current) =>
       current.length > 0 ? current : metadata.columns.map((column: ColumnMetadata) => column.id),
     );
-  }, [metadata]);
+  }, [metadata, outputCatalogMode, outputColumns, defaultColumnIds]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void reportsApi.loadConfig(reportId).then((saved) => {
+      if (cancelled || !saved) return;
+      if (saved.selected_column_ids?.length && !userTouchedColumnsRef.current) {
+        setVisibleColumnIds(saved.selected_column_ids);
+      }
+      if (saved.export_format) {
+        setSettings((prev) =>
+          prev.map((field) =>
+            field.id === "exportFormat" ? { ...field, value: saved.export_format } : field,
+          ),
+        );
+      }
+      if (saved.filter_conditions?.length) {
+        setFilterConditions(saved.filter_conditions as FilterCondition[]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [reportId]);
 
   const handleSettingChange = useCallback((id: string, value: string | number) => {
     setSettings((prev) =>
@@ -90,49 +201,100 @@ export function WorkflowPageLayout({
     );
   }, []);
 
-  const handleGenerate = useCallback(() => {
-    setStatus("processing");
-    setTimeout(() => {
-      setStatus("completed");
-      setPreviewData(mockPreviewData);
-    }, 2000);
-  }, [mockPreviewData]);
-
-  const handleSaveConfiguration = useCallback(() => {
-    alert("Configuration saved.");
-  }, []);
+  const handleSave = useCallback(async () => {
+    try {
+      await handleSaveConfiguration();
+      setSaveMessage("Configuration saved.");
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save configuration.");
+    }
+  }, [handleSaveConfiguration]);
 
   const handleReset = useCallback(() => {
-    setPreviewData([]);
-    setStatus("idle");
-    setSettings(initialSettings);
+    resetGeneration();
+    setSettings(
+      initialSettings.map((field) =>
+        field.id === "reportDate" ? { ...field, value: previousDayIsoDate() } : field,
+      ),
+    );
     setAdvancedSettings(initialAdvanced);
     setFilterConditions([]);
-    setVisibleColumnIds(metadata?.columns.map((column: ColumnMetadata) => column.id) ?? []);
-  }, [initialAdvanced, initialSettings, metadata]);
+    if (outputCatalogMode) {
+      setVisibleColumnIds(
+        defaultColumnIds.length > 0
+          ? defaultColumnIds
+          : outputColumns.map((column: ColumnMetadata) => column.id),
+      );
+    } else {
+      setVisibleColumnIds(metadata?.columns.map((column: ColumnMetadata) => column.id) ?? []);
+    }
+  }, [initialAdvanced, initialSettings, metadata, outputCatalogMode, outputColumns, defaultColumnIds, resetGeneration]);
 
-  const handleDownload = useCallback(async () => {
-    if (status !== "completed") {
-      alert("Generate the report first, then download from the Generated Reports page.");
-      return;
-    }
-    const slug = REPORT_ID_TO_SLUG[reportId] ?? reportId;
+  const triggerBlobDownload = useCallback((blob: Blob, filename: string) => {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  }, []);
+
+  const onDownload = useCallback(async () => {
     try {
-      const { blob, filename } = await automationApi.downloadPdf(slug);
-      const objectUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = objectUrl;
-      anchor.download = filename || `${slug}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(objectUrl);
+      const { blob, filename } = await handleDownload();
+      triggerBlobDownload(blob, filename);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "PDF download failed. Open Generated Reports.");
+      alert(err instanceof Error ? err.message : "Download failed.");
     }
-  }, [reportId, status]);
+  }, [handleDownload, triggerBlobDownload]);
+
+  const onDownloadExcel = useCallback(async () => {
+    try {
+      const { blob, filename } = await handleDownloadExcel();
+      triggerBlobDownload(blob, filename);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Excel download failed.");
+    }
+  }, [handleDownloadExcel, triggerBlobDownload]);
+
+  const onDownloadPdf = useCallback(async () => {
+    try {
+      const { blob, filename } = await handleDownloadPdf();
+      triggerBlobDownload(blob, filename);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "PDF download failed.");
+    }
+  }, [handleDownloadPdf, triggerBlobDownload]);
+
+  const onPreviewPdf = useCallback(() => {
+    try {
+      handlePreviewPdf();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "PDF preview failed.");
+    }
+  }, [handlePreviewPdf]);
 
   const datasetSourceLabel = metadata?.sourceFilename ?? "Original RailMadad dataset";
+  const runPreviewColumns =
+    dynamicPreviewColumns.length > 0 ? dynamicPreviewColumns : defaultPreviewColumns;
+  const activePreviewColumns = reactivePreviewMode
+    ? reactivePreview.previewColumns.length > 0
+      ? reactivePreview.previewColumns
+      : runPreviewColumns
+    : runPreviewColumns;
+  const activePreviewData = reactivePreviewMode
+    ? reactivePreview.previewData.length > 0
+      ? reactivePreview.previewData
+      : previewData
+    : previewData;
+  const previewEmptyMessage = reactivePreviewMode
+    ? reactivePreview.emptyMessage ||
+      "No generated report data is available for preview."
+    : "No preview available. Generate the report to preview processed output.";
+  const reportDateLabel = runState?.report_date ?? previousDayIsoDate().split("-").reverse().join("-");
 
   return (
     <div className="space-y-8">
@@ -170,27 +332,54 @@ export function WorkflowPageLayout({
           <div className="space-y-6 border-t border-rail-line px-6 py-6">
             <div className="rounded-xl border border-rail-line bg-white p-4">
               <p className="text-xs text-slate-500">
-                Source dataset: <span className="font-medium text-slate-700">{datasetSourceLabel}</span>
-                {metadata ? ` · ${metadata.columns.length} original columns` : ""}
+                {outputCatalogMode ? (
+                  <>
+                    Output columns:{" "}
+                    <span className="font-medium text-slate-700">
+                      {columnPickerColumns.length} selectable fields
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    Source dataset:{" "}
+                    <span className="font-medium text-slate-700">{datasetSourceLabel}</span>
+                    {metadata ? ` · ${metadata.columns.length} original columns` : ""}
+                  </>
+                )}
               </p>
             </div>
 
-            <FilterBuilder
-              columns={metadata?.columns ?? []}
-              conditions={filterConditions}
-              onChange={setFilterConditions}
-              loading={metadataLoading}
-              error={metadataError}
-              disabled={status === "processing"}
-            />
-
-            <div className="border-t border-rail-line pt-6">
-              <VisibleColumnsSection
+            {!outputCatalogMode && (
+              <FilterBuilder
                 columns={metadata?.columns ?? []}
-                selectedColumnIds={visibleColumnIds}
-                onChange={setVisibleColumnIds}
-                disabled={status === "processing" || metadataLoading}
+                conditions={filterConditions}
+                onChange={setFilterConditions}
+                loading={metadataLoading}
+                error={metadataError}
+                disabled={status === "processing"}
               />
+            )}
+
+            <div className={outputCatalogMode ? "" : "border-t border-rail-line pt-6"}>
+              {reactivePreviewMode ? (
+                <GroupedOutputColumnsSection
+                  columns={columnPickerColumns}
+                  selectedColumnIds={visibleColumnIds}
+                  defaultColumnIds={defaultColumnIds}
+                  onChange={handleVisibleColumnIdsChange}
+                  disabled={status === "processing" || columnPickerLoading}
+                />
+              ) : (
+                <VisibleColumnsSection
+                  columns={columnPickerColumns}
+                  selectedColumnIds={visibleColumnIds}
+                  onChange={handleVisibleColumnIdsChange}
+                  disabled={status === "processing" || columnPickerLoading}
+                />
+              )}
+              {columnPickerError ? (
+                <p className="mt-2 text-xs text-danger">{columnPickerError}</p>
+              ) : null}
             </div>
 
             {advancedSettings.length > 0 && (
@@ -208,40 +397,79 @@ export function WorkflowPageLayout({
         )}
       </div>
 
+      {saveMessage && (
+        <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
+          {saveMessage}
+        </p>
+      )}
+
       <ActionBar
-        onGenerate={handleGenerate}
+        onGenerate={() => void handleGenerate()}
         onReset={handleReset}
-        onDownload={handleDownload}
-        onSave={handleSaveConfiguration}
-        generateDisabled={false}
+        onDownload={() => void onDownload()}
+        onSave={() => void handleSave()}
+        generateDisabled={status === "processing" || visibleColumnIds.length === 0}
         resetDisabled={status === "idle" && previewData.length === 0}
-        downloadDisabled={status !== "completed"}
+        downloadDisabled={!canDownload}
+        showDownload={!dualOutputMode}
         isProcessing={status === "processing"}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <PreviewTable
-          title="Report Preview"
-          description="Preview of today's generated report"
-          columns={previewColumns}
-          data={previewData}
-          emptyMessage="No preview available. Generate the report to preview today's output."
-        />
+        {reactivePreviewMode && reportId === "types" && reactivePreview.previewSections.length > 0 ? (
+          <SectionedPreviewTable
+            title="Report Preview"
+            description={`Preview of generated report (report date ${reportDateLabel})`}
+            sections={reactivePreview.previewSections}
+            emptyMessage={previewEmptyMessage}
+          />
+        ) : (
+          <PreviewTable
+            title="Report Preview"
+            description={`Preview of generated report (report date ${reportDateLabel})`}
+            columns={activePreviewColumns}
+            data={activePreviewData}
+            emptyMessage={previewEmptyMessage}
+          />
+        )}
 
         <OutputCard
           title="Generated Output"
           description="Download your report after generation"
           status={status}
+          manualStatus={manualStatus}
           outputFile={
-            status === "completed"
+            status === "completed" && runState
               ? {
-                  name: `${title.toLowerCase().replace(/\s+/g, "_")}_report.xlsx`,
-                  size: "2.4 MB",
-                  generatedAt: new Date().toLocaleString(),
+                  name:
+                    dualOutputMode && runState.pdf_filename
+                      ? `${runState.excel_filename ?? "report.xlsx"} · ${runState.pdf_filename}`
+                      : runState.excel_filename ??
+                        runState.output_filename ??
+                        `${title.toLowerCase().replace(/\s+/g, "_")}_report`,
+                  size: formatFileSize(
+                    dualOutputMode
+                      ? (runState.excel_file_size ?? runState.output_file_size)
+                      : runState.output_file_size,
+                  ),
+                  generatedAt: runState.generated_at
+                    ? new Date(runState.generated_at).toLocaleString()
+                    : new Date().toLocaleString(),
+                  rowCount: runState.processed_row_count ?? runState.source_row_count ?? undefined,
+                  reportDate: runState.report_date ?? undefined,
                 }
               : undefined
           }
-          onDownload={handleDownload}
+          errorMessage={errorMessage ?? undefined}
+          onDownload={() => void onDownload()}
+          dualOutputMode={dualOutputMode}
+          onPreviewPdf={onPreviewPdf}
+          onDownloadPdf={() => void onDownloadPdf()}
+          onDownloadExcel={() => void onDownloadExcel()}
+          previewPdfDisabled={!canPreviewPdf}
+          downloadPdfDisabled={!canDownloadPdf}
+          downloadExcelDisabled={!canDownloadExcel}
+          disabled={!canDownload}
         />
       </div>
     </div>

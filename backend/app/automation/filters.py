@@ -18,6 +18,7 @@ from app.automation.report1_filters import (
 )
 from app.automation.selectors import selectors
 from app.automation.utils import ensure_directory, log_automation_event
+from app.automation.wait_utils import tracked_sleep
 from app.core.exceptions import AppException
 
 logger = logging.getLogger(__name__)
@@ -348,7 +349,7 @@ class FilterService:
                 log_automation_event(logger, "report_context_resolved", location="main_page")
                 return page
 
-            await asyncio.sleep(0.5)
+            await tracked_sleep(0.15, reason="report_root_iframe_poll")
 
         raise FilterError("Report form not found on the page (no iframe or main-page controls)")
 
@@ -399,9 +400,9 @@ class FilterService:
                 "view",
             }
             if cascading:
-                delay_ms = min(config.filter_interaction_delay_ms, 200)
+                delay_ms = min(config.filter_interaction_delay_ms, 100)
                 if delay_ms > 0:
-                    await asyncio.sleep(delay_ms / 1000)
+                    await tracked_sleep(delay_ms / 1000, reason="cascading_filter_settle")
                 if field.field_type == "select" and page is not None:
                     await self._wait_for_dependent_controls(page)
 

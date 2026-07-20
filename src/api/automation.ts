@@ -226,6 +226,14 @@ export const automationApi = {
     return `${API_BASE}/automation/artifacts/${encodeURIComponent(artifactId)}/preview`;
   },
 
+  withCacheBust(url: string, artifactId?: string | null, runId?: string | null): string {
+    const params = new URLSearchParams();
+    if (artifactId) params.set("v", artifactId);
+    if (runId) params.set("run_id", runId);
+    const query = params.toString();
+    return query ? `${url}${url.includes("?") ? "&" : "?"}${query}` : url;
+  },
+
   artifactDownloadUrl(artifactId: string): string {
     return `${API_BASE}/automation/artifacts/${encodeURIComponent(artifactId)}/download`;
   },

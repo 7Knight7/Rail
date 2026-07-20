@@ -51,7 +51,23 @@ class RunTiming:
     total_duration_seconds: float | None = None
     spans: dict[str, float] = field(default_factory=dict)
     reports: dict[str, ReportTiming] = field(default_factory=dict)
+    fixed_sleep_seconds: float = 0.0
+    fixed_sleep_events: list[dict[str, Any]] = field(default_factory=list)
+    retry_count: int = 0
     _active: dict[str, float] = field(default_factory=dict, repr=False)
+
+    def record_fixed_sleep(self, seconds: float, *, reason: str = "") -> None:
+        if seconds <= 0:
+            return
+        self.fixed_sleep_seconds = round(self.fixed_sleep_seconds + seconds, 3)
+        if reason:
+            self.fixed_sleep_events.append(
+                {"reason": reason, "seconds": round(seconds, 3)}
+            )
+
+    def record_retry(self, *, reason: str = "") -> None:
+        self.retry_count += 1
+        log_automation_event(logger, "timing_retry", run_id=self.run_id, reason=reason)
 
     def start_span(self, name: str) -> None:
         self._active[name] = time.perf_counter()
@@ -129,15 +145,89 @@ class RunTiming:
         end = datetime.fromisoformat(self.completed_at)
         self.total_duration_seconds = round((end - start).total_seconds(), 3)
         payload = self.to_dict()
+        perf = self.build_performance_report()
         log_automation_event(
             logger,
             "full_run_completed",
             run_id=self.run_id,
             total_duration_seconds=self.total_duration_seconds,
             report_count=len(self.reports),
+            portal_wait_seconds=perf.get("portal_wait_seconds"),
+            application_seconds=perf.get("application_seconds"),
         )
         self.write_json()
+        self.write_performance_json(perf)
         return payload
+
+    _PORTAL_SPAN_PREFIXES = (
+        "browser_connect",
+        "nav_filter_submit",
+        "sorting",
+        "extraction",
+        "feedback_extraction",
+        "handler_execute",
+        "report:",
+        "phase6_pdf_download",
+        "archive",
+        "comprehensive_regenerate",
+    )
+    _APP_SPAN_PREFIXES = (
+        "ingestion",
+        "processing",
+        "excel_generation",
+        "pdf_generation",
+        "ingestion_feedback",
+    )
+
+    def build_performance_report(self) -> dict[str, Any]:
+        portal = 0.0
+        app = 0.0
+        for name, seconds in self.spans.items():
+            if any(name.startswith(p) for p in self._APP_SPAN_PREFIXES):
+                app += seconds
+            elif any(name.startswith(p) or p in name for p in self._PORTAL_SPAN_PREFIXES):
+                portal += seconds
+            else:
+                portal += seconds
+        per_report = {
+            slug: {
+                "duration_seconds": rt.duration_seconds,
+                "extraction_seconds": rt.extraction_seconds,
+                "processing_seconds": rt.processing_seconds,
+                "spans": dict(rt.spans),
+            }
+            for slug, rt in self.reports.items()
+            if rt.duration_seconds is not None
+        }
+        critical = max(
+            per_report.items(),
+            key=lambda item: item[1].get("duration_seconds") or 0,
+            default=(None, {}),
+        )
+        return {
+            "run_id": self.run_id,
+            "started_at": self.started_at,
+            "completed_at": self.completed_at,
+            "total_duration_seconds": self.total_duration_seconds,
+            "portal_wait_seconds": round(portal, 3),
+            "application_seconds": round(app, 3),
+            "fixed_sleep_seconds": self.fixed_sleep_seconds,
+            "fixed_sleep_events": list(self.fixed_sleep_events),
+            "retry_count": self.retry_count,
+            "spans": dict(self.spans),
+            "per_report": per_report,
+            "critical_path_report": critical[0],
+            "critical_path_seconds": critical[1].get("duration_seconds"),
+            "top_bottlenecks": sorted(
+                self.spans.items(), key=lambda x: x[1], reverse=True
+            )[:5],
+        }
+
+    def write_performance_json(self, payload: dict[str, Any]) -> Path:
+        debug_dir = ensure_directory(Path(config.extracted_data_dir).parent / "debug")
+        path = debug_dir / f"performance_{self.run_id}.json"
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return path
 
     def to_dict(self) -> dict[str, Any]:
         return {

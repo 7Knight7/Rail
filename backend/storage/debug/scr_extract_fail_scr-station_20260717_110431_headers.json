@@ -1,0 +1,24 @@
+{
+  "source_headers": [
+    "Mode",
+    "Ref. No."
+  ],
+  "missing_required_fields": [
+    "complaintDesc",
+    "complaintTypeName",
+    "department",
+    "divCode",
+    "feedbackRemark",
+    "remarks",
+    "status",
+    "subTypeName",
+    "trainStation",
+    "userId",
+    "zoneCode"
+  ],
+  "empty_required_fields": [],
+  "canonical_fields_mapped": [
+    "complaintRefNo",
+    "mode"
+  ]
+}

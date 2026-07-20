@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.automation.browser import BrowserConnectionError, probe_cdp_reachable
 from app.automation.config import config
 from app.automation.dependencies import get_automation_service
 from app.automation.report_keys import canonicalize_report_key
@@ -28,7 +29,7 @@ from app.automation.run_registry import (
 from app.automation.schemas import MultiReportResult
 from app.automation.service import AutomationService
 from app.domain.entities.user import User
-from app.features.auth.dependencies import require_admin, validate_csrf_token
+from app.features.auth.dependencies import require_admin, require_officer_or_admin, validate_csrf_token
 from app.infrastructure.database.models import AutomationRunModel
 from app.infrastructure.database.session import get_db_session
 
@@ -135,6 +136,17 @@ async def start_automation(
     """
     report_slugs = body.report_slugs
     if body.async_mode:
+        try:
+            await probe_cdp_reachable(config.chrome_debug_url)
+        except BrowserConnectionError as exc:
+            logger.warning("Automation async start blocked: CDP unreachable at %s", config.chrome_debug_url)
+            return MultiReportResult(
+                success=False,
+                connected=False,
+                tab_found=False,
+                error=exc.message,
+                error_code=exc.code,
+            )
         run_id, status = await service.start_async(
             user_id=_user.id, report_slugs=report_slugs
         )
@@ -224,7 +236,10 @@ async def get_run(
         by_slug: dict[str, dict[str, str]] = {}
         for art in artifacts:
             slug = art.report_slug or ""
-            by_slug.setdefault(slug, {})[art.artifact_type] = art.id
+            bucket = by_slug.setdefault(slug, {})
+            # Artifacts are newest-first; keep the first id per slug/type.
+            if art.artifact_type not in bucket:
+                bucket[art.artifact_type] = art.id
         for report in reports:
             slug = report.get("slug") or ""
             ids = by_slug.get(slug) or {}
@@ -351,12 +366,12 @@ async def get_run_artifacts(
 
 @router.get(
     "/artifacts/{artifact_id}/preview",
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(require_officer_or_admin)],
 )
 async def preview_artifact(
     artifact_id: str,
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _user: Annotated[User, Depends(require_admin)],
+    _user: Annotated[User, Depends(require_officer_or_admin)],
 ) -> FileResponse:
     artifact = await get_artifact(db, artifact_id)
     if not artifact:
@@ -394,17 +409,18 @@ async def preview_artifact(
         media_type="application/pdf",
         filename=path.name,
         content_disposition_type="inline",
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
     )
 
 
 @router.get(
     "/artifacts/{artifact_id}/download",
-    dependencies=[Depends(require_admin)],
+    dependencies=[Depends(require_officer_or_admin)],
 )
 async def download_artifact(
     artifact_id: str,
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _user: Annotated[User, Depends(require_admin)],
+    _user: Annotated[User, Depends(require_officer_or_admin)],
 ) -> FileResponse:
     artifact = await get_artifact(db, artifact_id)
     if not artifact:
@@ -452,6 +468,7 @@ async def download_artifact(
         media_type=media,
         filename=path.name,
         content_disposition_type="attachment",
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
     )
 
 

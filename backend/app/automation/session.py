@@ -206,8 +206,10 @@ class SessionManager:
     @staticmethod
     def _tab_priority(tab: TabInfo, prefer_url_fragment: str | None = None) -> int:
         """Score RailMadad tabs — higher is preferred for automation attach."""
+        from app.automation.navigation import url_matches_report_fragment
+
         url = tab.url.lower()
-        if prefer_url_fragment and prefer_url_fragment.lower() in url:
+        if prefer_url_fragment and url_matches_report_fragment(url, prefer_url_fragment):
             return 200
         if "mis_reports" in url:
             return 100
@@ -404,14 +406,23 @@ class SessionManager:
         Ignores public RailMadad tabs when a valid /rmmis/admin page still exists.
         Raises MisSessionError only when no authenticated MIS page exists.
         """
-        # 1) Prefer current page if it is already valid MIS
+        # 1) Prefer current page if it is already valid MIS (and matches preferred report)
         if current_page is not None:
             status = await self.verify_mis_session(current_page)
             if status.valid:
-                await self.activate_tab(current_page)
-                return current_page
+                from app.automation.navigation import url_matches_report_fragment
 
-            # Current page may be public / popup — look for sibling MIS tab
+                preferred_ok = (
+                    prefer_url_fragment is None
+                    or url_matches_report_fragment(
+                        current_page.url or "", prefer_url_fragment
+                    )
+                )
+                if preferred_ok:
+                    await self.activate_tab(current_page)
+                    return current_page
+
+            # Current page may be public / popup / wrong report — look for sibling MIS tab
             mis_page = await self.find_authenticated_mis_page(
                 browser,
                 prefer_url_fragment=prefer_url_fragment,
@@ -437,7 +448,12 @@ class SessionManager:
                 except Exception as exc:
                     logger.warning("MIS home retry failed: %s", exc)
 
-            raise MisSessionError(status)
+            # Prefer fragment mismatch is recoverable via caller navigate; only raise when invalid.
+            if not status.valid:
+                raise MisSessionError(status)
+            # Valid MIS but wrong report — return current so caller can navigate_to_report.
+            await self.activate_tab(current_page)
+            return current_page
 
         # 2) No current page — scan browser
         mis_page = await self.find_authenticated_mis_page(

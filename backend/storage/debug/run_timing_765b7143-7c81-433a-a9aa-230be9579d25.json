@@ -1,0 +1,27 @@
+{
+  "run_id": "765b7143-7c81-433a-a9aa-230be9579d25",
+  "started_at": "2026-07-19T14:51:59.517537+00:00",
+  "completed_at": "2026-07-19T14:53:08.521096+00:00",
+  "total_duration_seconds": 69.004,
+  "spans": {
+    "browser_connect": 1.195,
+    "nav_filter_submit:scr-train": 6.35,
+    "sorting:scr-train": 3.105,
+    "handler_execute:scr-train": 66.614,
+    "report:scr-train": 66.888
+  },
+  "reports": {
+    "scr-train": {
+      "slug": "scr-train",
+      "started_at": "2026-07-19T14:52:01.190717+00:00",
+      "completed_at": "2026-07-19T14:53:08.078608+00:00",
+      "duration_seconds": 66.888,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 6.35,
+        "sorting": 3.105
+      }
+    }
+  }
+}

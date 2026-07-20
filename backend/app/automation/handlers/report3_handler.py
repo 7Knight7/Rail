@@ -37,9 +37,9 @@ class Report3Handler(BaseReportHandler):
     ) -> ReportResult:
         started_at = datetime.now(UTC).isoformat()
         t0 = time.perf_counter()
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_start")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
         await self.navigation.navigate_to_report(page, report)
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
         try:
             await page.wait_for_selector("#viewType, select", timeout=15000)
         except Exception:

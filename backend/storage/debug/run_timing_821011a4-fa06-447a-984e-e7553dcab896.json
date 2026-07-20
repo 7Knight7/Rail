@@ -1,0 +1,31 @@
+{
+  "run_id": "821011a4-fa06-447a-984e-e7553dcab896",
+  "started_at": "2026-07-16T04:51:26.756572+00:00",
+  "completed_at": "2026-07-16T04:52:47.997351+00:00",
+  "total_duration_seconds": 81.241,
+  "spans": {
+    "browser_connect": 26.712,
+    "nav_filter_submit:report1": 4.442,
+    "sorting:report1": 0.842,
+    "extraction:report1": 0.148,
+    "feedback_extraction:report1": 34.687,
+    "handler_execute:report1": 40.493,
+    "report:report1": 41.646
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-16T04:51:55.288658+00:00",
+      "completed_at": "2026-07-16T04:52:36.935025+00:00",
+      "duration_seconds": 41.646,
+      "extraction_seconds": 0.148,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 4.442,
+        "sorting": 0.842,
+        "extraction": 0.148,
+        "feedback_extraction": 34.687
+      }
+    }
+  }
+}

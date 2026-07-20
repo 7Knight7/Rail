@@ -1,0 +1,700 @@
+<html class="h-100"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <script src="/rmmis/js_assets/jquery.min.js"></script>
+
+        
+
+  
+            
+     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ 
+
+   
+  
+<script src="/rmmis/js_assets/moment-with-locales.js"></script>
+<script src="/rmmis/js_assets/bootstrap.min.js"></script>
+<script src="/rmmis/js_assets/moment.min.js" type="text/javascript"></script>
+<script src="/rmmis/js_assets/bootstrap-datetimepicker.min.js"></script>
+<link href="/rmmis/css_assets/bootstrap.min.css" rel="stylesheet">
+<link href="/rmmis/css_assets/jquery-ui.css" rel="stylesheet">
+
+<link href="/rmmis/css_assets/font-awesome.min.css" rel="stylesheet">
+
+
+<link href="/rmmis/css_assets/bootstrap-datetimepicker.css" rel="stylesheet">
+<link href="/rmmis/css_assets/bootstrap-datetimepicker.min.css" rel="stylesheet">
+<link href="/rmmis/css_assets/custom.css" rel="stylesheet">
+
+<link href="/rmmis/css_assets/all.css" rel="stylesheet">
+
+<link rel="stylesheet" href="/rmmis/css_assets/bootstrap-select.min.css">
+<link rel="stylesheet" href="/rmmis/css_assets/bootstrap-multiselect.css" type="text/css">
+<link rel="stylesheet" href="/rmmis/css_assets/admin.css" type="text/css">
+<link rel="stylesheet" href="/rmmis/css_assets/jquery.jgrowl.min.css" type="text/css">
+
+
+
+<style>
+.bg {
+	background-position: center center;
+	background-size: cover;
+}
+.col-1-5 {
+    flex: 0 0 23.3%;
+    max-width: 23.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 76.6%;
+    max-width: 76.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+
+@media (min-width: 992px)
+{
+.col-1-5 {
+    flex: 0 0 12.3%;
+    max-width: 12.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 87.6%;
+    max-width: 87.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+}
+
+@media (min-width: 768px)
+{
+.col-1-5 {
+    flex: 0 0 12.3%;
+    max-width: 12.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 87.6%;
+    max-width: 87.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+}</style></head>
+
+
+
+  
+
+
+<body id="page-top" class="h-100">
+
+	
+
+
+<div class="ajax-loader" style="">
+<img src="/rmmis/img_assets/ajax-loader.gif">
+<br>Loading..</div>
+	<!--    header start  -->
+	<div class="row customheight m-0 h-100">
+	<div class="col-1-5 p-0 h-100 sidebarbg no-print" style="overflow:auto">
+		
+
+
+<style>
+.jGrowl-message{
+color:white !important;
+}
+</style>
+<script>
+$(document).ready(function() {
+    //var notification = new Notification("New Complaints Received, Please Check!!");
+    
+     $.ajax({
+					
+			        url: window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/showreportlinks.jsp",
+			        
+			        async: true,
+			        success : function(response) {
+			      	  
+						    	
+			       
+		   if(response.error=="true")
+			   {
+		      	
+					$(".reports").addClass("d-none");
+			   }
+		   else{
+				$(".reports").removeClass("d-none");
+				   
+			   }
+			        },
+			        error: function (xhr, status) {
+				    	 console.log("Errortype."+status);
+					    	 
+				     }
+					});
+			   
+
+
+	  $("#toggle1").click(function() {
+		  $(".sidebar").show();
+		  $("#toggle1").hide();
+		  
+		});
+
+	  $("#toggle2").click(function() {
+		  $(".sidebar").hide();
+		  $("#toggle1").show();
+		  
+		});
+$(".tempc").click(function() {
+	$('#collapseOne').collapse('toggle');
+});
+$(".tempc1").click(function() {
+	$('#collapseOne12').collapse('toggle');
+});
+$(".tempc2").click(function() {
+	$('#collapseOne121').collapse('toggle');
+});
+});
+</script>
+
+
+
+	<!-- Sidebar -->
+	<ul class="sidebar navbar-nav  text-light sidebarbg">
+
+		
+		<li class="nav-item  active nav-link  text-center font-16">RailMadad</li>
+		
+		
+	<li class="reports">	
+			<div id="accordion">
+	
+	 <div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+      
+        <button class="btn btn-block tempc1 p-0 adminbtn-xl text-left pl-md-3 pl-1" data-target="#collapseOne12" aria-expanded="true" aria-controls="collapseOne12">
+       <span class="nav-link " style="color:black" title="For Current Month &amp; Last Month">
+					MIS Reports</span>
+        </button>
+     
+    </div>
+
+   <div id="collapseOne12" class="collapse" data-parent="#accordion">
+      <div class="card-body" style="padding:1px;">
+      
+<ul style="list-style-type:none;padding-inline-start: 2px;">
+							
+		
+	<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report1" report-type="N"> <span class=" " style="color:black">1) Comprehensive (with drill down) </span></a></li>
+	 
+			
+					
+		<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report2" report-type="N" style="color:black"> <span class=" " style="color:black">2) Cause Wise </span></a></li>
+		<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report3" report-type="N"> <span class=" " style="color:black">3) SLA Breach
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report4" report-type="N"> <span class=" " style="color:black">4) Cause Wise SLA
+			</span></a></li>
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report5" report-type="N"> <span class=" " style="color:black">5) Channel Dept Wise
+			</span></a></li>
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report6" report-type="N"> <span class=" " style="color:black">6) Feedback (with drill down) 
+			</span></a></li>
+						
+								
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report7" report-type="N"> <span class=" " style="color:black">7) Mode Wise Cause Wise
+			</span></a></li>
+			
+			<!--  <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report8" report-type='N'> <span class=" "  style="color:black">8) Bottom Performance
+			</span></a></li>-->
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report9" report-type="N"> <span class=" " style="color:black">8) Station Profiling
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report10" report-type="N"> <span class=" " style="color:black">9) Train Profiling
+			</span></a></li>
+			
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report16" report-type="N"> <span class=" " style="color:black">10) Zone/Train Type wise Report 
+			</span></a></li>  
+			
+				
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report22" report-type="N"> <span class=" " style="color:black">11) Train Watering Complaint 
+			</span></a></li> 
+			
+				 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report17" report-type="N"> <span class=" " style="color:black">12) Suggestion Comprehensive (with drill down)
+			</span></a></li>  
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report18" report-type="N"> <span class=" " style="color:black">13) Inquiry Wise 1
+			</span></a></li>  
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report19" report-type="N"> <span class=" " style="color:black">14) Inquiry Wise 2
+			</span></a></li>  
+			<!-- <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/reportprsdata" report-type='Y'> <span class=" "  style="color:black">16) Complaints per Million Passsenger Report
+			
+			</span></a></li> -->
+			
+		
+		<!--  
+			    <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback1" report-type='Y'> <span class=" "  style="color:black">16) IR Feedback Report Type 1
+			
+			</span></a></li> 
+				<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback2" report-type='Y'> <span class=" "  style="color:black">17) IR Feedback Summary
+			
+			</span></a></li> 
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback3" report-type='Y'> <span class=" "  style="color:black">18) IR Feedback Zone Division Wise(with drill down)
+			
+			</span></a></li>
+			-->
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report20" report-type="Y"> <span class=" " style="color:black">15) FRT (with drill down)
+			
+			</span></a></li>
+				<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/atrstatus" report-type="Y"> <span class=" " style="color:black">16) ATR Status
+			
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/atrcausewisereport" report-type="Y"> <span class=" " style="color:black">17) Cause wise ATR Report
+			
+			</span></a></li>   
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/vandebharatreport" report-type="N"> <span class=" " style="color:black">18) Vande Bharat Report 
+			</span></a></li> 
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/headsubheadchangereport" report-type="Y"> <span class=" " style="color:black">19) Head Subhead Change Report
+			
+			</span></a></li>
+			  
+			
+			
+				
+			  
+			
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report21" report-type="N"> <span class=" " style="color:black">22) Zone &amp; Cause Wise Complaint/Feedback
+			</span></a></li> 
+			
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report23" report-type="N"> <span class=" " style="color:black">23) Rail Anubhav Report
+			</span></a></li>  
+			
+		 
+		 
+			
+</ul>     </div>
+    </div>
+  </div>
+  
+  
+  
+  
+  
+</div>
+		
+</li>
+			
+
+<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/trainwateringreport"> <span class="nav-link " style="color:black" title="For Train Watering Complaints">
+					Train Watering Complaints </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+
+
+
+			
+
+					
+
+	<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0 tempc2 adminbtn-xl text-left pl-md-3 pl-1" data-target="#collapseOne121" aria-expanded="true" aria-controls="collapseOne121">
+       <span class="nav-link " style="color:black" title="For Current Month &amp; Last Month">
+					RailMadad Shield Reports</span>
+        </button>
+        </div>
+         <div id="collapseOne121" class="collapse" data-parent="#accordion">
+      <div class="card-body" style="padding:1px;">
+      <ul>
+     
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/shieldscorereport" report-type="Y"> <span class=" " style="color:black">1) Shield Score Report
+			
+			</span></a></li> 
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/shieldperformreport" report-type="Y"> <span class=" " style="color:black">2) Shield Performance Report
+			
+			</span></a></li></ul> 
+      </div>
+      </div>
+    
+    
+    
+    </div>
+	</div>
+	
+	
+	
+	
+	</li>
+	
+	
+	
+
+	
+
+	<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/quarterwisecomplaintreport"> <span class="nav-link " style="color:black" title="For Quarter Wise Report">
+					RailMadad Quarter Wise Data </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+
+
+
+
+<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/financialyearwisecomplaintreport"> <span class="nav-link " style="color:black" title="For Quarter Wise Report">
+					RailMadad Financial Year Data </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+	
+	
+			
+	
+			
+			
+			<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/SearchComplaintAdmin"> <span class="nav-link " style="color:black" title="For Search Complaint">
+					Search Complaint </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li> 
+			
+	
+	
+
+	</ul>
+	
+
+		</div>
+		<div class="col-10-5 p-0" style="background-color:white;">
+		<!--    header end   -->
+		
+		<div class="row m-0 ">
+	<div class="col-12 p-2 bg-white h-100 no-print">
+     	
+
+			<h5 class="d-inline font-14">&nbsp;Welcome: GM_SC</h5>
+			
+		<a href="/rmmis/Logout.jsp">
+<button class="btn btn-sm float-right custombtnnew btn-info adminbtn">Logout</button>
+</a>
+
+
+
+
+<button class="btn btn-sm float-right mr-2 custombtnnew btn-info editbtnself adminbtn">Change Password</button> 
+
+
+			
+	
+	
+		
+
+
+ 
+
+	</div>
+</div>
+		
+		<div class="row m-0 p-2 ml-2 dashboardmainsection custom-height-main-content" style="background-color:#f4f6f9;overflow:auto" id="dashboardmainsection"><div></div></div>
+		
+			<div class="modal" id="changePasswordAdminModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordAdminLabel" aria-hidden="true">
+		<div class="modal-dialog login-modal-dialog" role="document">
+			<div class="modal-content">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">×</span>
+				</button>
+				<div class="modalHeader">
+				       <center><h5 class="modal-title">Change Password Admin</h5></center> 
+				</div>
+				<div class="modal-body">
+					<div id="changePasswordAdminContent">
+					
+					
+					
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	</div>
+	</div>
+
+	
+	  <script src="/rmmis/js_assets/jquery.min.js"></script>
+
+		<script src="/rmmis/js_assets/bootstrap.bundle.min.js"></script>
+
+	<script src="/rmmis/js_assets/jquery.easing.min.js"></script>
+	<script src="/rmmis/js_assets/jquery-ui.js"></script>
+	<script src="/rmmis/js_assets/d3.v5.min.js"></script>
+
+<script src="/rmmis/js_assets/d3pie.min.js"></script>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="/rmmis/js_assets/jquery.easing.min.js"></script>
+	<script src="/rmmis/js_assets/sb-admin.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="/rmmis/css_assets/datatables.min.css">
+	<script type="text/javascript" src="/rmmis/js_assets/datatables.min.js"></script>
+		
+<!-- Latest compiled and minified JavaScript -->
+<script src="/rmmis/js_assets/bootstrap-select.min.js"></script>
+<!-- CHANNEL WISE GOOGLE CHART -->
+<script type="text/javascript" src="/rmmis/js_assets/bootstrap-multiselect.js"></script>
+	<script src="/rmmis/js_assets/bootstrap-datetimepicker.min.js"></script>
+	<script src="/rmmis/js_assets/jquery.jgrowl.min.js"></script>
+
+
+
+	<script>
+
+	$(".editbtnself").click(function(){
+     	
+   		 
+		var userId="GM_SC";		
+		
+		 $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/EditUserProfile.jsp?Id="+userId);
+
+							
+		
+		    });	
+	
+	</script>
+
+
+
+<script>
+
+var checksession = function() {
+	
+
+	$.ajax({
+		method : 'GET',
+		url : window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/CheckSession',
+		
+		success : function(responseText) {
+			if(responseText=="false"){
+				 $(location).attr('href', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2)));	
+					
+				}
+		},
+		 error: function (xhr, status, thrownError) {
+	     }
+	}); 
+	}
+var onloadcheck = function() {
+	 var params = new window.URLSearchParams(window.location.search);
+	    if(params != null && params !='')
+	    	{
+	    	if(params.get('page')!=null)
+			{
+	    		var link=params.get('page');
+	    	    var archiveFlag=params.get('archiveFlag');
+	    	    var Id=params.get('Id');
+	    	    var mobile=params.get('mobile');
+	    	    var email=params.get('email');
+	    	    $("#dashboardmainsection").html("<div></div>");
+
+	   	  	  
+		    	 $('.ajax-loader').show();
+		    	    
+	    	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?page="+link+"&archiveFlag="+archiveFlag+"&Id="+Id+"&mobile="+mobile+"&email="+email,
+
+	    	    		function(){
+	   	    	 $('.ajax-loader').hide();
+
+	   	  	  }
+	    	    	    );	    	
+	    		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&archiveFlag="+archiveFlag+"&Id="+Id+"&mobile="+mobile+"&email="+email);
+
+			}
+	    	}
+	}
+
+
+$( document ).ready(function() {
+
+	checksession();
+	onloadcheck();
+	
+			$.ajax({
+		 method : 'GET',
+			url : window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/FetchData',
+			
+			data : {
+				
+				fetchdatatype:'checkpasswordupdatedon'
+			},
+	        async: true,
+			success : function(responseText) {
+
+                if(responseText.updateDateValidation){
+	            		 $('#changePasswordAdminContent').load("ChangePasswordAdmin.jsp");
+	            		 $("#changePasswordAdminModal").modal('show');
+               	 
+                }
+                else{	
+                }
+              
+			
+			},
+			error: function (xhr, status, thrownError) {
+			}
+		});
+			
+			$('#changePasswordAdminModal').on('hide.bs.modal', function () {
+				 $(location).attr('href', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/Logout.jsp');	
+				});
+			
+    
+    $(".navigate_to_link").click(function(){
+    	checksession();
+    var link=$(this).attr("link");
+    var reportType=$(this).attr("report-type");
+    if(reportType != null)
+    	{
+	    $("#dashboardmainsection").html("<div></div>");
+    	
+   	 $('.ajax-loader').show();
+ 	
+	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?archiveFlag="+reportType
+	    		,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&archiveFlag="+reportType);
+	    
+    	}
+    else
+    	{
+	    $("#dashboardmainsection").html("<div></div>");
+    	
+   	 $('.ajax-loader').show();
+ 	
+	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp"
+	    		,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link);
+	    
+    	}
+
+    });
+
+
+    $("#dashboardmainsection").on('click','.navigatenext',function(){
+    	checksession();
+        var refNo=$(this).attr("refNo");
+        var link=$(this).attr("link");
+        var archiveFlag=$(this).attr("archive-flag");
+        var email=$(this).attr("email");
+        var mobile=$(this).attr("mobile");
+   	 $('.ajax-loader').show();
+	    $("#dashboardmainsection").html("<div></div>");
+	     
+    	$("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?Id="+refNo+"&archiveflag="+archiveFlag+"&mobile="+mobile+"&email="+email
+    			,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+    	window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&Id="+refNo+"&archiveflag="+archiveFlag+"&mobile="+mobile+"&email="+email);
+    	    
+        	
+      
+
+        });
+    
+    
+  
+});
+
+</script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css"> 
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.0.1/css/buttons.dataTables.min.css">
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.html5.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.print.min.js"></script>
+
+</body></html>

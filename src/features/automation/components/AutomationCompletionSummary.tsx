@@ -76,8 +76,7 @@ export function AutomationCompletionSummaryCard({ summary }: AutomationCompletio
             <p className="text-sm font-medium text-slate-800">Outputs</p>
             <ul className="space-y-2">
               {downloads.map((item) => {
-                const pdfUrl =
-                  item.pdfDownloadUrl || automationApi.pdfDownloadUrl(item.slug);
+                const pdfUrl = item.pdfDownloadUrl;
                 const canPdf = Boolean(pdfUrl);
                 return (
                   <li
@@ -167,6 +166,17 @@ export function AutomationCompletionSummaryCard({ summary }: AutomationCompletio
             <Link to={reviewHref}>
               <Eye className="mr-1 h-4 w-4" />
               Review / Download
+            </Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link
+              to={
+                summary.runId
+                  ? `/daily-summary?run_id=${encodeURIComponent(summary.runId)}`
+                  : "/daily-summary"
+              }
+            >
+              Daily Summary
             </Link>
           </Button>
           <Button asChild variant="secondary">

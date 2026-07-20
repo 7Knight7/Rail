@@ -1,0 +1,21 @@
+{
+  "run_id": "14964772-94e8-4456-a818-b169dfca9441",
+  "started_at": "2026-07-19T18:38:42.577278+00:00",
+  "completed_at": "2026-07-19T18:38:42.584337+00:00",
+  "total_duration_seconds": 0.007,
+  "spans": {
+    "browser_connect": 0.0,
+    "report:report1": 0.002
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-19T18:38:42.578035+00:00",
+      "completed_at": "2026-07-19T18:38:42.580383+00:00",
+      "duration_seconds": 0.002,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    }
+  }
+}

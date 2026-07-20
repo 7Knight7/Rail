@@ -9,20 +9,20 @@ from app.automation.report_keys import canonicalize_report_key
 if TYPE_CHECKING:
     from .base import BaseReportHandler
 
-HANDLER_REGISTRY: dict[str, "BaseReportHandler"] = {}
+HANDLER_REGISTRY: dict[str, type["BaseReportHandler"]] = {}
 
 
-def register_handler(slug: str, handler: "BaseReportHandler") -> None:
-    """Register a handler for a report slug."""
-    HANDLER_REGISTRY[canonicalize_report_key(slug)] = handler
+def register_handler(slug: str, handler_cls: type["BaseReportHandler"]) -> None:
+    """Register a handler class for a report slug."""
+    HANDLER_REGISTRY[canonicalize_report_key(slug)] = handler_cls
 
 
 def get_handler(slug: str) -> "BaseReportHandler":
-    """Get the handler for a report slug (aliases resolve to canonical keys)."""
+    """Return a fresh handler instance for a report slug (aliases resolve to canonical keys)."""
     key = canonicalize_report_key(slug)
     if key not in HANDLER_REGISTRY:
         raise ValueError(f"No handler registered for report slug: {slug}")
-    return HANDLER_REGISTRY[key]
+    return HANDLER_REGISTRY[key]()
 
 
 def _register_all_handlers() -> None:
@@ -34,12 +34,12 @@ def _register_all_handlers() -> None:
     from .report5_handler import Report5Handler
     from .report6_handler import Report6Handler
 
-    register_handler("report1", Report1Handler())
-    register_handler("division", Report2Handler())
-    register_handler("train-no", Report3Handler())
-    register_handler("types", Report4Handler())
-    register_handler("scr-train", Report5Handler())
-    register_handler("scr-station", Report6Handler())
+    register_handler("report1", Report1Handler)
+    register_handler("division", Report2Handler)
+    register_handler("train-no", Report3Handler)
+    register_handler("types", Report4Handler)
+    register_handler("scr-train", Report5Handler)
+    register_handler("scr-station", Report6Handler)
 
 
 _register_all_handlers()

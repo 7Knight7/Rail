@@ -53,11 +53,11 @@ function stepIdForSlug(slug: string): string {
 
 function downloadsFromReports(reports: ReportResult[]) {
   return reports
-    .filter((r) => r.status === "success" && (r.pdf_download_url || r.pdf_path))
+    .filter((r) => r.status === "success" && r.pdf_download_url)
     .map((r) => ({
       slug: r.slug,
       datasetKey: r.dataset_key ?? r.slug,
-      pdfDownloadUrl: r.pdf_download_url ?? automationApi.pdfDownloadUrl(r.slug),
+      pdfDownloadUrl: r.pdf_download_url as string,
       pdfPreviewUrl: r.pdf_preview_url ?? undefined,
       excelDownloadUrl: r.excel_download_url ?? undefined,
       status: r.status,
@@ -129,7 +129,23 @@ function applyRunDetailToEvents(
 
   if (detail.status === "completed" || detail.status === "failed") {
     const downloads = downloadsFromReports(detail.reports ?? []);
-    if (detail.status === "completed") {
+    const reports = detail.reports ?? [];
+    const terminalPending = (report: (typeof reports)[number]) =>
+      report.status === "partial_success" &&
+      typeof report.error === "string" &&
+      report.error.toLowerCase().includes("ingest/process pending");
+    const allReportsSuccessful = reports.every(
+      (report) => report.status === "success" || report.status === "skipped",
+    );
+    const hasMixedResults =
+      (detail.reports_successful ?? 0) > 0 && (detail.reports_failed ?? 0) > 0;
+    const hasTerminalPartial = reports.some(
+      (report) => report.status === "partial_success" && !terminalPending(report),
+    );
+    if (
+      (detail.status === "completed" && allReportsSuccessful) ||
+      (detail.status === "failed" && hasMixedResults)
+    ) {
       emit({
         type: "run_completed",
         summary: {
@@ -142,6 +158,15 @@ function applyRunDetailToEvents(
           downloadAllUrl: detail.download_all_url ?? undefined,
           reportDownloads: downloads,
         },
+      });
+    } else if (hasTerminalPartial || hasMixedResults || detail.status === "failed") {
+      emit({
+        type: "run_failed",
+        message:
+          detail.error ??
+          (hasTerminalPartial
+            ? "Report generation completed with partial reports"
+            : "Automation finished with errors"),
       });
     } else {
       emit({
@@ -173,8 +198,14 @@ export interface UseAutomationPageReturn extends AutomationWorkspaceProps {
   handlePlaywrightEvent: ReturnType<typeof useAutomationRunState>["handlePlaywrightEvent"];
   showLoginDialog: boolean;
   onCloseLoginDialog: () => void;
+  showChromeDialog: boolean;
+  onCloseChromeDialog: () => void;
+  chromeConnectionDetail: string | null;
   /** True only after the user clicks Generate in this session. */
   generationStarted: boolean;
+  failureMessage?: string;
+  isStopped?: boolean;
+  onDismiss: () => void;
 }
 
 /**
@@ -197,6 +228,8 @@ export function useAutomationPage(): UseAutomationPageReturn {
   const { state, appendActivityLog, handlePlaywrightEvent, prepareRun, resetRun } = runState;
 
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [showChromeDialog, setShowChromeDialog] = useState(false);
+  const [chromeConnectionDetail, setChromeConnectionDetail] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
   /** Progress UI is gated on this — never open from stale engine/DB/HMR state. */
   const [generationStarted, setGenerationStarted] = useState(false);
@@ -214,14 +247,31 @@ export function useAutomationPage(): UseAutomationPageReturn {
 
   const progressPercent = computeProgressPercent(state.steps);
   const stepStats = getStepStats(state.steps);
-  const hasFailed = stepStats.failed > 0 || state.runStatus === "failed";
+  const isStopped =
+    state.runStatus === "stopped" || state.runStatus === "cancelled";
+  const hasErrors =
+    !isStopped &&
+    (stepStats.failed > 0 || state.runStatus === "failed");
+  const hasFailed = hasErrors;
+  const failureMessage = useMemo(() => {
+    if (!hasFailed) return undefined;
+    for (let i = activityLog.length - 1; i >= 0; i -= 1) {
+      if (activityLog[i].level === "error") return activityLog[i].message;
+    }
+    return undefined;
+  }, [activityLog, hasFailed]);
   const isBusy =
     acting ||
     stopping ||
     state.runStatus === "running" ||
     state.runStatus === "paused" ||
     Boolean(activeRunIdRef.current && state.runStatus === "running");
-  const isComplete = state.completionSummary != null && state.runStatus === "completed";
+  const hasPartialSteps = state.steps.some((s) => s.status === "partial");
+  const isComplete =
+    state.completionSummary != null &&
+    state.runStatus === "completed" &&
+    !hasPartialSteps &&
+    stepStats.failed === 0;
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -253,6 +303,12 @@ export function useAutomationPage(): UseAutomationPageReturn {
         if (stoppingRef.current) return;
         if (activeRunIdRef.current && activeRunIdRef.current !== runId) return;
         applyRunDetailToEvents(detail, seenRef.current, handlePlaywrightEvent, activeRunIdRef.current);
+        if (detail.status === "failed") {
+          const errorCode = detail.result?.error_code;
+          if (errorCode === "RAILMADAD_NOT_LOGGED_IN") {
+            setShowLoginDialog(true);
+          }
+        }
         const prev = lastPolledStatusRef.current;
         lastPolledStatusRef.current = detail.status;
         if (
@@ -367,6 +423,17 @@ export function useAutomationPage(): UseAutomationPageReturn {
       return;
     }
 
+    if (
+      result?.error_code === "BROWSER_CONNECTION_ERROR" ||
+      (result && !result.success && !result.run_id)
+    ) {
+      setChromeConnectionDetail(result?.error ?? null);
+      setShowChromeDialog(true);
+      setGenerationStarted(false);
+      resetRun();
+      return;
+    }
+
     if (result?.run_id) {
       markGenerationSession(result.run_id);
       handlePlaywrightEvent({ type: "step_completed", stepId: "login" });
@@ -436,6 +503,12 @@ export function useAutomationPage(): UseAutomationPageReturn {
     state.selectedReportIds,
     stopping,
   ]);
+
+  const onDismiss = useCallback(() => {
+    clearActiveRunState();
+    setGenerationStarted(false);
+    resetRun();
+  }, [clearActiveRunState, resetRun]);
 
   const onStop = useCallback(async () => {
     if (stoppingRef.current || stopping) return;
@@ -539,7 +612,8 @@ export function useAutomationPage(): UseAutomationPageReturn {
       generationStarted &&
       (state.runStatus === "running" || state.runStatus === "paused"),
     isComplete: generationStarted && isComplete,
-    hasFailed: generationStarted && hasFailed,
+    hasFailed: generationStarted && hasErrors,
+    isStopped: generationStarted && isStopped,
     generationStarted,
     progressPercent,
     activityLog,
@@ -560,5 +634,10 @@ export function useAutomationPage(): UseAutomationPageReturn {
     handlePlaywrightEvent,
     showLoginDialog,
     onCloseLoginDialog: () => setShowLoginDialog(false),
+    showChromeDialog,
+    onCloseChromeDialog: () => setShowChromeDialog(false),
+    chromeConnectionDetail,
+    failureMessage,
+    onDismiss,
   };
 }

@@ -1,0 +1,55 @@
+{
+  "run_id": "813c69dc-a3e6-41bd-9298-8804278e43e3",
+  "started_at": "2026-07-17T15:51:45.887517+00:00",
+  "completed_at": "2026-07-17T15:55:21.509174+00:00",
+  "total_duration_seconds": 215.622,
+  "spans": {
+    "browser_connect": 0.95,
+    "nav_filter_submit:report1": 5.439,
+    "sorting:report1": 1.121,
+    "extraction:report1": 0.147,
+    "feedback_extraction:report1": 135.034,
+    "ingestion_feedback:report1_feedback": 0.026,
+    "ingestion:report1": 0.078,
+    "comprehensive_regenerate:report1": 5.717,
+    "phase6_pdf_download:report1": 31.609,
+    "archive:report1": 31.027,
+    "processing:report1": 0.269,
+    "handler_execute:report1": 213.967,
+    "report:report1": 214.164
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-17T15:51:47.204735+00:00",
+      "completed_at": "2026-07-17T15:55:21.369139+00:00",
+      "duration_seconds": 214.164,
+      "extraction_seconds": 0.147,
+      "processing_seconds": 0.269,
+      "spans": {
+        "nav_filter_submit": 5.439,
+        "sorting": 1.121,
+        "extraction": 0.147,
+        "feedback_extraction": 135.034,
+        "ingestion": 0.078,
+        "comprehensive_regenerate": 5.717,
+        "phase6_pdf_download": 31.609,
+        "archive": 31.027,
+        "processing": 0.269,
+        "excel_generation": 0.134,
+        "pdf_generation": 0.134
+      }
+    },
+    "report1_feedback": {
+      "slug": "report1_feedback",
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": null,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "ingestion_feedback": 0.026
+      }
+    }
+  }
+}

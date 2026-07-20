@@ -11,10 +11,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from app.automation.config import config
-from app.automation.report1_filters import FilterFieldDefinition
 from app.automation.report6_scr_filters import REPORT_6_SCR_FILTERS
 from app.automation.reports import ReportDefinition
 from app.automation.schemas import ReportResult
+from app.automation.scr_field_map import REPORT6_CANONICAL_CSV_HEADERS
 from app.automation.utils import ensure_directory, log_automation_event
 
 from .report5_handler import Report5Handler
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SCR_STATION_UNSATISFACTORY_NOT_FOUND = "SCR_STATION_UNSATISFACTORY_NOT_FOUND"
+REPORT6_PORTAL_EXTRACTION_COUNT_MISMATCH = "REPORT6_PORTAL_EXTRACTION_COUNT_MISMATCH"
 
 ZONE_WISE_REQUIRED_HEADERS = (
     "organisation",
@@ -48,6 +49,8 @@ class Report6Handler(Report5Handler):
     """Execute SCR Station Unsatisfactory workflow (canonical key: scr-station)."""
 
     expected_mode = "Station"
+    scr_report_num = 6
+    canonical_csv_headers = REPORT6_CANONICAL_CSV_HEADERS
 
     async def execute(
         self,
@@ -57,9 +60,9 @@ class Report6Handler(Report5Handler):
     ) -> ReportResult:
         started_at = datetime.now(UTC).isoformat()
         t0 = time.perf_counter()
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_start")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
 
-        report_root = await self._apply_station_filters(page, session, report, full=False)
+        report_root = await self._apply_station_filters(page, session, report)
 
         await self.click_received_twice(
             report_root, page, feedback=True, report_slug=report.slug
@@ -76,7 +79,9 @@ class Report6Handler(Report5Handler):
                 slug=report.slug,
                 reason="not_found_first_pass",
             )
-            page = await self.ensure_mis_page(page, session, f"{report.slug}_retry")
+            page = await self.ensure_mis_page(
+                page, session, f"{report.slug}_retry", report=report
+            )
             report_root = await self._apply_station_filters(
                 page, session, report, full=True
             )
@@ -90,7 +95,9 @@ class Report6Handler(Report5Handler):
                 await self._save_not_found_artifacts(page, session, report.slug)
                 return self.build_failed_result(report.slug, SCR_STATION_UNSATISFACTORY_NOT_FOUND)
 
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_modal")
+        page = await self.ensure_mis_page(
+            page, session, f"{report.slug}_after_modal", report=report
+        )
 
         if error:
             return self.build_failed_result(report.slug, error)
@@ -104,13 +111,27 @@ class Report6Handler(Report5Handler):
             )
 
         csv_path = self._save_complaints_csv(complaints, report.slug)
+        validation_error = await self._validate_scr_extraction(
+            page, report.slug, complaints, csv_path
+        )
+        if validation_error:
+            return validation_error
+
         source_paths = [str(csv_path)]
-        row_counts = {"unsatisfactory": len(complaints), "expected": expected_count}
+        row_counts: dict[str, int | float] = {
+            "unsatisfactory": len(complaints),
+            "expected": expected_count,
+        }
+        if self._last_unsatisfactory_percent is not None:
+            row_counts["unsatisfactory_percent"] = self._last_unsatisfactory_percent
 
         if len(complaints) != expected_count:
             return self.build_failed_result(
                 report.slug,
-                f"Count mismatch: expected {expected_count}, got {len(complaints)}",
+                (
+                    f"{REPORT6_PORTAL_EXTRACTION_COUNT_MISMATCH}: "
+                    f"expected {expected_count}, got {len(complaints)}"
+                ),
                 partial=bool(complaints),
                 source_paths=source_paths,
                 row_counts=row_counts,
@@ -127,6 +148,7 @@ class Report6Handler(Report5Handler):
             slug=report.slug,
             extracted_count=len(complaints),
             expected_count=expected_count,
+            unsatisfactory_percent=self._last_unsatisfactory_percent,
             duration_seconds=round(extraction_seconds, 3),
         )
         return await self.finalize_after_extract(
@@ -146,38 +168,27 @@ class Report6Handler(Report5Handler):
         session: "SessionManager",
         report: ReportDefinition,
         *,
-        full: bool,
+        full: bool = True,
     ):
-        """Apply Mode-only switch when already on Tab 6, else full Station filters.
+        """Always apply full Report 6 filters (Previous Day, Zone=SC, Mode=Station).
 
-        When ``full=True`` (retry), always re-apply the complete Station filter set.
+        Reusing tab 6 after Report 5 must not leave Zone=ALL — that opens the
+        all-zone Total cell (~113 rows) instead of SCR Station (~6).
         """
+        del full  # retry path uses the same full filter set
         already_on_feedback = "mis_reports/report6" in page.url
-        if already_on_feedback and not full:
-            log_automation_event(
-                logger,
-                "report_navigate_skip",
-                report=report.slug,
-                reason="reuse_tab6_mode_switch",
-            )
-            mode_only = [
-                FilterFieldDefinition(
-                    name="mode",
-                    selector="#complaintModeInput",
-                    field_type="select",
-                    value="Station",
-                    required=True,
-                    label="Mode",
-                )
-            ]
-            report_root, _, _ = await self.apply_filters_and_submit(
-                page, report, filters=mode_only, session=session
-            )
-            return report_root
-
         if not already_on_feedback:
             await self.navigation.navigate_to_report(page, report)
-            page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav")
+            page = await self.ensure_mis_page(
+                page, session, f"{report.slug}_after_nav", report=report
+            )
+        else:
+            log_automation_event(
+                logger,
+                "report6_full_filters_on_tab6",
+                report=report.slug,
+                reason="zone_sc_mode_station_required",
+            )
 
         report_root, _, _ = await self.apply_filters_and_submit(
             page, report, filters=REPORT_6_SCR_FILTERS, session=session
@@ -244,12 +255,21 @@ class Report6Handler(Report5Handler):
         """Return (status, count, row_index) for Total/SCR Unsatisfactory cell.
 
         Blank or \"0\" parse as zero only when the correct cell exists.
+        Also sets ``_last_unsatisfactory_percent`` from the same target row.
         """
+        self._last_unsatisfactory_percent = None
         headers = await self._extract_table_headers(table)
         org_idx = self._exact_column_index(headers, "Organisation")
         if org_idx is None:
             org_idx = self._exact_column_index(headers, "Organization")
         unsat_idx = self._exact_column_index(headers, "Unsatisfactory")
+        percent_idx = self._exact_column_index(headers, "% Unsatisfactory")
+        if percent_idx is None:
+            for idx, header in enumerate(headers):
+                h = header.strip().lower()
+                if h.startswith("%") and "unsatisfactory" in h:
+                    percent_idx = idx
+                    break
         if org_idx is None or unsat_idx is None:
             return _TargetStatus.NOT_FOUND, 0, None
 
@@ -262,9 +282,11 @@ class Report6Handler(Report5Handler):
         total_row_idx: int | None = None
         total_count = 0
         total_found = False
+        total_percent: float | None = None
         scr_row_idx: int | None = None
         scr_count = 0
         scr_found = False
+        scr_percent: float | None = None
 
         start = 0
         if row_count > 0:
@@ -276,7 +298,8 @@ class Report6Handler(Report5Handler):
 
         for idx in range(start, row_count):
             row = rows.nth(idx)
-            cells = row.locator("td")
+            # Portal tfoot Total rows use th cells; tbody zone rows use td.
+            cells = row.locator("th, td")
             cell_count = await cells.count()
             if cell_count <= max(org_idx, unsat_idx):
                 continue
@@ -287,6 +310,7 @@ class Report6Handler(Report5Handler):
                 count = int(digits) if digits else 0
             except ValueError:
                 count = 0
+            percent = await self._read_row_percent(cells, percent_idx)
 
             org_lower = org_text.lower()
             if (
@@ -296,17 +320,21 @@ class Report6Handler(Report5Handler):
             ):
                 scr_row_idx = idx
                 scr_count = count
+                scr_percent = percent
                 scr_found = True
             if org_lower == "total" or org_lower.startswith("total"):
                 total_row_idx = idx
                 total_count = count
+                total_percent = percent
                 total_found = True
 
-        # Prefer Total row (zone already filtered to SCR); else SCR organisation row.
-        if total_found and total_row_idx is not None:
-            return _TargetStatus.FOUND, total_count, total_row_idx
+        # Prefer SCR organisation row when Zone=SC is applied; Total only as fallback.
         if scr_found and scr_row_idx is not None:
+            self._last_unsatisfactory_percent = scr_percent
             return _TargetStatus.FOUND, scr_count, scr_row_idx
+        if total_found and total_row_idx is not None:
+            self._last_unsatisfactory_percent = total_percent
+            return _TargetStatus.FOUND, total_count, total_row_idx
         return _TargetStatus.NOT_FOUND, 0, None
 
     async def _extract_scr_complaints(
@@ -332,6 +360,7 @@ class Report6Handler(Report5Handler):
         if not await self._click_unsatisfactory_row_exact(page, table, target_row_idx):
             return expected_count, [], "Failed to open complaints modal"
 
+        portal_total = await self._read_modal_portal_total(page)
         complaints = await self._extract_modal_pages(page)
         await self._close_modal(page)
 
@@ -345,7 +374,41 @@ class Report6Handler(Report5Handler):
         else:
             filtered = complaints
 
+        unique_refs = {
+            str(row.get("Ref. No.", "") or row.get("complaintRefNo", "")).strip()
+            for row in filtered
+            if str(row.get("Ref. No.", "") or row.get("complaintRefNo", "")).strip()
+        }
+        log_automation_event(
+            logger,
+            "report6_modal_extraction",
+            report_slug=report_slug,
+            zone_table_expected=expected_count,
+            portal_total=portal_total,
+            extracted_rows=len(filtered),
+            unique_complaint_refs=len(unique_refs),
+        )
+
+        authoritative = portal_total if portal_total is not None else expected_count
+        if portal_total is not None and len(filtered) != portal_total:
+            return (
+                authoritative,
+                filtered,
+                (
+                    f"{REPORT6_PORTAL_EXTRACTION_COUNT_MISMATCH}: "
+                    f"portal total {portal_total}, extracted {len(filtered)}"
+                ),
+            )
+        if authoritative != expected_count and portal_total is not None:
+            expected_count = authoritative
+
         return expected_count, filtered, None
+
+    def _uses_run_scoped_extract(self) -> bool:
+        """Report 6 always writes extraction CSV under the current run_id."""
+        from app.automation.run_context import get_run_context
+
+        return get_run_context() is not None
 
     async def _click_unsatisfactory_row_exact(
         self, page: "Page", table, row_idx: int
@@ -360,7 +423,7 @@ class Report6Handler(Report5Handler):
         if await rows.count() == 0:
             rows = table.locator("tr")
         row = rows.nth(row_idx)
-        cells = row.locator("td")
+        cells = row.locator("th, td")
         if await cells.count() <= unsat_idx:
             return False
 

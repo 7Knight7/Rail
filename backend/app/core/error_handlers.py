@@ -12,6 +12,7 @@ from app.core.exceptions import (
     DatabaseError,
     NotFoundError,
     RateLimitError,
+    SummaryNotGeneratedError,
     ValidationError,
 )
 
@@ -49,11 +50,21 @@ def register_error_handlers(app: FastAPI) -> None:
             content=ErrorResponse(detail=exc.message, code=exc.code).model_dump(),
         )
 
+    @app.exception_handler(SummaryNotGeneratedError)
+    async def summary_not_generated_handler(
+        _: Request, exc: SummaryNotGeneratedError
+    ) -> JSONResponse:
+        logger.info("Summary not generated: run_id=%s", exc.run_id)
+        return JSONResponse(
+            status_code=404,
+            content=ErrorResponse(detail=exc.message, code=exc.code).model_dump(),
+        )
+
     @app.exception_handler(ValidationError)
     async def validation_handler(_: Request, exc: ValidationError) -> JSONResponse:
         logger.warning("Validation error: %s", exc.message)
         return JSONResponse(
-            status_code=400,
+            status_code=422,
             content=ErrorResponse(detail=exc.message, code=exc.code).model_dump(),
         )
 

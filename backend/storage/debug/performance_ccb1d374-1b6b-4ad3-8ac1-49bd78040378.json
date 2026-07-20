@@ -1,0 +1,88 @@
+{
+  "run_id": "ccb1d374-1b6b-4ad3-8ac1-49bd78040378",
+  "started_at": "2026-07-20T05:08:27.004800+00:00",
+  "completed_at": "2026-07-20T05:08:27.577298+00:00",
+  "total_duration_seconds": 0.572,
+  "portal_wait_seconds": 0.01,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.0,
+  "fixed_sleep_events": [],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.0,
+    "handler_execute:report1": 0.0,
+    "report:report1": 0.003,
+    "handler_execute:division": 0.0,
+    "report:division": 0.002,
+    "handler_execute:train-no": 0.0,
+    "report:train-no": 0.002,
+    "handler_execute:types": 0.0,
+    "report:types": 0.001,
+    "handler_execute:scr-train": 0.0,
+    "report:scr-train": 0.001,
+    "handler_execute:scr-station": 0.0,
+    "report:scr-station": 0.001
+  },
+  "per_report": {
+    "report1": {
+      "duration_seconds": 0.003,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "division": {
+      "duration_seconds": 0.002,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "train-no": {
+      "duration_seconds": 0.002,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "types": {
+      "duration_seconds": 0.001,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "scr-train": {
+      "duration_seconds": 0.001,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    },
+    "scr-station": {
+      "duration_seconds": 0.001,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    }
+  },
+  "critical_path_report": "report1",
+  "critical_path_seconds": 0.003,
+  "top_bottlenecks": [
+    [
+      "report:report1",
+      0.003
+    ],
+    [
+      "report:division",
+      0.002
+    ],
+    [
+      "report:train-no",
+      0.002
+    ],
+    [
+      "report:types",
+      0.001
+    ],
+    [
+      "report:scr-train",
+      0.001
+    ]
+  ]
+}

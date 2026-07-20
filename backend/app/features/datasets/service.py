@@ -231,10 +231,12 @@ class DatasetService:
                 f"Ingest row_count mismatch for {canonical}: db={model.row_count} csv={row_count}"
             )
         logger.info(
-            "Ingested dataset metadata for report %s (%s columns, %s rows)",
+            "Ingested dataset metadata for report %s source=%s (%s columns, %s rows) columns=%s",
             canonical,
+            str(path.resolve()),
             len(columns),
             row_count,
+            [column.field_name for column in columns],
         )
         return self._to_response(model)
 

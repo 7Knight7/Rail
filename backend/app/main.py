@@ -28,10 +28,25 @@ async def lifespan(_: FastAPI):
     setup_logging()
     from app.features.activity.emit import ensure_user_activity_table
     from app.features.activity.hub import activity_hub
+    from app.features.daily_summary.schema_ensure import ensure_daily_summary_schema
 
     activity_hub.bind_loop()
     await ensure_user_activity_table()
+    await ensure_daily_summary_schema()
+    from app.automation.run_registry import ensure_schema_columns
+
+    import logging
+
+    _log = logging.getLogger(__name__)
+    from app.features.daily_summary.controller import router as _daily_summary_router
+
+    _log.info(
+        "daily_summary_routes_registered count=%s paths=%s",
+        len(_daily_summary_router.routes),
+        [getattr(r, "path", "") for r in _daily_summary_router.routes],
+    )
     async with SessionLocal() as session:
+        await ensure_schema_columns(session)
         await seed_workflows(session)
         await seed_admin_user(session)
         await seed_report_datasets(session)

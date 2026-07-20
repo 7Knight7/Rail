@@ -17,13 +17,6 @@ const settingsFields = [
   EXPORT_FORMAT_FIELD,
 ];
 
-const previewColumns = [
-  { key: "rank", header: "Rank", width: "60px" },
-  { key: "cause", header: "Cause" },
-  { key: "count", header: "Count" },
-  { key: "percentage", header: "Percentage" },
-];
-
 export function TypesPage() {
   return (
     <WorkflowPageLayout
@@ -32,7 +25,6 @@ export function TypesPage() {
       description="Configure and generate the cause-wise analysis report"
       settingsFields={settingsFields}
       advancedFields={COMMON_ADVANCED_FIELDS}
-      previewColumns={previewColumns}
     />
   );
 }

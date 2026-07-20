@@ -9,6 +9,7 @@ import {
   ChevronDown,
   SlidersHorizontal,
   FolderOpen,
+  FileText,
 } from "lucide-react";
 import { RailMadadLogo } from "@/components/branding/RailMadadLogo";
 import { Button } from "@/components/ui/Button";
@@ -33,6 +34,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/automation": "Generate Reports",
   "/dashboard": "Dashboard",
   "/reports": "Generated Reports",
+  "/daily-summary": "Daily Summary",
   "/logs": "Activity Log",
   "/settings": "Settings",
   "/workflows/merging": "Zone Wise Report",
@@ -143,6 +145,11 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         {canViewReports && (
           <li className="pt-2">
             <NavLinkItem to="/reports" label="Generated Reports" icon={FolderOpen} onNavigate={onNavigate} />
+          </li>
+        )}
+        {canViewReports && (
+          <li>
+            <NavLinkItem to="/daily-summary" label="Daily Summary" icon={FileText} onNavigate={onNavigate} />
           </li>
         )}
         {canViewLogs && (

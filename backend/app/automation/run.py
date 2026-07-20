@@ -7,6 +7,12 @@ import logging
 from uuid import uuid4
 
 from app.automation.browser import BrowserConnectionError, BrowserManager
+from app.automation.cdp_session import (
+    connection_error_code,
+    ensure_live_mis_page,
+    is_recoverable_connection_error,
+    reconnect_browser_session,
+)
 from app.automation.cancellation import (
     RunCancelledError,
     clear_cancel,
@@ -54,6 +60,85 @@ _attempt_feedback_extract = attempt_feedback_extract
 _extract_feedback_zone_csv = extract_feedback_zone_csv
 _regenerate_comprehensive_for_pdf = regenerate_comprehensive_for_pdf
 _save_failure_artifacts = save_failure_artifacts
+
+
+async def _execute_report_handler(
+    *,
+    run_id: str,
+    slug: str,
+    report,
+    manager: BrowserManager,
+    session: SessionManager,
+    page,
+    ctx: RunContext,
+    timing: RunTiming,
+):
+    """Run one report handler with live-page checks, stage timeout, and one reconnect retry."""
+    last_exc: Exception | None = None
+    current_page = page
+    for attempt in range(2):
+        try:
+            await ctx.checkpoint("before_handler_execute")
+            current_page = await ensure_live_mis_page(
+                run_id=run_id,
+                report_slug=slug,
+                manager=manager,
+                session=session,
+                page=current_page,
+                prefer_url_fragment=report.url_fragment,
+            )
+            handler = get_handler(slug)
+            handler.bind_browser(manager.browser)
+            log_automation_event(
+                logger,
+                "exact_report_automation_started",
+                run_id=run_id,
+                report_slug=slug,
+                stage="extraction",
+                retry_count=attempt,
+            )
+            with timing.span(f"handler_execute:{slug}"):
+                result = await asyncio.wait_for(
+                    handler.execute(current_page, session, report),
+                    timeout=float(config.timeout),
+                )
+            log_automation_event(
+                logger,
+                "extraction_completed",
+                run_id=run_id,
+                report_slug=slug,
+                status=result.status,
+            )
+            return result, current_page
+        except asyncio.TimeoutError as exc:
+            last_exc = exc
+            raise TimeoutError(
+                f"Report {slug} extraction timed out after {config.timeout}s"
+            ) from exc
+        except MisSessionError:
+            raise
+        except Exception as exc:
+            last_exc = exc
+            if attempt == 0 and is_recoverable_connection_error(exc):
+                log_automation_event(
+                    logger,
+                    "browser_connection_lost",
+                    run_id=run_id,
+                    report_slug=slug,
+                    stage="handler_execute",
+                    error=str(exc),
+                    retry_count=attempt,
+                )
+                _browser, current_page = await reconnect_browser_session(
+                    run_id=run_id,
+                    report_slug=slug,
+                    manager=manager,
+                    session=session,
+                )
+                continue
+            raise
+    assert last_exc is not None
+    raise last_exc
 
 
 def _log_tab(tab: TabInfo) -> None:
@@ -293,6 +378,7 @@ async def attach_to_railmadad(
     report_slugs: list[str] | None = None,
     user_id: str | None = None,
     run_id: str | None = None,
+    manual_config: dict | None = None,
 ) -> MultiReportResult:
     """Connect to Chrome over CDP and execute catalog reports sequentially."""
     manager = BrowserManager(cdp_url=config.chrome_debug_url)
@@ -324,6 +410,7 @@ async def attach_to_railmadad(
         user_id=user_id,
         defer_processing=True,
         skip_portal_archive=True,
+        manual_config=manual_config,
     )
     token = set_run_context(ctx)
     run_id = resolved_run_id
@@ -365,8 +452,12 @@ async def attach_to_railmadad(
         for tab in tabs:
             _log_tab(tab)
 
-        page = await session.ensure_authenticated_mis_page(
-            browser,
+        page = await ensure_live_mis_page(
+            run_id=run_id,
+            report_slug=report_slugs[0] if report_slugs else catalog.first_report().slug,
+            manager=manager,
+            session=session,
+            page=None,
             prefer_url_fragment=catalog.first_report().url_fragment,
         )
         log_automation_event(
@@ -505,18 +596,28 @@ async def attach_to_railmadad(
                     pass
 
             try:
-                await ctx.checkpoint("before_handler_execute")
                 if is_cancelled(run_id):
                     continue
-                page = await session.ensure_authenticated_mis_page(browser, page)
-                handler = get_handler(slug)
-                handler.bind_browser(browser)
-                with timing.span(f"handler_execute:{slug}"):
-                    result = await handler.execute(page, session, report)
+                result, page = await _execute_report_handler(
+                    run_id=run_id,
+                    slug=slug,
+                    report=report,
+                    manager=manager,
+                    session=session,
+                    page=page,
+                    ctx=ctx,
+                    timing=timing,
+                )
                 report_results.append(result)
                 ctx.store_partial(result)
 
-                page = await session.ensure_authenticated_mis_page(browser, page)
+                page = await ensure_live_mis_page(
+                    run_id=run_id,
+                    report_slug=slug,
+                    manager=manager,
+                    session=session,
+                    page=page,
+                )
                 ctx.timing.end_report(slug, status=result.status, error=result.error)
                 await _emit_report_activity(
                     user_id,
@@ -590,12 +691,28 @@ async def attach_to_railmadad(
 
             except Exception as exc:
                 logger.exception("Report %s failed", slug)
+
+                error_code = (
+                    connection_error_code(exc)
+                    if is_recoverable_connection_error(exc)
+                    else None
+                )
+                log_automation_event(
+                    logger,
+                    "handler_failed",
+                    run_id=run_id,
+                    report_slug=slug,
+                    error=str(exc),
+                    error_code=error_code,
+                    connection_closed=is_recoverable_connection_error(exc),
+                )
                 report_results.append(
                     ReportResult(
                         slug=slug,
                         dataset_key=slug,
                         status="failed",
                         error=str(exc),
+                        error_code=error_code,
                     )
                 )
                 ctx.timing.end_report(slug, status="failed", error=str(exc))
@@ -607,7 +724,13 @@ async def attach_to_railmadad(
                     error=str(exc),
                 )
                 try:
-                    page = await session.ensure_authenticated_mis_page(browser, page)
+                    page = await ensure_live_mis_page(
+                        run_id=run_id,
+                        report_slug=slug,
+                        manager=manager,
+                        session=session,
+                        page=page,
+                    )
                 except MisSessionError as auth_exc:
                     await ctx.wait_all()
                     result = _finalize_multi_result(
@@ -629,7 +752,16 @@ async def attach_to_railmadad(
                         session_lost=True,
                     )
 
+        await manager.close()
+        log_automation_event(
+            logger,
+            "cdp_disconnected",
+            run_id=run_id,
+            stage="post_extraction",
+        )
+
         await ctx.wait_all()
+        log_automation_event(logger, "processing_completed", run_id=run_id)
         # Merge deferred results before artifact backfill
         for r in ctx.get_results():
             found = False
@@ -661,6 +793,14 @@ async def attach_to_railmadad(
                 await finalize_cdp_run(db, run_id, result, user_id=user_id)
         except Exception as exc:
             logger.warning("Could not finalize CDP run row: %s", exc)
+        log_automation_event(
+            logger,
+            "report_terminal_status",
+            run_id=run_id,
+            run_status="completed" if result.success else "failed",
+            reports_successful=result.reports_successful,
+            reports_failed=result.reports_failed,
+        )
         return result
 
     except MisSessionError as exc:
@@ -752,9 +892,10 @@ async def attach_to_railmadad(
             "cdp_disconnect_start",
             browser_connected=manager.browser is not None,
             cdp_url=config.chrome_debug_url,
+            run_id=run_id,
         )
         await manager.close()
-        log_automation_event(logger, "cdp_disconnected")
+        log_automation_event(logger, "cdp_disconnected", run_id=run_id)
 
 
 async def run() -> bool:

@@ -1,0 +1,94 @@
+{
+  "run_id": "5e799805-93fd-430d-9bff-e9c98eb03b99",
+  "started_at": "2026-07-20T05:20:27.117268+00:00",
+  "completed_at": "2026-07-20T05:25:28.615979+00:00",
+  "total_duration_seconds": 301.499,
+  "portal_wait_seconds": 900.793,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.9,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.831,
+    "nav_filter_submit:report1": 1.856,
+    "sorting:report1": 0.374,
+    "extraction:report1": 0.072,
+    "feedback_extraction:report1": 297.506,
+    "handler_execute:report1": 300.01,
+    "report:report1": 300.144
+  },
+  "per_report": {
+    "report1": {
+      "duration_seconds": 300.144,
+      "extraction_seconds": 0.072,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 1.856,
+        "sorting": 0.374,
+        "extraction": 0.072,
+        "feedback_extraction": 297.506
+      }
+    }
+  },
+  "critical_path_report": "report1",
+  "critical_path_seconds": 300.144,
+  "top_bottlenecks": [
+    [
+      "report:report1",
+      300.144
+    ],
+    [
+      "handler_execute:report1",
+      300.01
+    ],
+    [
+      "feedback_extraction:report1",
+      297.506
+    ],
+    [
+      "nav_filter_submit:report1",
+      1.856
+    ],
+    [
+      "browser_connect",
+      0.831
+    ]
+  ]
+}

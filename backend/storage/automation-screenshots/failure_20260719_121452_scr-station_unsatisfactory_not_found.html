@@ -1,0 +1,2241 @@
+<html class="h-100"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <script src="/rmmis/js_assets/jquery.min.js"></script>
+
+        
+
+  
+            
+     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ 
+
+   
+  
+<script src="/rmmis/js_assets/moment-with-locales.js"></script>
+<script src="/rmmis/js_assets/bootstrap.min.js"></script>
+<script src="/rmmis/js_assets/moment.min.js" type="text/javascript"></script>
+<script src="/rmmis/js_assets/bootstrap-datetimepicker.min.js"></script>
+<link href="/rmmis/css_assets/bootstrap.min.css" rel="stylesheet">
+<link href="/rmmis/css_assets/jquery-ui.css" rel="stylesheet">
+
+<link href="/rmmis/css_assets/font-awesome.min.css" rel="stylesheet">
+
+
+<link href="/rmmis/css_assets/bootstrap-datetimepicker.css" rel="stylesheet">
+<link href="/rmmis/css_assets/bootstrap-datetimepicker.min.css" rel="stylesheet">
+<link href="/rmmis/css_assets/custom.css" rel="stylesheet">
+
+<link href="/rmmis/css_assets/all.css" rel="stylesheet">
+
+<link rel="stylesheet" href="/rmmis/css_assets/bootstrap-select.min.css">
+<link rel="stylesheet" href="/rmmis/css_assets/bootstrap-multiselect.css" type="text/css">
+<link rel="stylesheet" href="/rmmis/css_assets/admin.css" type="text/css">
+<link rel="stylesheet" href="/rmmis/css_assets/jquery.jgrowl.min.css" type="text/css">
+
+
+
+<style>
+.bg {
+	background-position: center center;
+	background-size: cover;
+}
+.col-1-5 {
+    flex: 0 0 23.3%;
+    max-width: 23.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 76.6%;
+    max-width: 76.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+
+@media (min-width: 992px)
+{
+.col-1-5 {
+    flex: 0 0 12.3%;
+    max-width: 12.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 87.6%;
+    max-width: 87.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+}
+
+@media (min-width: 768px)
+{
+.col-1-5 {
+    flex: 0 0 12.3%;
+    max-width: 12.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 87.6%;
+    max-width: 87.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+}</style></head>
+
+
+
+  
+
+
+<body id="page-top" class="h-100">
+
+	
+
+
+<div class="ajax-loader" style="display: none;">
+<img src="/rmmis/img_assets/ajax-loader.gif">
+<br>Loading..</div>
+	<!--    header start  -->
+	<div class="row customheight m-0 h-100">
+	<div class="col-1-5 p-0 h-100 sidebarbg no-print" style="overflow:auto">
+		
+
+
+<style>
+.jGrowl-message{
+color:white !important;
+}
+</style>
+<script>
+$(document).ready(function() {
+    //var notification = new Notification("New Complaints Received, Please Check!!");
+    
+     $.ajax({
+					
+			        url: window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/showreportlinks.jsp",
+			        
+			        async: true,
+			        success : function(response) {
+			      	  
+						    	
+			       
+		   if(response.error=="true")
+			   {
+		      	
+					$(".reports").addClass("d-none");
+			   }
+		   else{
+				$(".reports").removeClass("d-none");
+				   
+			   }
+			        },
+			        error: function (xhr, status) {
+				    	 console.log("Errortype."+status);
+					    	 
+				     }
+					});
+			   
+
+
+	  $("#toggle1").click(function() {
+		  $(".sidebar").show();
+		  $("#toggle1").hide();
+		  
+		});
+
+	  $("#toggle2").click(function() {
+		  $(".sidebar").hide();
+		  $("#toggle1").show();
+		  
+		});
+$(".tempc").click(function() {
+	$('#collapseOne').collapse('toggle');
+});
+$(".tempc1").click(function() {
+	$('#collapseOne12').collapse('toggle');
+});
+$(".tempc2").click(function() {
+	$('#collapseOne121').collapse('toggle');
+});
+});
+</script>
+
+
+
+	<!-- Sidebar -->
+	<ul class="sidebar navbar-nav  text-light sidebarbg">
+
+		
+		<li class="nav-item  active nav-link  text-center font-16">RailMadad</li>
+		
+		
+	<li class="reports">	
+			<div id="accordion">
+	
+	 <div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+      
+        <button class="btn btn-block tempc1 p-0 adminbtn-xl text-left pl-md-3 pl-1" data-target="#collapseOne12" aria-expanded="true" aria-controls="collapseOne12">
+       <span class="nav-link " style="color:black" title="For Current Month &amp; Last Month">
+					MIS Reports</span>
+        </button>
+     
+    </div>
+
+   <div id="collapseOne12" class="collapse" data-parent="#accordion">
+      <div class="card-body" style="padding:1px;">
+      
+<ul style="list-style-type:none;padding-inline-start: 2px;">
+							
+		
+	<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report1" report-type="N"> <span class=" " style="color:black">1) Comprehensive (with drill down) </span></a></li>
+	 
+			
+					
+		<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report2" report-type="N" style="color:black"> <span class=" " style="color:black">2) Cause Wise </span></a></li>
+		<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report3" report-type="N"> <span class=" " style="color:black">3) SLA Breach
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report4" report-type="N"> <span class=" " style="color:black">4) Cause Wise SLA
+			</span></a></li>
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report5" report-type="N"> <span class=" " style="color:black">5) Channel Dept Wise
+			</span></a></li>
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report6" report-type="N"> <span class=" " style="color:black">6) Feedback (with drill down) 
+			</span></a></li>
+						
+								
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report7" report-type="N"> <span class=" " style="color:black">7) Mode Wise Cause Wise
+			</span></a></li>
+			
+			<!--  <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report8" report-type='N'> <span class=" "  style="color:black">8) Bottom Performance
+			</span></a></li>-->
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report9" report-type="N"> <span class=" " style="color:black">8) Station Profiling
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report10" report-type="N"> <span class=" " style="color:black">9) Train Profiling
+			</span></a></li>
+			
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report16" report-type="N"> <span class=" " style="color:black">10) Zone/Train Type wise Report 
+			</span></a></li>  
+			
+				
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report22" report-type="N"> <span class=" " style="color:black">11) Train Watering Complaint 
+			</span></a></li> 
+			
+				 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report17" report-type="N"> <span class=" " style="color:black">12) Suggestion Comprehensive (with drill down)
+			</span></a></li>  
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report18" report-type="N"> <span class=" " style="color:black">13) Inquiry Wise 1
+			</span></a></li>  
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report19" report-type="N"> <span class=" " style="color:black">14) Inquiry Wise 2
+			</span></a></li>  
+			<!-- <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/reportprsdata" report-type='Y'> <span class=" "  style="color:black">16) Complaints per Million Passsenger Report
+			
+			</span></a></li> -->
+			
+		
+		<!--  
+			    <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback1" report-type='Y'> <span class=" "  style="color:black">16) IR Feedback Report Type 1
+			
+			</span></a></li> 
+				<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback2" report-type='Y'> <span class=" "  style="color:black">17) IR Feedback Summary
+			
+			</span></a></li> 
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback3" report-type='Y'> <span class=" "  style="color:black">18) IR Feedback Zone Division Wise(with drill down)
+			
+			</span></a></li>
+			-->
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report20" report-type="Y"> <span class=" " style="color:black">15) FRT (with drill down)
+			
+			</span></a></li>
+				<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/atrstatus" report-type="Y"> <span class=" " style="color:black">16) ATR Status
+			
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/atrcausewisereport" report-type="Y"> <span class=" " style="color:black">17) Cause wise ATR Report
+			
+			</span></a></li>   
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/vandebharatreport" report-type="N"> <span class=" " style="color:black">18) Vande Bharat Report 
+			</span></a></li> 
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/headsubheadchangereport" report-type="Y"> <span class=" " style="color:black">19) Head Subhead Change Report
+			
+			</span></a></li>
+			  
+			
+			
+				
+			  
+			
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report21" report-type="N"> <span class=" " style="color:black">22) Zone &amp; Cause Wise Complaint/Feedback
+			</span></a></li> 
+			
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report23" report-type="N"> <span class=" " style="color:black">23) Rail Anubhav Report
+			</span></a></li>  
+			
+		 
+		 
+			
+</ul>     </div>
+    </div>
+  </div>
+  
+  
+  
+  
+  
+</div>
+		
+</li>
+			
+
+<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/trainwateringreport"> <span class="nav-link " style="color:black" title="For Train Watering Complaints">
+					Train Watering Complaints </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+
+
+
+			
+
+					
+
+	<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0 tempc2 adminbtn-xl text-left pl-md-3 pl-1" data-target="#collapseOne121" aria-expanded="true" aria-controls="collapseOne121">
+       <span class="nav-link " style="color:black" title="For Current Month &amp; Last Month">
+					RailMadad Shield Reports</span>
+        </button>
+        </div>
+         <div id="collapseOne121" class="collapse" data-parent="#accordion">
+      <div class="card-body" style="padding:1px;">
+      <ul>
+     
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/shieldscorereport" report-type="Y"> <span class=" " style="color:black">1) Shield Score Report
+			
+			</span></a></li> 
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/shieldperformreport" report-type="Y"> <span class=" " style="color:black">2) Shield Performance Report
+			
+			</span></a></li></ul> 
+      </div>
+      </div>
+    
+    
+    
+    </div>
+	</div>
+	
+	
+	
+	
+	</li>
+	
+	
+	
+
+	
+
+	<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/quarterwisecomplaintreport"> <span class="nav-link " style="color:black" title="For Quarter Wise Report">
+					RailMadad Quarter Wise Data </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+
+
+
+
+<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/financialyearwisecomplaintreport"> <span class="nav-link " style="color:black" title="For Quarter Wise Report">
+					RailMadad Financial Year Data </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+	
+	
+			
+	
+			
+			
+			<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/SearchComplaintAdmin"> <span class="nav-link " style="color:black" title="For Search Complaint">
+					Search Complaint </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li> 
+			
+	
+	
+
+	</ul>
+	
+
+		</div>
+		<div class="col-10-5 p-0" style="background-color:white;">
+		<!--    header end   -->
+		
+		<div class="row m-0 ">
+	<div class="col-12 p-2 bg-white h-100 no-print">
+     	
+
+			<h5 class="d-inline font-14">&nbsp;Welcome: GM_SC</h5>
+			
+		<a href="/rmmis/Logout.jsp">
+<button class="btn btn-sm float-right custombtnnew btn-info adminbtn">Logout</button>
+</a>
+
+
+
+
+<button class="btn btn-sm float-right mr-2 custombtnnew btn-info editbtnself adminbtn">Change Password</button> 
+
+
+			
+	
+	
+		
+
+
+ 
+
+	</div>
+</div>
+		
+		<div class="row m-0 p-2 ml-2 dashboardmainsection custom-height-main-content" style="background-color:#f4f6f9;overflow:auto" id="dashboardmainsection">
+	
+
+<div class="col-md-12 mb-2">
+			
+			<font class="content-header">
+Feedback (with drill down)	</font>
+</div>
+<div class="col-md-12 bg-white pb-5 pt-2">
+
+						<div class="row">
+						
+							
+							
+								<div class="col-md-2">
+	   <div class="form-group">
+    <label class="">Date Range</label>
+     <select class="form-control " id="dateRange">
+     
+      <!-- <option value="CURR_DAY">Current Day</option>-->
+
+       <option value="PREV_DAY">Previous Day</option>
+    
+                 <option value="WEEKLY">Last 7 Days</option>
+
+       <option value="CURR_MONTH">Current Month</option>
+            <option value="PREV_MONTH">Previous Month</option>
+            <option value="CURR_YEAR">Current Financial Year</option>
+               <option value="PREV_YEAR">Previous Financial Year</option>
+     
+         
+
+<option value="CURR_DAY">Current Day</option>			
+   
+        
+    </select>
+    
+  </div>
+							</div>
+							
+							<div class="col-md-2 fromDate d-none">
+								<div class="form-group">
+									<label class="">From Date</label> <input class="form-control " type="text" id="fromDate" required="" style="">
+
+								</div>
+							</div>
+
+							<div class="col-md-2 toDate d-none">
+								<div class="form-group">
+									<label class="">To Date</label> <input class="form-control " type="text" id="toDate" required="" style="">
+
+								</div>
+							</div>
+							
+							
+							<div class="col-md-2">
+						 <div class="form-group">
+						 						 					
+						 
+    <label class="">Excluding Refund Cases</label>
+    <select class="form-control " id="refundInput">
+
+       <option value="Y">YES</option>
+
+       <option value="N">NO</option>
+     
+      
+   
+      
+    </select>
+    
+  </div>
+						</div>
+						
+						<div class="col-md-2">
+						 <div class="form-group">
+						 
+						 					
+						 
+    <label class="">Excluding Inquiry Cases</label>
+    <select class="form-control " id="inquiryInput">
+
+       <option value="Y">Yes</option>
+
+       <option value="N">No</option>
+            <option value="O">Only Inquiry</option>
+     
+      
+   
+      
+    </select>
+    
+    
+  </div>
+						</div>
+								
+							
+						
+						<div class="col-md-2">
+						  <div class="form-group" id="zonediv">
+    <label class="">Zone</label>
+    <select class="form-control " id="complaintZoneInput"><option value="">ALL</option><option value="CR">Central Railway</option><option value="EC">East Central Railway</option><option value="EO">East Coast Railway</option><option value="ER">Eastern Railway</option><option value="IRC">IRCTC</option><option value="KM">Kolkata Metro</option><option value="KR">Konkan Railway</option><option value="NC">North Central Railway</option><option value="NE">North Eastern Railway</option><option value="NF">Northeast Frontier Railway</option><option value="NR">Northern Railway</option><option value="NW">North Western Railway</option><option value="SB">South East Central Railway</option><option value="SC">South Central Railway</option><option value="SE">South Eastern Railway</option><option value="SR">Southern Railway</option><option value="SW">South Western Railway</option><option value="WC">West Central Railway</option><option value="WR">Western Railway</option><option value="SO">South Coast Railway</option></select>
+  </div>
+						</div>
+						<div class="col-md-2">
+						 <div class="form-group" id="divisiondiv">
+    <label class="">Division</label>
+
+    <select class="form-control " id="complaintDivInput"><option value="">ALL</option></select>
+  </div>
+						</div>
+						<div class="col-md-2">
+						 <div class="form-group">
+    <label class="">Department</label>
+    <select class="form-control " id="complaintDeptInput"><option value="">ALL</option><option value="ACCT">ACCOUNTS</option><option value="CHG">COACHING</option><option value="CML">COMMERCIAL</option><option value="CNW">CARRIAGE &amp; WAGON </option><option value="ELE">ELECTRICAL</option><option value="ENG">ENGINEERING</option><option value="IRC">IRCTC Online</option><option value="IRCTG">IRCTC Catering</option><option value="IRSDC">IRSDC</option><option value="RPF">RAILWAY PROTECTION FORCE</option><option value="SNT">SIGNAL &amp; TELECOMMUNICATION</option></select>
+  </div>
+						</div>
+						<div class="col-md-2">
+						 <div class="form-group">
+    <label class="">Mode</label>
+    <select class="form-control " id="complaintModeInput">
+
+       <option value="">ALL</option>
+
+       <option value="S">Station</option>
+      
+      <option value="T">Train</option>
+      
+     
+      
+    </select>
+  </div>
+						</div>
+						<div class="col-md-2">
+						   <div class="form-group" id="comptypediv">
+					    <label class=""> Type</label>
+					    <select class="form-control " id="complaintTypeInput"><option value="">ALL</option><option value="134">Medical Assistance- Station</option><option value="5">Security- Station</option><option value="153">Divyangjan Facilities- Station</option><option value="172">Facilities for Women with Special needs- Station</option><option value="7">Unreserved Ticketing- Station</option><option value="10">Luggage / Parcels - Station</option><option value="6">Reserved Ticketing- Station</option><option value="8">Refund of Tickets- Station</option><option value="9">Passenger Amenities- Station</option><option value="3">Electrical Equipment- Station</option><option value="12">Staff Behaviour- Station</option><option value="1">Cleanliness- Station</option><option value="4">Catering &amp; Vending Services- Station</option><option value="2">Water Availability- Station</option><option value="11">Goods- Station</option><option value="13">Corruption / Bribery- Station</option><option value="14">Miscellaneous - Station</option></select>
+					  </div>
+						</div>
+						<div class="col-md-2">
+						<div class="form-group" id="subtypediv">
+    <label class=""> Sub Type</label>
+    <select class="form-control " id="complaintSubTypeInput"><option value="">ALL</option></select>
+  </div>
+						</div>
+						<div class="col-md-2">
+                    <div class="form-group" id="typediv">
+                        <label class=""> View</label>
+                        <select class="form-control " id="viewType">
+                            <option value="zonewise" selected="">Zone Wise/ Dept. Wise</option>
+                            <option value="complaintTypeWise">Complaint Type Wise</option>
+                            <option value="divisionwise">Division Wise</option>
+
+                        </select>
+                    </div>
+                </div>
+         							<div class="col-md-2">
+						<div class="form-group" id="assistancediv">
+    <label class="">Excluding Assistance Cases</label>
+    <select class="form-control " id="assistanceInput">
+      <option value="N">No</option>
+     <option value="Y" selected="">Yes</option>
+                 <option value="O">Only Assistance</option>
+     
+    </select>
+  </div>
+						</div>
+						</div>
+					<div class="col-md-12 text-center" style="margin-top:auto;margin-bottom:15px; text-align:center">
+													
+							<button type="submit" class="btn btn-md btn-info" id="submitbtn">
+						Submit
+						</button>
+						 <input type="hidden" class="form-control " id="tempfrom" value="2026-07-18" style="">
+						    			        <input type="hidden" class="form-control " id="tempto" value="2026-07-18" style="">
+						    <input type="hidden" id="flag" value="N" style="">
+						</div>
+						
+						
+						
+						
+						
+						
+						<div class="row">
+						<div class="col-12 table-responsive" id="data1">
+
+	
+		
+	
+<script>
+$(document).ready(function() {
+	var fromDate="";
+	var toDate="";
+     if( $('#dateRange').val()!="DATE_RANGE")
+	 {
+	 fromDate=$("#tempfrom").val();
+	 toDate=$("#tempto").val();
+	 }
+ else
+	 {
+	 fromDate= $("#fromDate").val();
+	 toDate= $("#toDate").val();
+	 }
+	
+	
+
+	generateTableContent();
+	 	
+
+	var complaintIdList = '132,134';
+	var subComplaintIdList = '133,135,178,183,179,184,188,189,190,191,192,193,166';
+	function generateTableContent(){
+		
+
+   	 
+   	var fromInput= fromDate;
+   	var toInput=toDate;
+    var complaintZoneInputTitle=$('#complaintZoneInput').val();
+	   if(complaintZoneInputTitle=='')
+		   {
+
+		   complaintZoneInputTitle='ALL';
+		   }
+	   var complaintDivInputTitle=$('#complaintDivInput').val();
+	   if(complaintDivInputTitle=='')
+		   {
+
+		   complaintDivInputTitle='ALL';
+		   }
+	   var complaintDeptInputTitle=$('#complaintDeptInput').val();
+	   if(complaintDeptInputTitle=='')
+		   {
+
+		   complaintDeptInputTitle='ALL';
+		   }
+	   var complaintModeInputTitle=$('#complaintModeInput').val();
+	   if(complaintModeInputTitle=='')
+		   {
+
+		   complaintModeInputTitle='ALL';
+		   }
+	 
+var title="6.1) Zone Wise Report From Date:"+fromInput+", To Date:"+toInput+", Zone:"+complaintZoneInputTitle+", Division:"+complaintDivInputTitle+", Mode:"+complaintModeInputTitle+", Department:"+complaintDeptInputTitle;
+$(".title1").html(title);
+	   
+		 $.ajax({
+		       url: window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/AllReportFetchServlet",
+		       async: true,
+		       data:{
+			       
+			       fetchDataType:'report6data',
+			       complaintZoneInput: $('#complaintZoneInput').val(),
+		        	complaintDivInput: $('#complaintDivInput').val(),
+		        	complaintTypeInput: $('#complaintTypeInput').val(),
+		        	complaintSubTypeInput: $('#complaintSubTypeInput').val(),	
+		        	complaintModeInput: $('#complaintModeInput').val(),
+		        	refundInput: $('#refundInput').val(),
+		        	inquiryInput: $('#inquiryInput').val(),
+
+		        	complaintDeptInput: $('#complaintDeptInput').val(),
+		        	fromInput:fromDate,
+        			toInput:toDate,
+		        	dateRange:$('#dateRange').val()
+		        	,
+		        	flag: $('#flag').val(),
+		        
+		        	viewType:'zonewise',
+		        	assistanceInput : $('#assistanceInput').val()	        	
+
+
+				       },
+		       success : function(response) {
+
+		    	   var orgt="";
+			  		 var totalCount=0;
+			  		
+			  		var feedback_recv="";
+			  		var excellent="";
+			  		var unsatisfactory="";
+			  		var satisfactory="";
+			  		var i=0;
+			  		$('#detailtable').DataTable().clear().destroy();
+			        var tablerows="";
+			        var resp=response.report6ResponseModel;
+			        console.log(resp);
+			        $( resp).each(function( index ) {
+			        	i=i+1;
+			        		        	if(resp[index].org != null ){
+
+			        		        		 tablerows+= "<tr>"+
+			        		        			"  <td scope='col'>"+i+"</td>";
+			        		        			if($('#flag').val()=="N")
+			        		        			{
+			        		        			if($('#complaintZoneInput').val()=="")
+			        		        				 tablerows+= "<td scope='col'><a class='zone' id='"+resp[index].znCode+"' style='color:blue;'>"+resp[index].znName+"</a></td>";
+			        		        		    else
+			        		        				 tablerows+= "<td scope='col'><a class='division' id='"+resp[index].divCode+"' style='color:blue;'>"+resp[index].divName+"</a></td>";
+			        		        		    
+			        		        			}
+			        		        			else{
+			        		        				if($('#complaintDivInput').val()=="")
+			        		        				{ 
+				        		        		tablerows+= "<td scope='col'><a class='division' id='"+resp[index].divCode+"' style='color:blue;'>"+resp[index].divName+"</a></td>";
+					        		        				
+			        		        			     }		 
+			        		        				else if($('#complaintDeptInput').val()=="")
+			        		        				{ 
+						        		        		tablerows+= "<td scope='col'><a class='department' id='"+resp[index].deptCode+"' style='color:blue;'>"+resp[index].deptName+"</a></td>";
+				        		        				
+			        		        			    }
+
+			        		        				 else if($('#complaintTypeInput').val()=="")
+			        		        					{
+							        		        		tablerows+= "<td scope='col'><a class='type' id='"+resp[index].pid+"' style='color:blue;'>"+resp[index].pname+"</a></td>";
+				        
+			        		        					}
+
+			        		        				 else
+			        		        					{
+			        		        					 tablerows+= "  <td scope='col'>"+resp[index].sname+"</td>";
+			        		        					
+			        		        				 }
+			        		        				
+			        		        			}
+
+				        		        		tablerows+= "<td style='text-align:center;' scope='col'><a class='drill' id='"+resp[index].org+"#RECV' style='color:blue;'>"+resp[index].feedbackRecv+"</a></td>"+
+				        		        		"<td style='text-align:center;' scope='col'>"+resp[index].percShare+"</td>"+
+				        		        		"<td style='text-align:center;' scope='col'><a class='drill' id='"+resp[index].org+"#EXE' style='color:blue;'>"+resp[index].excellent+"</a></td>"+
+				        		        		"<td style='text-align:center;' scope='col'><a class='drill' id='"+resp[index].org+"#SAT' style='resp[index];'>"+resp[index].satisfactory+"</a></td>"+
+
+				        		        		"<td style='text-align:center;' scope='col'><a class='drill' id='"+resp[index].org+"#UNSAT' style='color:blue;'>"+resp[index].unsatisfactory+"</a></td>"+
+				        		        		"<td style='text-align:center;' scope='col'>"+resp[index].perUnsatShare+"</td>"+
+				        		        		"</tr>";
+				        
+				        		        	}
+			        		        	else{
+
+			        		        		totalCount=i;
+			        		                orgt=resp[index].org;
+			        		                feedback_recv=resp[index].feedbackRecv;
+			        		                excellent=resp[index].excellent ;
+			        		     	  		  satisfactory=resp[index].satisfactory;
+			        		     	  		  unsatisfactory=resp[index].unsatisfactory;
+
+				        		        	}
+
+			        		        	});
+                    var tfootrow="";
+			        if(totalCount>0){
+				        
+				        var myperc=parseFloat(parseInt(unsatisfactory)*100/parseInt(feedback_recv));
+			        	tfootrow+="	<tr>"+
+			              "<th scope='col'></th>"+
+			              "<th scope='col'>Total</th>"+
+
+			              "<th style='text-align:center;' scope='col'><a class='drill' id='"+orgt+"#RECV'  style='color:blue'>"+feedback_recv+"</a></th>"+
+			              "<th style='text-align:center;' scope='col'>100%</th>"+
+			              "<th style='text-align:center;' scope='col'><a class='drill' id='"+orgt+"#EXE' style='color:blue;'>"+excellent+"</a></th>"+
+  		        		"<th style='text-align:center;' scope='col'><a class='drill' id='"+orgt+"#SAT' style='color:blue;'>"+satisfactory+"</a></th>"+
+
+  		        		"<th style='text-align:center;' scope='col'><a class='drill' id='"+orgt+"#UNSAT' style='color:blue;'>"+unsatisfactory+"</a></th>"+
+			              "<th style='text-align:center;' scope='col'>"+myperc.toFixed(2)+"</th>"+
+			              "</tr>";
+			        }
+
+			        $('#tfootid').html(tfootrow);
+			        
+			        $('#table1').html(tablerows);
+			        $('.ajax-loader').hide();
+			        $("#submitbtn").removeAttr("disabled");
+
+			   	 var t=$('#detailtable').DataTable({
+			   	        "paging":   false,
+			   	        "columnDefs": [ {
+			   	            "searchable": false,
+			   	            "orderable": false,
+			   	            "targets": 0
+			   	        } ],
+			   	        "order": [[ 1, 'asc' ]],
+			   	        "bInfo" : false,
+			   	        "searching": false
+			   	    });
+
+			   	 t.on( 'order.dt search.dt', function () {
+			   	        t.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+			   	            cell.innerHTML = i+1;
+			   	        } );
+			   	    } ).draw();
+
+
+			        	
+
+		       },
+		       error : function(xhr,status){
+			       }
+
+		 });
+
+
+
+		
+		
+	}
+
+	
+	    
+	 if( $('#flag').val()!='Y' ||  $('#complaintDivInput').val() =='')
+	 {	 
+
+
+
+		 $('#myback').hide();
+	 
+		 
+	 }
+
+	 $("#myback").click(function() {
+
+	    	
+	    	 if( $('#flag').val()=='Y'  )
+		    	 {
+		    	 if($('#complaintTypeInput').val() !='')
+			    	 {
+		    	 $('#complaintTypeInput').val('');
+			    	 }
+		    	 else  if($('#complaintDeptInput').val() !='')
+		    	 {
+			    	 $('#complaintDeptInput').val('');
+				    	 }
+		    	 else  if($('#complaintDivInput').val() !='')
+		    	 {
+			    	 $('#complaintDivInput').val('');
+				    	 }
+		    	 
+
+		    	 
+	    	 else  if($('#complaintZoneInput').val() !='')
+	    	 {
+		    	 $('#complaintZoneInput').val('');
+			    	 }
+		    	 $('.ajax-loader').show();
+		    	 
+	    	 reloadtable();
+	    	 
+
+	    	 }
+	
+	});
+
+		$("#myprintd1").click(function() {
+
+			  var divToPrint=document.getElementById("detailtable");
+			   newWin= window.open("");
+			   var complaintZoneInput1=$('#complaintZoneInput').val();
+			   if(complaintZoneInput1=='')
+				   {
+
+				   complaintZoneInput1='ALL';
+				   }
+			   var complaintDivInput1=$('#complaintDivInput').val();
+			   if(complaintDivInput1=='')
+				   {
+
+				   complaintDivInput1='ALL';
+				   }
+			   var complaintDeptInput1=$('#complaintDeptInput').val();
+			   if(complaintDeptInput1=='')
+				   {
+
+				   complaintDeptInput1='ALL';
+				   }
+			   var complaintModeInput1=$('#complaintModeInput').val();
+			   if(complaintModeInput1=='')
+				   {
+
+				   complaintModeInput1='ALL';
+				   }
+			   var complaintTypeInput1=$('#complaintTypeInput  :selected').text();
+			   if(complaintTypeInput1=='')
+				   {
+
+				   complaintTypeInput1='ALL';
+				   }
+			   var complaintSubTypeInput1=$('#complaintSubTypeInput :selected').text();
+			   if(complaintSubTypeInput1=='')
+				   {
+
+				   complaintSubTypeInput1='ALL';
+				   }
+			   newWin.document.write("<style>table{border: 1px solid black !important;margin-top: 20px !important;border-collapse: separate;border-spacing: 0;}</style><div style='text-align:center;'>Zone Wise Feedback (with drill down) From Date:"+$('#tempfrom').val() +" To Date:"+$('#tempto').val()+" Zone:"+complaintZoneInput1+" Division:"+complaintDivInput1+" Department:"+complaintDeptInput1+" Mode:"+complaintModeInput1+" Type:"+complaintTypeInput1+" Sub Type:"+complaintSubTypeInput1+"</div>"+divToPrint.outerHTML);
+			   newWin.print();
+			   newWin.document.close(); 
+		});
+
+
+		
+	    function reloadtable()
+	    {
+	console.log('hello');
+	    	
+	    	 $('#data1').load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/mis_reports/report6view1.jsp", { complaintZoneInput:  $('#complaintZoneInput').val(),
+		        	complaintDivInput: $('#complaintDivInput').val(),
+		        	complaintTypeInput: $('#complaintTypeInput').val(),
+		        	complaintSubTypeInput: $('#complaintSubTypeInput').val(),	        	        
+		        	complaintDeptInput: $('#complaintDeptInput').val(),
+		        	complaintModeInput: $('#complaintModeInput').val(),
+		        	refundInput: $('#refundInput').val(),
+		        	
+		        	inquiryInput: $('#inquiryInput').val(),
+		        	fromInput:fromDate,
+        			toInput:toDate,
+		        	dateRange:$('#dateRange').val()
+		        	,
+		        	flag: $('#flag').val(),
+                    viewType:'zonewise'	,
+		        	assistanceInput : $('#assistanceInput').val()	        	
+
+	    	 
+	    	 });}
+
+	   
+	    
+	 
+    	
+	    $(".report6view1").on('click', ".zone",function() {
+	    	
+	    	var id=$(this).attr('id');
+
+	    	 $('.ajax-loader').show();
+	    	 $('#complaintZoneInput').val(id);
+	    	 $('#flag').val("Y");
+	    	 fetchdivision();
+	    	 reloadtable();
+	    	 $('#myback').show();
+	    	 
+		  	 
+	    	
+	    })
+
+	    	 $(".report6view1").on('click', ".division",function()  {
+	    	
+	    	var id=$(this).attr('id');
+
+	    	 $('.ajax-loader').show();
+	    	 $('#complaintDivInput').val(id);
+	    	 $('#flag').val("Y");
+	    	 reloadtable();
+	    	 $('#myback').show();
+	    	 
+		  	 
+	    	
+	    })
+
+	    $(".report6view1").on('click', ".department",function()  {
+	    	
+	    	var id=$(this).attr('id');
+
+	    	 $('.ajax-loader').show();
+	    	 $('#complaintDeptInput').val(id);
+	    	 $('#flag').val("Y");
+	    	 reloadtable();
+	    	 $('#myback').show();
+		  	 
+	    	
+	    })
+
+	    $(".report6view1").on('click', ".type",function()  {
+	    	
+	    	var id=$(this).attr('id');
+
+	    	 $('.ajax-loader').show();
+	    	 $('#complaintTypeInput').val(id);
+	    	 $('#flag').val("Y");
+	    	 fetchsubtype();
+	    	 reloadtable();
+	    	 $('#myback').show();
+		  	 
+	    	
+	    })
+
+
+	    
+	    
+	   
+
+	 
+
+		
+	     $(".report6view1").on('click', ".drill",function() {
+		    	var id=$(this).attr('id');
+		    	console.log(id);
+		    	if(id.split("#").length<=2)
+			    	{
+		    		var value=id.split('#')[0];
+			    	var type=id.split('#')[0];
+			    	var filter=id.split('#')[1];
+			    	}
+		    	else
+			    	{
+		    		var value=id.split('#')[0];
+			    	var type=id.split('#')[1];
+			    	var filter=id.split('#')[2];
+			    	}
+		    	var query="";
+		  
+		    	console.log(value+type);
+		    	var complaintZoneInput=$('#complaintZoneInput').val();
+		    	var complaintModeInput=$('#complaintModeInput').val();
+		    	var refundInput=$('#refundInput').val();
+		    	var inquiryInput=$('#inquiryInput').val();
+		    	var assistanceInput = $('#assistanceInput').val();	        	
+
+		    	var complaintDivInput=$('#complaintDivInput').val();
+	        	var complaintTypeInput= $('#complaintTypeInput').val();
+	        	var complaintSubTypeInput= $('#complaintSubTypeInput').val();	        	        
+	        	var complaintDeptInput= $('#complaintDeptInput').val();
+	        
+		    	 
+	        	var fromInput= fromDate;
+	        	var toInput=toDate;
+	        	
+	  	      
+	        	if($('#dateRange').val()!="DATE_RANGE")
+	        		{
+	        	  	if(filter=='FORWARD'){
+			    		query=" WHERE rly.complaint_ref_no IS NOT NULL AND rep.tempstatus='Forwarded' ";
+				    	
+			    	}
+			    	else{
+				    	query=" WHERE rly.complaint_ref_no IS NOT NULL AND rep.id=rep.max_id";
+				    	}
+	        		
+	        	query=query+" AND rep.final_status= 'Closed' AND DATE(rep.modified_on)>='"+fromInput+"'  AND DATE(rep.modified_on)<='"+toInput+"' AND rep.rating IS NOT NULL AND rep.rating<>''  AND rep.rating<>'NULL'";
+       		 	 if(filter=='EXE')
+       		 	{
+    				query=query+" AND rep.rating>4 AND rep.rating <=5 ";
+               		 	}
+       		 else if(filter=='SAT')
+    		 	{
+ 				query=query+" AND rep.rating>2 AND rep.rating <=4 ";
+            		 	}
+       		else if(filter=='UNSAT')
+           		 	{
+				query=query+" AND rep.rating>=0 AND rep.rating <=2 ";
+           		 	}
+				
+		    	if(type=='ZONE' && value != null && value != 'null')
+			    	{
+					query=query+ "  AND mst_zones.zn_cd='" + value + "'   ";
+
+			    	}
+		    	if(type=='DIV' && value != null && value != 'null')
+		    	{
+				query=query+ "  AND mst_divisions.div_cd='" + value + "'   ";
+
+		    	}
+		    	if(type=='DEPT' && value != null && value != 'null')
+		    	{
+				query=query + "  AND rly_department.dept_code='" + value + "'   ";
+
+		    	}
+		    	if(type=='PCOMP' && value != null && value != 'null')
+		    	{
+				query=query + " AND rep.complaint_type = '" + value + "'";
+
+		    	}
+		    	if(type=='SCOMP' && value != null && value != 'null')
+		    	{
+					query=query + " AND rep.complaint_sub_type = '" + value + "'";
+
+		    	}
+
+		    	if(complaintZoneInput !='')
+		  		{
+		  			query+=" AND mst_zones.zn_cd='"+complaintZoneInput+"'";
+		  		}
+			  if(complaintDivInput !='')
+		  		{
+		  			query+=" AND mst_divisions.div_cd='"+complaintDivInput+"'";
+		  		}
+			  if(complaintDeptInput !='')
+		  		{
+		  			query+=" AND rly_department.dept_code='"+complaintDeptInput+"'";
+		  		}
+			  if(complaintTypeInput !='')
+		  		{
+		  			query+=" AND rep.complaint_type='"+complaintTypeInput+"'";
+		  		}
+			  if(complaintSubTypeInput !='')
+		  		{
+		  			query+=" AND rep.complaint_sub_type='"+complaintSubTypeInput+"'";
+		  		}
+			  if(complaintModeInput !='')
+		  		{
+		  			query+=" AND compmode='"+complaintModeInput+"'";
+		  		}
+
+
+			  if(refundInput!="" && refundInput=="Y")
+		  		{
+		  			query+=" AND rep.complaint_type<>'8'";
+		  		}
+			  
+			  if(assistanceInput!="" && assistanceInput=="Y")
+				{
+					query+=" AND rep.complaint_type NOT IN (" + complaintIdList + ") ";
+					query+=" AND rep.complaint_sub_type NOT IN (" + subComplaintIdList + ")";
+
+				}
+	 			if(assistanceInput!="" && assistanceInput=="O")
+				{
+					query+=" AND ( rep.complaint_type IN (" + complaintIdList + ") ";
+					query+=" OR rep.complaint_sub_type IN (" + subComplaintIdList + ") )";
+
+				}
+			  if(inquiryInput!="" && inquiryInput=="Y")
+		  		{
+				  if(filter=='FORWARD'){
+		  			query+=" AND rep.nrcell_flag<>'1'";
+				  }
+				  else
+					  {
+			  			query+=" AND rep.nrcell_flag<>'1'";
+						  
+					  }
+		  		}
+
+			  if(inquiryInput!="" && inquiryInput=="O")
+		  		{
+				  if(filter=='FORWARD'){
+		  			query+=" AND rep.nrcell_flag='1'";
+				  }
+				  else
+					  {
+			  			query+=" AND rep.nrcell_flag='1'";
+						  
+					  }
+		  		}
+	        		}
+	        	
+	        	else
+	        		{
+		        	
+	        
+				    	query=" WHERE rly.complaint_ref_no IS NOT NULL ";
+				    	
+		        	query=query+" AND rly_complaint_status.complaint_status= 'Closed' AND DATE(modified_on)>='"+fromInput+"'  AND DATE(modified_on)<='"+toInput+"' AND rly.feedback_rating IS NOT NULL AND rly.feedback_rating<>''";
+	       		 	 if(filter=='EXE')
+	       		 	{
+	    				query=query+" AND rly.feedback_rating>4 AND rly.feedback_rating <=5 ";
+	               		 	}
+	       		 else if(filter=='SAT')
+	    		 	{
+	 				query=query+" AND rly.feedback_rating>2 AND rly.feedback_rating <=4 ";
+	            		 	}
+	       		else if(filter=='UNSAT')
+	           		 	{
+					query=query+" AND rly.feedback_rating>=0 AND rly.feedback_rating <=2 ";
+	           		 	}
+					
+			    	if(type=='ZONE' && value != null && value != 'null')
+				    	{
+						query=query+ "  AND mst_zones.zn_cd='" + value + "'   ";
+
+				    	}
+			    	if(type=='DIV' && value != null && value != 'null')
+			    	{
+					query=query+ "  AND mst_divisions.div_cd='" + value + "'   ";
+
+			    	}
+			    	if(type=='DEPT' && value != null && value != 'null')
+			    	{
+					query=query + "  AND rly_department.dept_code='" + value + "'   ";
+
+			    	}
+			    	if(type=='PCOMP' && value != null && value != 'null')
+			    	{
+					query=query + " AND rly.complaint_type = '" + value + "'";
+
+			    	}
+			    	if(type=='SCOMP' && value != null && value != 'null')
+			    	{
+						query=query + " AND rly.complaint_sub_type = '" + value + "'";
+
+			    	}
+
+			    	if(complaintZoneInput !='')
+			  		{
+			  			query+=" AND mst_zones.zn_cd='"+complaintZoneInput+"'";
+			  		}
+				  if(complaintDivInput !='')
+			  		{
+			  			query+=" AND mst_divisions.div_cd='"+complaintDivInput+"'";
+			  		}
+				  if(complaintDeptInput !='')
+			  		{
+			  			query+=" AND rly_department.dept_code='"+complaintDeptInput+"'";
+			  		}
+				  if(complaintTypeInput !='')
+			  		{
+			  			query+=" AND rly.complaint_type='"+complaintTypeInput+"'";
+			  		}
+				  if(complaintSubTypeInput !='')
+			  		{
+			  			query+=" AND rly.complaint_sub_type='"+complaintSubTypeInput+"'";
+			  		}
+				  if(complaintModeInput !='')
+			  		{
+			  			query+=" AND complaint_mode='"+complaintModeInput+"'";
+			  		}
+
+
+				  if(refundInput!="" && refundInput=="Y")
+			  		{
+			  			query+=" AND rly.complaint_type<>'8'";
+			  		}
+				  
+				  
+				  if(assistanceInput!="" && assistanceInput=="Y")
+					{
+						query+=" AND rly.complaint_type NOT IN (" + complaintIdList + ") ";
+						query+=" AND rly.complaint_sub_type NOT IN (" + subComplaintIdList + ")";
+
+					}
+		 			if(assistanceInput!="" && assistanceInput=="O")
+					{
+						query+=" AND ( rly.complaint_type IN (" + complaintIdList + ") ";
+						query+=" OR rly.complaint_sub_type IN (" + subComplaintIdList + ") )";
+
+					}
+				  
+
+				  if(inquiryInput!="" && inquiryInput=="Y")
+			  		{
+					  if(filter=='FORWARD'){
+			  			query+=" AND scomp.nrcell_flag<>'1'";
+					  }
+					  else
+						  {
+				  			query+=" AND comp.nrcell_flag<>'1'";
+							  
+						  }
+			  		}
+
+				  if(inquiryInput!="" && inquiryInput=="O")
+			  		{
+					  if(filter=='FORWARD'){
+			  			query+=" AND scomp.nrcell_flag='1'";
+					  }
+					  else
+						  {
+				  			query+=" AND comp.nrcell_flag='1'";
+							  
+						  }
+			  		}
+	        		}
+	    	  $('#query').val(query);
+		  		
+	    	  $('#exampleModal').modal('show');
+		        
+			 
+	    	  $('#exampleModal').modal('show').find('.modal-body').load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/rawdatapanel.jsp", { "query":query,
+	    		  fromInput: $('#fromDate').val(),
+      			toInput:$('#toDate').val(),
+		        	dateRange:$('#dateRange').val(),
+		        	forwardFlag:'0'
+		        	 });
+		  	 
+	    	
+	    })
+});
+
+
+</script>
+
+
+<style>
+table.table-bordered > tbody > tr > td {
+    border: 1px solid black !important;
+}
+</style>
+<div class=" table-responsive">
+<font style="text-align:center;display:block" class="title1">6.1) Zone Wise Report From Date:2026-07-18, To Date:2026-07-18, Zone:ALL, Division:ALL, Mode:S, Department:ALL</font>
+
+ <button type="button" class="btn btn-info" style="float: right; text-align: center; margin-right: 5px; font-weight: 400 !important; display: none;" id="myback">
+  Back <i class="fa fa-arrow-left" aria-hidden="true"></i>
+
+  </button>
+   <button type="button" class="btn btn-info" style="float:right;text-align:center;margin-right:5px;" id="myprintd1">
+  Print <i class="fa fa-print" aria-hidden="true"></i>
+
+  </button> 
+<input type="hidden" id="query" style="">
+      <div id="detailtable_wrapper" class="dataTables_wrapper"><table class="table table-bordered report6view1 no-footer dataTable" id="detailtable" aria-describedby="detailtable_info" style="">
+      <thead class="thead-light">
+    <tr><th scope="col" class="sorting_disabled" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="S.No." style="width: 54.7656px;">S.No.</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Organisation: activate to sort column ascending" style="width: 113.977px;">Organisation</th><th scope="col" class="sorting sorting_desc" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Feedback Received: activate to sort column ascending" style="width: 157.93px;" aria-sort="descending">Feedback Received</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="% Feedback: activate to sort column ascending" style="width: 105.469px;">% Feedback</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Excellent: activate to sort column ascending" style="width: 83.375px;">Excellent</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Satisfactory: activate to sort column ascending" style="width: 104.117px;">Satisfactory</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Unsatisfactory: activate to sort column ascending" style="width: 125.805px;">Unsatisfactory</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="% Unsatisfactory: activate to sort column ascending" style="width: 143px;">% Unsatisfactory</th></tr>
+  </thead>
+  <tbody id="table1"><tr class="odd">  <td scope="col">1</td><td scope="col" class=""><a class="zone" id="NR" style="color:blue;">Northern Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="NR#ZONE#RECV" style="color:blue;">27</a></td><td style="text-align:center;" scope="col">15.08</td><td style="text-align:center;" scope="col"><a class="drill" id="NR#ZONE#EXE" style="color:blue;">4</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NR#ZONE#SAT" style="resp[index];">7</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NR#ZONE#UNSAT" style="color:blue;">16</a></td><td style="text-align:center;" scope="col">59.26</td></tr><tr class="even">  <td scope="col">2</td><td scope="col" class=""><a class="zone" id="IRC" style="color:blue;">IRCTC</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="IRC#ZONE#RECV" style="color:blue;">19</a></td><td style="text-align:center;" scope="col">10.61</td><td style="text-align:center;" scope="col"><a class="drill" id="IRC#ZONE#EXE" style="color:blue;">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="IRC#ZONE#SAT" style="resp[index];">6</a></td><td style="text-align:center;" scope="col"><a class="drill" id="IRC#ZONE#UNSAT" style="color:blue;">12</a></td><td style="text-align:center;" scope="col">63.16</td></tr><tr class="odd">  <td scope="col">3</td><td scope="col" class=""><a class="zone" id="NC" style="color:blue;">North Central Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="NC#ZONE#RECV" style="color:blue;">15</a></td><td style="text-align:center;" scope="col">8.38</td><td style="text-align:center;" scope="col"><a class="drill" id="NC#ZONE#EXE" style="color:blue;">11</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NC#ZONE#SAT" style="resp[index];">0</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NC#ZONE#UNSAT" style="color:blue;">4</a></td><td style="text-align:center;" scope="col">26.67</td></tr><tr class="even">  <td scope="col">4</td><td scope="col" class=""><a class="zone" id="CR" style="color:blue;">Central Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="CR#ZONE#RECV" style="color:blue;">14</a></td><td style="text-align:center;" scope="col">7.82</td><td style="text-align:center;" scope="col"><a class="drill" id="CR#ZONE#EXE" style="color:blue;">4</a></td><td style="text-align:center;" scope="col"><a class="drill" id="CR#ZONE#SAT" style="resp[index];">4</a></td><td style="text-align:center;" scope="col"><a class="drill" id="CR#ZONE#UNSAT" style="color:blue;">6</a></td><td style="text-align:center;" scope="col">42.86</td></tr><tr class="odd">  <td scope="col">5</td><td scope="col" class=""><a class="zone" id="WR" style="color:blue;">Western Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="WR#ZONE#RECV" style="color:blue;">12</a></td><td style="text-align:center;" scope="col">6.70</td><td style="text-align:center;" scope="col"><a class="drill" id="WR#ZONE#EXE" style="color:blue;">4</a></td><td style="text-align:center;" scope="col"><a class="drill" id="WR#ZONE#SAT" style="resp[index];">5</a></td><td style="text-align:center;" scope="col"><a class="drill" id="WR#ZONE#UNSAT" style="color:blue;">3</a></td><td style="text-align:center;" scope="col">25.00</td></tr><tr class="even">  <td scope="col">6</td><td scope="col" class=""><a class="zone" id="ER" style="color:blue;">Eastern Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="ER#ZONE#RECV" style="color:blue;">11</a></td><td style="text-align:center;" scope="col">6.15</td><td style="text-align:center;" scope="col"><a class="drill" id="ER#ZONE#EXE" style="color:blue;">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="ER#ZONE#SAT" style="resp[index];">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="ER#ZONE#UNSAT" style="color:blue;">8</a></td><td style="text-align:center;" scope="col">72.73</td></tr><tr class="odd">  <td scope="col">7</td><td scope="col" class=""><a class="zone" id="WC" style="color:blue;">West Central Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="WC#ZONE#RECV" style="color:blue;">11</a></td><td style="text-align:center;" scope="col">6.15</td><td style="text-align:center;" scope="col"><a class="drill" id="WC#ZONE#EXE" style="color:blue;">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="WC#ZONE#SAT" style="resp[index];">4</a></td><td style="text-align:center;" scope="col"><a class="drill" id="WC#ZONE#UNSAT" style="color:blue;">5</a></td><td style="text-align:center;" scope="col">45.45</td></tr><tr class="even">  <td scope="col">8</td><td scope="col" class=""><a class="zone" id="EO" style="color:blue;">East Coast Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="EO#ZONE#RECV" style="color:blue;">10</a></td><td style="text-align:center;" scope="col">5.59</td><td style="text-align:center;" scope="col"><a class="drill" id="EO#ZONE#EXE" style="color:blue;">7</a></td><td style="text-align:center;" scope="col"><a class="drill" id="EO#ZONE#SAT" style="resp[index];">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="EO#ZONE#UNSAT" style="color:blue;">1</a></td><td style="text-align:center;" scope="col">10.00</td></tr><tr class="odd">  <td scope="col">9</td><td scope="col" class=""><a class="zone" id="SW" style="color:blue;">South Western Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="SW#ZONE#RECV" style="color:blue;">9</a></td><td style="text-align:center;" scope="col">5.03</td><td style="text-align:center;" scope="col"><a class="drill" id="SW#ZONE#EXE" style="color:blue;">6</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SW#ZONE#SAT" style="resp[index];">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SW#ZONE#UNSAT" style="color:blue;">2</a></td><td style="text-align:center;" scope="col">22.22</td></tr><tr class="even">  <td scope="col">10</td><td scope="col" class=""><a class="zone" id="EC" style="color:blue;">East Central Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="EC#ZONE#RECV" style="color:blue;">8</a></td><td style="text-align:center;" scope="col">4.47</td><td style="text-align:center;" scope="col"><a class="drill" id="EC#ZONE#EXE" style="color:blue;">3</a></td><td style="text-align:center;" scope="col"><a class="drill" id="EC#ZONE#SAT" style="resp[index];">4</a></td><td style="text-align:center;" scope="col"><a class="drill" id="EC#ZONE#UNSAT" style="color:blue;">1</a></td><td style="text-align:center;" scope="col">12.50</td></tr><tr class="odd">  <td scope="col">11</td><td scope="col" class=""><a class="zone" id="NW" style="color:blue;">North Western Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="NW#ZONE#RECV" style="color:blue;">8</a></td><td style="text-align:center;" scope="col">4.47</td><td style="text-align:center;" scope="col"><a class="drill" id="NW#ZONE#EXE" style="color:blue;">4</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NW#ZONE#SAT" style="resp[index];">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NW#ZONE#UNSAT" style="color:blue;">3</a></td><td style="text-align:center;" scope="col">37.50</td></tr><tr class="even">  <td scope="col">12</td><td scope="col" class=""><a class="zone" id="SO" style="color:blue;">South Coast Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="SO#ZONE#RECV" style="color:blue;">8</a></td><td style="text-align:center;" scope="col">4.47</td><td style="text-align:center;" scope="col"><a class="drill" id="SO#ZONE#EXE" style="color:blue;">6</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SO#ZONE#SAT" style="resp[index];">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SO#ZONE#UNSAT" style="color:blue;">0</a></td><td style="text-align:center;" scope="col">0.00</td></tr><tr class="odd">  <td scope="col">13</td><td scope="col" class=""><a class="zone" id="SR" style="color:blue;">Southern Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="SR#ZONE#RECV" style="color:blue;">8</a></td><td style="text-align:center;" scope="col">4.47</td><td style="text-align:center;" scope="col"><a class="drill" id="SR#ZONE#EXE" style="color:blue;">6</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SR#ZONE#SAT" style="resp[index];">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SR#ZONE#UNSAT" style="color:blue;">1</a></td><td style="text-align:center;" scope="col">12.50</td></tr><tr class="even">  <td scope="col">14</td><td scope="col" class=""><a class="zone" id="SE" style="color:blue;">South Eastern Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="SE#ZONE#RECV" style="color:blue;">6</a></td><td style="text-align:center;" scope="col">3.35</td><td style="text-align:center;" scope="col"><a class="drill" id="SE#ZONE#EXE" style="color:blue;">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SE#ZONE#SAT" style="resp[index];">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SE#ZONE#UNSAT" style="color:blue;">2</a></td><td style="text-align:center;" scope="col">33.33</td></tr><tr class="odd">  <td scope="col">15</td><td scope="col" class=""><a class="zone" id="NE" style="color:blue;">North Eastern Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="NE#ZONE#RECV" style="color:blue;">5</a></td><td style="text-align:center;" scope="col">2.79</td><td style="text-align:center;" scope="col"><a class="drill" id="NE#ZONE#EXE" style="color:blue;">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NE#ZONE#SAT" style="resp[index];">0</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NE#ZONE#UNSAT" style="color:blue;">4</a></td><td style="text-align:center;" scope="col">80.00</td></tr><tr class="even">  <td scope="col">16</td><td scope="col" class=""><a class="zone" id="NF" style="color:blue;">Northeast Frontier Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="NF#ZONE#RECV" style="color:blue;">5</a></td><td style="text-align:center;" scope="col">2.79</td><td style="text-align:center;" scope="col"><a class="drill" id="NF#ZONE#EXE" style="color:blue;">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NF#ZONE#SAT" style="resp[index];">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="NF#ZONE#UNSAT" style="color:blue;">2</a></td><td style="text-align:center;" scope="col">40.00</td></tr><tr class="odd">  <td scope="col">17</td><td scope="col" class=""><a class="zone" id="SB" style="color:blue;">South East Central Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="SB#ZONE#RECV" style="color:blue;">2</a></td><td style="text-align:center;" scope="col">1.12</td><td style="text-align:center;" scope="col"><a class="drill" id="SB#ZONE#EXE" style="color:blue;">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SB#ZONE#SAT" style="resp[index];">0</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SB#ZONE#UNSAT" style="color:blue;">1</a></td><td style="text-align:center;" scope="col">50.00</td></tr><tr class="even">  <td scope="col">18</td><td scope="col" class=""><a class="zone" id="KR" style="color:blue;">Konkan Railway</a></td><td style="text-align:center;" scope="col" class="sorting_1"><a class="drill" id="KR#ZONE#RECV" style="color:blue;">1</a></td><td style="text-align:center;" scope="col">0.56</td><td style="text-align:center;" scope="col"><a class="drill" id="KR#ZONE#EXE" style="color:blue;">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="KR#ZONE#SAT" style="resp[index];">0</a></td><td style="text-align:center;" scope="col"><a class="drill" id="KR#ZONE#UNSAT" style="color:blue;">0</a></td><td style="text-align:center;" scope="col">0.00</td></tr></tbody>
+  
+  
+   <tfoot id="tfootid">	<tr><th scope="col" rowspan="1" colspan="1"></th><th scope="col" rowspan="1" colspan="1">Total</th><th style="text-align:center;" scope="col" rowspan="1" colspan="1"><a class="drill" id="undefined#RECV" style="color:blue">179</a></th><th style="text-align:center;" scope="col" rowspan="1" colspan="1">100%</th><th style="text-align:center;" scope="col" rowspan="1" colspan="1"><a class="drill" id="undefined#EXE" style="color:blue;">66</a></th><th style="text-align:center;" scope="col" rowspan="1" colspan="1"><a class="drill" id="undefined#SAT" style="color:blue;">42</a></th><th style="text-align:center;" scope="col" rowspan="1" colspan="1"><a class="drill" id="undefined#UNSAT" style="color:blue;">71</a></th><th style="text-align:center;" scope="col" rowspan="1" colspan="1">39.66</th></tr></tfoot>
+ 
+</table></div>
+
+
+
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document" style="width:100% !important;max-width:95% !important;">
+    <div class="modal-content">
+      <div class="modal-header" style="text-align:center;">
+        <h5 class="modal-title " id="exampleModalLabel" style="width:90%;">List of Complaints</h5>
+         
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      
+  
+      </div>
+  
+    </div>
+  </div>
+</div>  
+
+</div></div>
+						
+						
+						
+						</div>
+						
+						
+							<div class="row">
+						<div class="col-12 table-responsive" id="data2">
+
+	
+		
+	
+	<style>
+table.table-bordered > tbody > tr > td {
+    border: 1px solid black !important;
+}
+</style>
+<script>
+$(document).ready(function() {
+	
+
+	var fromDate="";
+	var toDate="";
+     if( $('#dateRange').val()!="DATE_RANGE")
+	 {
+	 fromDate=$("#tempfrom").val();
+	 toDate=$("#tempto").val();
+	 }
+ else
+	 {
+	 fromDate= $("#fromDate").val();
+	 toDate= $("#toDate").val();
+	 }
+	
+	generateTableContent2();
+	
+	 	
+
+	var complaintIdList = '132,134';
+	var subComplaintIdList = '133,135,178,183,179,184,188,189,190,191,192,193,166';
+	 
+	function generateTableContent2(){
+		
+
+		
+	   	var fromInput=fromDate;
+	   	var toInput=toDate;
+	    var complaintZoneInputTitle2=$('#selectedZoneInput').val();
+		   if(complaintZoneInputTitle2=='')
+			   {
+
+			   complaintZoneInputTitle2='ALL';
+			   }
+		   var complaintDivInputTitle2=$('#selectedDivInput').val();
+		   if(complaintDivInputTitle2=='')
+			   {
+
+			   complaintDivInputTitle2='ALL';
+			   }
+		   var complaintDeptInputTitle2=$('#selectedDeptInput').val();
+		   if(complaintDeptInputTitle2=='')
+			   {
+
+			   complaintDeptInputTitle2='ALL';
+			   }
+		   var complaintModeInputTitle2=$('#selectedModeInput').val();
+		   if(complaintModeInputTitle2=='')
+			   {
+
+			   complaintModeInputTitle2='ALL';
+			   }
+		 
+		   var title="6.2) Department Wise Report From Date:"+fromInput+", To Date:"+toInput+", Zone:"+complaintZoneInputTitle2+", Division:"+complaintDivInputTitle2+", Mode:"+complaintModeInputTitle2+", Department:"+complaintDeptInputTitle2;
+		   $(".title2").html(title);
+
+
+
+
+
+
+		   $.ajax({
+		       url: window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/AllReportFetchServlet",
+		       async: true,
+		       data:{
+			       
+			       fetchDataType:'report6data',
+			       complaintZoneInput: $('#complaintZoneInput').val(),
+		        	complaintDivInput: $('#complaintDivInput').val(),
+		        	complaintTypeInput: $('#complaintTypeInput').val(),
+		        	complaintSubTypeInput: $('#complaintSubTypeInput').val(),	
+		        	complaintModeInput: $('#complaintModeInput').val(),
+		        	refundInput: $('#refundInput').val(),
+		        	inquiryInput: $('#inquiryInput').val(),
+
+		        	complaintDeptInput: $('#complaintDeptInput').val(),
+		        	fromInput:fromDate,
+        			toInput:toDate,
+		        	dateRange:$('#dateRange').val()
+		        	,
+		        	flag: $('#flag').val(),
+		        
+		        	viewType:'deptwise',
+		        	assistanceInput : $('#assistanceInput').val()	        	
+
+
+				       },
+		       success : function(response) {
+
+		    	   var orgt="";
+			  		 var totalCount=0;
+			  		  
+			  		var feedback_recv="";
+			  		var excellent="";
+			  		var unsatisfactory="";
+			  		var satisfactory="";
+			  		var i=0;
+			  		$('#detailtable1').DataTable().clear().destroy();
+			        var tablerows="";
+			        var resp=response.report6ResponseModel;
+			        console.log(resp);
+			        $( resp).each(function( index ) {
+			        	i=i+1;
+			        		        	if(resp[index].org != null ){
+
+			        		        		 tablerows+= "<tr>"+
+			        		        			"  <td scope='col'>"+i+"</td>";
+			        		        		
+			        		        		
+			        		        			
+						        		        		tablerows+= "<td scope='col'>"+resp[index].deptName+"</td>";
+				        		        				
+			        		        			    
+			        		        				
+			        		        		
+				        		        		tablerows+= "<td style='text-align:center;' scope='col'><a class='drill' id='"+resp[index].org+"#RECV' style='color:blue;'>"+resp[index].feedbackRecv+"</a></td>"+
+				        		        		"<td style='text-align:center;' scope='col'>"+resp[index].percShare+"</td>"+
+				        		        		"<td style='text-align:center;' scope='col'><a class='drill' id='"+resp[index].org+"#EXE' style='color:blue;'>"+resp[index].excellent+"</a></td>"+
+				        		        		"<td style='text-align:center;' scope='col'><a class='drill' id='"+resp[index].org+"#SAT' style='resp[index];'>"+resp[index].satisfactory+"</a></td>"+
+
+				        		        		"<td style='text-align:center;' scope='col'><a class='drill' id='"+resp[index].org+"#UNSAT' style='color:blue;'>"+resp[index].unsatisfactory+"</a></td>"+
+				        		        		"<td style='text-align:center;' scope='col'>"+resp[index].perUnsatShare+"</td>"+
+				        		        		"</tr>";
+				        
+				        		        	}
+			        		        	else{
+
+			        		        		totalCount=i;
+			        		                orgt=resp[index].org;
+			        		                feedback_recv=resp[index].feedbackRecv;
+			        		                excellent=resp[index].excellent ;
+			        		     	  		  satisfactory=resp[index].satisfactory;
+			        		     	  		  unsatisfactory=resp[index].unsatisfactory;
+
+				        		        	}
+
+			        		        	});
+                    var tfootrow="";
+			        if(totalCount>0){
+				        
+				        var myperc=parseFloat(parseInt(unsatisfactory)*100/parseInt(feedback_recv));
+			        	tfootrow+="	<tr>"+
+			              "<th scope='col'></th>"+
+			              "<th scope='col'>Total</th>"+
+
+			              "<th style='text-align:center;' scope='col'><a class='drill' id='"+orgt+"#RECV'  style='color:blue'>"+feedback_recv+"</a></th>"+
+			              "<th style='text-align:center;' scope='col'>100%</th>"+
+			              "<th style='text-align:center;' scope='col'><a class='drill' id='"+orgt+"#EXE' style='color:blue;'>"+excellent+"</a></th>"+
+  		        		"<th style='text-align:center;' scope='col'><a class='drill' id='"+orgt+"#SAT' style='color:blue;'>"+satisfactory+"</a></th>"+
+
+  		        		"<th style='text-align:center;' scope='col'><a class='drill' id='"+orgt+"#UNSAT' style='color:blue;'>"+unsatisfactory+"</a></th>"+
+			              "<th style='text-align:center;' scope='col'>"+myperc.toFixed(2)+"</th>"+
+			              "</tr>";
+			        }
+
+			        $('#tfootid2').html(tfootrow);
+			        
+			        $('#table2').html(tablerows);
+			        $('.ajax-loader').hide();
+			        $("#submitbtn").removeAttr("disabled");
+
+			        var t=$('#detailtable1').DataTable({
+				        "paging":   false,
+				        "columnDefs": [ {
+				            "searchable": false,
+				            "orderable": false,
+				            "targets": 0
+				        } ],
+				        "order": [[ 1, 'asc' ]],
+				        "bInfo" : false,
+				        "searching": false
+				    });
+
+				 t.on( 'order.dt search.dt', function () {
+				        t.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+				            cell.innerHTML = i+1;
+				        } );
+				    } ).draw();
+
+
+			        	
+
+		       },
+		       error : function(xhr,status){
+			       }
+
+		 });
+
+	
+	}
+
+	
+	
+	    
+
+
+		$("#myprintm2").click(function() {
+
+			  var divToPrint=document.getElementById("detailtable1");
+			   newWin= window.open("");
+			   var complaintZoneInput1=$('#selectedZoneInput').val();
+			   if(complaintZoneInput1=='')
+				   {
+
+				   complaintZoneInput1='ALL';
+				   }
+			   var complaintDivInput1=$('#selectedDivInput').val();
+			   if(complaintDivInput1=='')
+				   {
+
+				   complaintDivInput1='ALL';
+				   }
+			   var complaintDeptInput1=$('#selectedDeptInput').val();
+			   if(complaintDeptInput1=='')
+				   {
+
+				   complaintDeptInput1='ALL';
+				   }
+			   var complaintModeInput1=$('#selectedModeInput').val();
+			   if(complaintModeInput1=='')
+				   {
+
+				   complaintModeInput1='ALL';
+				   }
+			   var complaintTypeInput1=$('#selectedComplaintTypeInput  :selected').text();
+			   if(complaintTypeInput1=='')
+				   {
+
+				   complaintTypeInput1='ALL';
+				   }
+			   var complaintSubTypeInput1=$('#selectedSubTypeInput :selected').text();
+			   if(complaintSubTypeInput1=='')
+				   {
+
+				   complaintSubTypeInput1='ALL';
+				   }
+			   newWin.document.write("<style>table{border: 1px solid black !important;margin-top: 20px !important;border-collapse: separate;border-spacing: 0;}</style><div style='text-align:center;'>Department Wise Feedback (with drill down) From Date:"+$('#tempfrom').val() +" To Date:"+$('#tempto').val()+" Zone:"+complaintZoneInput1+" Division:"+complaintDivInput1+" Department:"+complaintDeptInput1+" Mode:"+complaintModeInput1+" Type:"+complaintTypeInput1+" Sub Type:"+complaintSubTypeInput1+"</div>"+divToPrint.outerHTML);
+			   newWin.print();
+			   newWin.document.close(); 
+		});
+
+
+		
+	
+	   
+	    
+
+	
+	 
+
+	    
+	
+
+
+
+
+	
+		
+		  $(".report6view2").on('click', ".drill",function() {
+		    	var id=$(this).attr('id');
+		    	console.log(id);
+		    	if(id.split("#").length<=2)
+			    	{
+		    		var value=id.split('#')[0];
+			    	var type=id.split('#')[0];
+			    	var filter=id.split('#')[1];
+			    	}
+		    	else
+			    	{
+		    		var value=id.split('#')[0];
+			    	var type=id.split('#')[1];
+			    	var filter=id.split('#')[2];
+			    	}
+		    	var query="";
+		    
+		    	console.log(value+type);
+		    	var complaintZoneInput=$('#selectedZoneInput').val();
+		    	var complaintModeInput=$('#selectedModeInput').val();
+	        
+	        	var refundInput=$('#selectedRefundInput').val();
+	        	var assistanceInput = $('#assistanceInput').val();        	
+
+		    	var inquiryInput=$('#selectedInquiryInput').val();
+		    	var complaintDivInput=$('#selectedDivInput').val();
+	        	var complaintTypeInput= $('#selectedComplaintTypeInput').val();
+	        	var complaintSubTypeInput= $('#selectedSubTypeInput').val();	        	        
+	        	var complaintDeptInput= $('#selectedDeptInput').val();
+	        	
+		    	 
+	        	var fromInput= fromDate;
+	        	var toInput=toDate;
+	        	
+	      
+	        	if($('#dateRange').val()!="DATE_RANGE")
+	        		{
+	        		
+	        		if(filter=='FORWARD'){
+			    		query=" WHERE rly.complaint_ref_no IS NOT NULL AND rep.tempstatus='Forwarded' ";
+				    	
+			    	}
+			    	else{
+				    	query=" WHERE rly.complaint_ref_no IS NOT NULL AND rep.id=rep.max_id";
+				    	}
+
+	        	query=query+" AND rep.final_status= 'Closed' AND DATE(rep.modified_on)>='"+fromInput+"'  AND DATE(rep.modified_on)<='"+toInput+"' AND rep.rating IS NOT NULL AND rep.rating<>'' AND rep.rating <> 'NULL'";
+       		 	 if(filter=='EXE')
+       		 	{
+    				query=query+" AND rep.rating>4 AND rep.rating <=5 ";
+               		 	}
+       		 else if(filter=='SAT')
+    		 	{
+ 				query=query+" AND rep.rating>2 AND rep.rating <=4 ";
+            		 	}
+       		else if(filter=='UNSAT')
+           		 	{
+				query=query+" AND rep.rating>=0 AND rep.rating <=2 ";
+           		 	}
+				
+		    	if(type=='ZONE' && value != null && value != 'null')
+			    	{
+					query=query+ "  AND mst_zones.zn_cd='" + value + "'   ";
+
+			    	}
+		    	if(type=='DIV' && value != null && value != 'null')
+		    	{
+				query=query+ "  AND mst_divisions.div_cd='" + value + "'   ";
+
+		    	}
+		    	if(type=='DEPT' && value != null && value != 'null')
+		    	{
+				query=query + "  AND rly_department.dept_code='" + value + "'   ";
+
+		    	}
+		    	if(type=='PCOMP' && value != null && value != 'null')
+		    	{
+				query=query + " AND rep.complaint_type = '" + value + "'";
+
+		    	}
+		    	if(type=='SCOMP' && value != null && value != 'null')
+		    	{
+					query=query + " AND rep.complaint_sub_type = '" + value + "'";
+
+		    	}
+
+		    	if(complaintZoneInput !='')
+		  		{
+		  			query+=" AND mst_zones.zn_cd='"+complaintZoneInput+"'";
+		  		}
+			  if(complaintDivInput !='')
+		  		{
+		  			query+=" AND mst_divisions.div_cd='"+complaintDivInput+"'";
+		  		}
+			  if(complaintDeptInput !='')
+		  		{
+		  			query+=" AND rly_department.dept_code='"+complaintDeptInput+"'";
+		  		}
+			  if(complaintTypeInput !='')
+		  		{
+		  			query+=" AND rep.complaint_type='"+complaintTypeInput+"'";
+		  		}
+			  if(complaintSubTypeInput !='')
+		  		{
+		  			query+=" AND rep.complaint_sub_type='"+complaintSubTypeInput+"'";
+		  		}
+			  if(complaintModeInput !='')
+		  		{
+		  			query+=" AND compmode='"+complaintModeInput+"'";
+		  		}
+			 
+			  if(refundInput!="" && refundInput=="Y")
+		  		{
+		  			query+=" AND rep.complaint_type<>'8'";
+		  		}
+
+			  if(assistanceInput!="" && assistanceInput=="Y")
+				{
+					query+=" AND rep.complaint_type NOT IN (" + complaintIdList + ") ";
+					query+=" AND rep.complaint_sub_type NOT IN (" + subComplaintIdList + ")";
+
+				}
+	 			if(assistanceInput!="" && assistanceInput=="O")
+				{
+					query+=" AND ( rep.complaint_type IN (" + complaintIdList + ") ";
+					query+=" OR rep.complaint_sub_type IN (" + subComplaintIdList + ") )";
+
+				}
+			  
+			  
+			  if(inquiryInput!="" && inquiryInput=="Y")
+		  		{
+				  if(filter=='FORWARD'){
+		  			query+=" AND rep.nrcell_flag<>'1'";
+				  }
+				  else
+					  {
+			  			query+=" AND rep.nrcell_flag<>'1'";
+						  
+					  }
+		  		}
+
+			  if(inquiryInput!="" && inquiryInput=="O")
+		  		{
+				  if(filter=='FORWARD'){
+		  			query+=" AND rep.nrcell_flag='1'";
+				  }
+				  else
+					  {
+			  			query+=" AND rep.nrcell_flag='1'";
+						  
+					  }
+		  		}
+	        		}
+	        	
+	        	else
+	        		{
+	      	    
+				    	query=" WHERE rly.complaint_ref_no IS NOT NULL ";
+				    	
+	        		
+		        	query=query+" AND rly_complaint_status.complaint_status= 'Closed' AND DATE(modified_on)>='"+fromInput+"'  AND DATE(modified_on)<='"+toInput+"' AND rly.feedback_rating IS NOT NULL AND rly.feedback_rating<>''";
+	       		 	 if(filter=='EXE')
+	       		 	{
+	    				query=query+" AND rly.feedback_rating>4 AND rly.feedback_rating <=5 ";
+	               		 	}
+	       		 else if(filter=='SAT')
+	    		 	{
+	 				query=query+" AND rly.feedback_rating>2 AND rly.feedback_rating <=4 ";
+	            		 	}
+	       		else if(filter=='UNSAT')
+	           		 	{
+					query=query+" AND rly.feedback_rating>=0 AND rly.feedback_rating <=2 ";
+	           		 	}
+					
+			    	if(type=='ZONE' && value != null && value != 'null')
+				    	{
+						query=query+ "  AND mst_zones.zn_cd='" + value + "'   ";
+
+				    	}
+			    	if(type=='DIV' && value != null && value != 'null')
+			    	{
+					query=query+ "  AND mst_divisions.div_cd='" + value + "'   ";
+
+			    	}
+			    	if(type=='DEPT' && value != null && value != 'null')
+			    	{
+					query=query + "  AND rly_department.dept_code='" + value + "'   ";
+
+			    	}
+			    	if(type=='PCOMP' && value != null && value != 'null')
+			    	{
+					query=query + " AND rly.complaint_type = '" + value + "'";
+
+			    	}
+			    	if(type=='SCOMP' && value != null && value != 'null')
+			    	{
+						query=query + " AND rly.complaint_sub_type = '" + value + "'";
+
+			    	}
+
+			    	if(complaintZoneInput !='')
+			  		{
+			  			query+=" AND mst_zones.zn_cd='"+complaintZoneInput+"'";
+			  		}
+				  if(complaintDivInput !='')
+			  		{
+			  			query+=" AND mst_divisions.div_cd='"+complaintDivInput+"'";
+			  		}
+				  if(complaintDeptInput !='')
+			  		{
+			  			query+=" AND rly_department.dept_code='"+complaintDeptInput+"'";
+			  		}
+				  if(complaintTypeInput !='')
+			  		{
+			  			query+=" AND rly.complaint_type='"+complaintTypeInput+"'";
+			  		}
+				  if(complaintSubTypeInput !='')
+			  		{
+			  			query+=" AND rly.complaint_sub_type='"+complaintSubTypeInput+"'";
+			  		}
+				  if(complaintModeInput !='')
+			  		{
+			  			query+=" AND complaint_mode='"+complaintModeInput+"'";
+			  		}
+				 
+				  if(refundInput!="" && refundInput=="Y")
+			  		{
+			  			query+=" AND rly.complaint_type<>'8'";
+			  		}
+				  
+				  if(assistanceInput!="" && assistanceInput=="Y")
+					{
+						query+=" AND rly.complaint_type NOT IN (" + complaintIdList + ") ";
+						query+=" AND rly.complaint_sub_type NOT IN (" + subComplaintIdList + ")";
+
+					}
+		 			if(assistanceInput!="" && assistanceInput=="O")
+					{
+						query+=" AND ( rly.complaint_type IN (" + complaintIdList + ") ";
+						query+=" OR rly.complaint_sub_type IN (" + subComplaintIdList + ") )";
+
+					}
+				  
+
+				  if(inquiryInput!="" && inquiryInput=="Y")
+			  		{
+					  if(filter=='FORWARD'){
+			  			query+=" AND scomp.nrcell_flag<>'1'";
+					  }
+					  else
+						  {
+				  			query+=" AND comp.nrcell_flag<>'1'";
+							  
+						  }
+			  		}
+
+				  if(inquiryInput!="" && inquiryInput=="O")
+			  		{
+					  if(filter=='FORWARD'){
+			  			query+=" AND scomp.nrcell_flag='1'";
+					  }
+					  else
+						  {
+				  			query+=" AND comp.nrcell_flag='1'";
+							  
+						  }
+			  		}
+	        		}
+	    	  $('#query').val(query);
+		  		
+	    	  $('#exampleModal').modal('show');
+		        
+			 
+	    	  $('#exampleModal').modal('show').find('.modal-body').load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/rawdatapanel.jsp", { "query":query,
+	    		  fromInput:fromDate,
+      			toInput:toDate,
+      			dateRange:$('#dateRange').val(),
+		        	forwardFlag:'0'
+		        	 });		  	 
+	    	
+	    })
+});
+
+
+</script>
+
+<div class=" table-responsive">
+<br>
+<font style="text-align:center;display:block" class="title2">6.2) Department Wise Report From Date:2026-07-18, To Date:2026-07-18, Zone:ALL, Division:ALL, Mode:S, Department:ALL</font>
+
+   <button type="button" class="btn btn-info" style="float:right;text-align:center;margin-right:5px;" id="myprintm2">
+  Print <i class="fa fa-print" aria-hidden="true"></i>
+
+  </button> 
+<input type="hidden" id="query" style="">
+      <div id="detailtable1_wrapper" class="dataTables_wrapper"><table class="table table-bordered report6view2 no-footer dataTable" id="detailtable1" aria-describedby="detailtable1_info" style="">
+      <thead class="thead-light">
+    <tr><th scope="col" class="sorting_disabled" tabindex="0" aria-controls="detailtable1" rowspan="1" colspan="1" aria-label="S.No." style="width: 54.8203px;">S.No.</th><th scope="col" class="sorting sorting_asc" tabindex="0" aria-controls="detailtable1" rowspan="1" colspan="1" aria-label="Organisation: activate to sort column descending" style="width: 113.93px;" aria-sort="ascending">Organisation</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable1" rowspan="1" colspan="1" aria-label="Feedback Received: activate to sort column ascending" style="width: 160.258px;">Feedback Received</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable1" rowspan="1" colspan="1" aria-label="% Feedback: activate to sort column ascending" style="width: 105.633px;">% Feedback</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable1" rowspan="1" colspan="1" aria-label="Excellent: activate to sort column ascending" style="width: 82.7656px;">Excellent</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable1" rowspan="1" colspan="1" aria-label="Satisfactory: activate to sort column ascending" style="width: 103.734px;">Satisfactory</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable1" rowspan="1" colspan="1" aria-label="Unsatisfactory: activate to sort column ascending" style="width: 124.695px;">Unsatisfactory</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable1" rowspan="1" colspan="1" aria-label="% Unsatisfactory: activate to sort column ascending" style="width: 142.602px;">% Unsatisfactory</th></tr>
+  </thead>
+ 
+
+  
+  <tbody id="table2"><tr class="odd">  <td scope="col">1</td><td scope="col" class="sorting_1">CARRIAGE &amp; WAGON </td><td style="text-align:center;" scope="col"><a class="drill" id="CNW#DEPT#RECV" style="color:blue;">6</a></td><td style="text-align:center;" scope="col">3.35</td><td style="text-align:center;" scope="col"><a class="drill" id="CNW#DEPT#EXE" style="color:blue;">4</a></td><td style="text-align:center;" scope="col"><a class="drill" id="CNW#DEPT#SAT" style="resp[index];">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="CNW#DEPT#UNSAT" style="color:blue;">0</a></td><td style="text-align:center;" scope="col">0.00</td></tr><tr class="even">  <td scope="col">2</td><td scope="col" class="sorting_1">COACHING</td><td style="text-align:center;" scope="col"><a class="drill" id="CHG#DEPT#RECV" style="color:blue;">14</a></td><td style="text-align:center;" scope="col">7.82</td><td style="text-align:center;" scope="col"><a class="drill" id="CHG#DEPT#EXE" style="color:blue;">2</a></td><td style="text-align:center;" scope="col"><a class="drill" id="CHG#DEPT#SAT" style="resp[index];">3</a></td><td style="text-align:center;" scope="col"><a class="drill" id="CHG#DEPT#UNSAT" style="color:blue;">9</a></td><td style="text-align:center;" scope="col">64.29</td></tr><tr class="odd">  <td scope="col">3</td><td scope="col" class="sorting_1">COMMERCIAL</td><td style="text-align:center;" scope="col"><a class="drill" id="CML#DEPT#RECV" style="color:blue;">85</a></td><td style="text-align:center;" scope="col">47.49</td><td style="text-align:center;" scope="col"><a class="drill" id="CML#DEPT#EXE" style="color:blue;">39</a></td><td style="text-align:center;" scope="col"><a class="drill" id="CML#DEPT#SAT" style="resp[index];">15</a></td><td style="text-align:center;" scope="col"><a class="drill" id="CML#DEPT#UNSAT" style="color:blue;">31</a></td><td style="text-align:center;" scope="col">36.47</td></tr><tr class="even">  <td scope="col">4</td><td scope="col" class="sorting_1">ELECTRICAL</td><td style="text-align:center;" scope="col"><a class="drill" id="ELE#DEPT#RECV" style="color:blue;">12</a></td><td style="text-align:center;" scope="col">6.70</td><td style="text-align:center;" scope="col"><a class="drill" id="ELE#DEPT#EXE" style="color:blue;">5</a></td><td style="text-align:center;" scope="col"><a class="drill" id="ELE#DEPT#SAT" style="resp[index];">3</a></td><td style="text-align:center;" scope="col"><a class="drill" id="ELE#DEPT#UNSAT" style="color:blue;">4</a></td><td style="text-align:center;" scope="col">33.33</td></tr><tr class="odd">  <td scope="col">5</td><td scope="col" class="sorting_1">ENGINEERING</td><td style="text-align:center;" scope="col"><a class="drill" id="ENG#DEPT#RECV" style="color:blue;">15</a></td><td style="text-align:center;" scope="col">8.38</td><td style="text-align:center;" scope="col"><a class="drill" id="ENG#DEPT#EXE" style="color:blue;">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="ENG#DEPT#SAT" style="resp[index];">5</a></td><td style="text-align:center;" scope="col"><a class="drill" id="ENG#DEPT#UNSAT" style="color:blue;">9</a></td><td style="text-align:center;" scope="col">60.00</td></tr><tr class="even">  <td scope="col">6</td><td scope="col" class="sorting_1">IRCTC Catering</td><td style="text-align:center;" scope="col"><a class="drill" id="IRCTG#DEPT#RECV" style="color:blue;">3</a></td><td style="text-align:center;" scope="col">1.68</td><td style="text-align:center;" scope="col"><a class="drill" id="IRCTG#DEPT#EXE" style="color:blue;">0</a></td><td style="text-align:center;" scope="col"><a class="drill" id="IRCTG#DEPT#SAT" style="resp[index];">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="IRCTG#DEPT#UNSAT" style="color:blue;">2</a></td><td style="text-align:center;" scope="col">66.67</td></tr><tr class="odd">  <td scope="col">7</td><td scope="col" class="sorting_1">IRCTC Online</td><td style="text-align:center;" scope="col"><a class="drill" id="IRC#DEPT#RECV" style="color:blue;">16</a></td><td style="text-align:center;" scope="col">8.94</td><td style="text-align:center;" scope="col"><a class="drill" id="IRC#DEPT#EXE" style="color:blue;">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="IRC#DEPT#SAT" style="resp[index];">5</a></td><td style="text-align:center;" scope="col"><a class="drill" id="IRC#DEPT#UNSAT" style="color:blue;">10</a></td><td style="text-align:center;" scope="col">62.50</td></tr><tr class="even">  <td scope="col">8</td><td scope="col" class="sorting_1">RAILWAY PROTECTION FORCE</td><td style="text-align:center;" scope="col"><a class="drill" id="RPF#DEPT#RECV" style="color:blue;">20</a></td><td style="text-align:center;" scope="col">11.17</td><td style="text-align:center;" scope="col"><a class="drill" id="RPF#DEPT#EXE" style="color:blue;">13</a></td><td style="text-align:center;" scope="col"><a class="drill" id="RPF#DEPT#SAT" style="resp[index];">5</a></td><td style="text-align:center;" scope="col"><a class="drill" id="RPF#DEPT#UNSAT" style="color:blue;">2</a></td><td style="text-align:center;" scope="col">10.00</td></tr><tr class="odd">  <td scope="col">9</td><td scope="col" class="sorting_1">SIGNAL &amp; TELECOMMUNICATION</td><td style="text-align:center;" scope="col"><a class="drill" id="SNT#DEPT#RECV" style="color:blue;">8</a></td><td style="text-align:center;" scope="col">4.47</td><td style="text-align:center;" scope="col"><a class="drill" id="SNT#DEPT#EXE" style="color:blue;">1</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SNT#DEPT#SAT" style="resp[index];">3</a></td><td style="text-align:center;" scope="col"><a class="drill" id="SNT#DEPT#UNSAT" style="color:blue;">4</a></td><td style="text-align:center;" scope="col">50.00</td></tr></tbody>
+  
+   <tfoot id="tfootid2">	<tr><th scope="col" rowspan="1" colspan="1"></th><th scope="col" rowspan="1" colspan="1">Total</th><th style="text-align:center;" scope="col" rowspan="1" colspan="1"><a class="drill" id="undefined#RECV" style="color:blue">179</a></th><th style="text-align:center;" scope="col" rowspan="1" colspan="1">100%</th><th style="text-align:center;" scope="col" rowspan="1" colspan="1"><a class="drill" id="undefined#EXE" style="color:blue;">66</a></th><th style="text-align:center;" scope="col" rowspan="1" colspan="1"><a class="drill" id="undefined#SAT" style="color:blue;">42</a></th><th style="text-align:center;" scope="col" rowspan="1" colspan="1"><a class="drill" id="undefined#UNSAT" style="color:blue;">71</a></th><th style="text-align:center;" scope="col" rowspan="1" colspan="1">39.66</th></tr></tfoot>
+        
+</table></div>
+
+  <input type="hidden" id="selectedZoneInput" value="" style="">
+  <input type="hidden" id="selectedModeInput" value="S" style="">
+  <input type="hidden" id="selectedRefundInput" value="Y" style="">
+  <input type="hidden" id="selectedInquiryInput" value="Y" style="">
+  <input type="hidden" id="selectedDivInput" value="" style="">
+  <input type="hidden" id="selectedComplaintTypeInput" value="" style="">
+  <input type="hidden" id="selectedSubTypeInput" value="" style="">
+  <input type="hidden" id="selectedDeptInput" value="" style="">
+
+
+</div></div>
+						
+						
+						
+						</div>
+						
+						
+						
+						
+					</div>
+              <script src="/rmmis/admin/mis_reports/commonjs/dateutility.js?version=10"></script>
+					
+				  <script src="/rmmis/admin/mis_reports/commonjs/comptypesub.js?version=10"></script>
+
+				  <script src="/rmmis/admin/mis_reports/commonjs/zonedivlist.js?version=10"></script>
+
+				  <script src="/rmmis/admin/mis_reports/commonjs/deptlist.js?version=10"></script>
+	
+			  <script src="/rmmis/admin/mis_reports/js/report6.js?version=23"></script>
+</div>
+		
+			<div class="modal" id="changePasswordAdminModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordAdminLabel" aria-hidden="true">
+		<div class="modal-dialog login-modal-dialog" role="document">
+			<div class="modal-content">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">×</span>
+				</button>
+				<div class="modalHeader">
+				       <center><h5 class="modal-title">Change Password Admin</h5></center> 
+				</div>
+				<div class="modal-body">
+					<div id="changePasswordAdminContent">
+					
+					
+					
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	</div>
+	</div>
+
+	
+	  <script src="/rmmis/js_assets/jquery.min.js"></script>
+
+		<script src="/rmmis/js_assets/bootstrap.bundle.min.js"></script>
+
+	<script src="/rmmis/js_assets/jquery.easing.min.js"></script>
+	<script src="/rmmis/js_assets/jquery-ui.js"></script>
+	<script src="/rmmis/js_assets/d3.v5.min.js"></script>
+
+<script src="/rmmis/js_assets/d3pie.min.js"></script>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="/rmmis/js_assets/jquery.easing.min.js"></script>
+	<script src="/rmmis/js_assets/sb-admin.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="/rmmis/css_assets/datatables.min.css">
+	<script type="text/javascript" src="/rmmis/js_assets/datatables.min.js"></script>
+		
+<!-- Latest compiled and minified JavaScript -->
+<script src="/rmmis/js_assets/bootstrap-select.min.js"></script>
+<!-- CHANNEL WISE GOOGLE CHART -->
+<script type="text/javascript" src="/rmmis/js_assets/bootstrap-multiselect.js"></script>
+	<script src="/rmmis/js_assets/bootstrap-datetimepicker.min.js"></script>
+	<script src="/rmmis/js_assets/jquery.jgrowl.min.js"></script>
+
+
+
+	<script>
+
+	$(".editbtnself").click(function(){
+     	
+   		 
+		var userId="GM_SC";		
+		
+		 $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/EditUserProfile.jsp?Id="+userId);
+
+							
+		
+		    });	
+	
+	</script>
+
+
+
+<script>
+
+var checksession = function() {
+	
+
+	$.ajax({
+		method : 'GET',
+		url : window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/CheckSession',
+		
+		success : function(responseText) {
+			if(responseText=="false"){
+				 $(location).attr('href', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2)));	
+					
+				}
+		},
+		 error: function (xhr, status, thrownError) {
+	     }
+	}); 
+	}
+var onloadcheck = function() {
+	 var params = new window.URLSearchParams(window.location.search);
+	    if(params != null && params !='')
+	    	{
+	    	if(params.get('page')!=null)
+			{
+	    		var link=params.get('page');
+	    	    var archiveFlag=params.get('archiveFlag');
+	    	    var Id=params.get('Id');
+	    	    var mobile=params.get('mobile');
+	    	    var email=params.get('email');
+	    	    $("#dashboardmainsection").html("<div></div>");
+
+	   	  	  
+		    	 $('.ajax-loader').show();
+		    	    
+	    	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?page="+link+"&archiveFlag="+archiveFlag+"&Id="+Id+"&mobile="+mobile+"&email="+email,
+
+	    	    		function(){
+	   	    	 $('.ajax-loader').hide();
+
+	   	  	  }
+	    	    	    );	    	
+	    		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&archiveFlag="+archiveFlag+"&Id="+Id+"&mobile="+mobile+"&email="+email);
+
+			}
+	    	}
+	}
+
+
+$( document ).ready(function() {
+
+	checksession();
+	onloadcheck();
+	
+			$.ajax({
+		 method : 'GET',
+			url : window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/FetchData',
+			
+			data : {
+				
+				fetchdatatype:'checkpasswordupdatedon'
+			},
+	        async: true,
+			success : function(responseText) {
+
+                if(responseText.updateDateValidation){
+	            		 $('#changePasswordAdminContent').load("ChangePasswordAdmin.jsp");
+	            		 $("#changePasswordAdminModal").modal('show');
+               	 
+                }
+                else{	
+                }
+              
+			
+			},
+			error: function (xhr, status, thrownError) {
+			}
+		});
+			
+			$('#changePasswordAdminModal').on('hide.bs.modal', function () {
+				 $(location).attr('href', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/Logout.jsp');	
+				});
+			
+    
+    $(".navigate_to_link").click(function(){
+    	checksession();
+    var link=$(this).attr("link");
+    var reportType=$(this).attr("report-type");
+    if(reportType != null)
+    	{
+	    $("#dashboardmainsection").html("<div></div>");
+    	
+   	 $('.ajax-loader').show();
+ 	
+	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?archiveFlag="+reportType
+	    		,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&archiveFlag="+reportType);
+	    
+    	}
+    else
+    	{
+	    $("#dashboardmainsection").html("<div></div>");
+    	
+   	 $('.ajax-loader').show();
+ 	
+	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp"
+	    		,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link);
+	    
+    	}
+
+    });
+
+
+    $("#dashboardmainsection").on('click','.navigatenext',function(){
+    	checksession();
+        var refNo=$(this).attr("refNo");
+        var link=$(this).attr("link");
+        var archiveFlag=$(this).attr("archive-flag");
+        var email=$(this).attr("email");
+        var mobile=$(this).attr("mobile");
+   	 $('.ajax-loader').show();
+	    $("#dashboardmainsection").html("<div></div>");
+	     
+    	$("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?Id="+refNo+"&archiveflag="+archiveFlag+"&mobile="+mobile+"&email="+email
+    			,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+    	window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&Id="+refNo+"&archiveflag="+archiveFlag+"&mobile="+mobile+"&email="+email);
+    	    
+        	
+      
+
+        });
+    
+    
+  
+});
+
+</script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css"> 
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.0.1/css/buttons.dataTables.min.css">
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.html5.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.print.min.js"></script>
+
+</body></html>

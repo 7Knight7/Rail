@@ -1,0 +1,85 @@
+{
+  "run_id": "a6b7f77f-73a2-4cba-9d94-4d5932ec64e3",
+  "started_at": "2026-07-16T06:08:59.399307+00:00",
+  "completed_at": "2026-07-16T06:16:41.302329+00:00",
+  "total_duration_seconds": 461.903,
+  "spans": {
+    "browser_connect": 1.761,
+    "nav_filter_submit:report1": 14.537,
+    "sorting:report1": 1.568,
+    "extraction:report1": 0.309,
+    "feedback_extraction:report1": 161.153,
+    "ingestion_feedback:report1_feedback": 0.061,
+    "ingestion:report1": 0.2,
+    "comprehensive_regenerate:report1": 11.504,
+    "phase6_pdf_download:report1": 41.419,
+    "archive:report1": 0.175,
+    "processing:report1": 4.597,
+    "handler_execute:report1": 245.406,
+    "report:report1": 249.457,
+    "nav_filter_submit:division": 71.754,
+    "sorting:division": 1.651,
+    "ingestion_feedback:division_feedback": 0.198,
+    "ingestion:division": 0.296,
+    "handler_execute:division": 202.101,
+    "report:division": 205.519
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-16T06:09:06.214947+00:00",
+      "completed_at": "2026-07-16T06:13:15.671503+00:00",
+      "duration_seconds": 249.457,
+      "extraction_seconds": 0.309,
+      "processing_seconds": 4.597,
+      "spans": {
+        "nav_filter_submit": 14.537,
+        "sorting": 1.568,
+        "extraction": 0.309,
+        "feedback_extraction": 161.153,
+        "ingestion": 0.2,
+        "comprehensive_regenerate": 11.504,
+        "phase6_pdf_download": 41.419,
+        "archive": 0.175,
+        "processing": 4.597,
+        "excel_generation": 2.299,
+        "pdf_generation": 2.299
+      }
+    },
+    "report1_feedback": {
+      "slug": "report1_feedback",
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": null,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "ingestion_feedback": 0.061
+      }
+    },
+    "division": {
+      "slug": "division",
+      "started_at": "2026-07-16T06:13:15.727395+00:00",
+      "completed_at": "2026-07-16T06:16:41.246173+00:00",
+      "duration_seconds": 205.519,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 71.754,
+        "sorting": 1.651,
+        "ingestion": 0.296
+      }
+    },
+    "division_feedback": {
+      "slug": "division_feedback",
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": null,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "ingestion_feedback": 0.198
+      }
+    }
+  }
+}

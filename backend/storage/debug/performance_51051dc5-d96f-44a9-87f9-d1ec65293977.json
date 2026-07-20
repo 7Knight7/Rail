@@ -1,0 +1,90 @@
+{
+  "run_id": "51051dc5-d96f-44a9-87f9-d1ec65293977",
+  "started_at": "2026-07-19T16:43:14.990923+00:00",
+  "completed_at": "2026-07-19T16:43:59.691415+00:00",
+  "total_duration_seconds": 44.7,
+  "portal_wait_seconds": 123.523,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.9,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 1.942,
+    "nav_filter_submit:scr-station": 34.619,
+    "sorting:scr-station": 2.905,
+    "handler_execute:scr-station": 41.875,
+    "report:scr-station": 42.182
+  },
+  "per_report": {
+    "scr-station": {
+      "duration_seconds": 42.182,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 34.619,
+        "sorting": 2.905
+      }
+    }
+  },
+  "critical_path_report": "scr-station",
+  "critical_path_seconds": 42.182,
+  "top_bottlenecks": [
+    [
+      "report:scr-station",
+      42.182
+    ],
+    [
+      "handler_execute:scr-station",
+      41.875
+    ],
+    [
+      "nav_filter_submit:scr-station",
+      34.619
+    ],
+    [
+      "sorting:scr-station",
+      2.905
+    ],
+    [
+      "browser_connect",
+      1.942
+    ]
+  ]
+}

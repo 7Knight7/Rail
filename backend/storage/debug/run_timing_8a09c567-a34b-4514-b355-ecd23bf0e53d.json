@@ -1,0 +1,51 @@
+{
+  "run_id": "8a09c567-a34b-4514-b355-ecd23bf0e53d",
+  "started_at": "2026-07-20T08:11:52.170363+00:00",
+  "completed_at": "2026-07-20T08:14:10.187635+00:00",
+  "total_duration_seconds": 138.017,
+  "spans": {
+    "browser_connect": 0.827,
+    "nav_filter_submit:report1": 1.993,
+    "sorting:report1": 0.554,
+    "extraction:report1": 0.075,
+    "feedback_extraction:report1": 125.927,
+    "ingestion_feedback:report1_feedback": 0.011,
+    "ingestion:report1": 0.027,
+    "comprehensive_regenerate:report1": 4.03,
+    "processing:report1": 0.35,
+    "handler_execute:report1": 136.463,
+    "report:report1": 136.799
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-20T08:11:53.259501+00:00",
+      "completed_at": "2026-07-20T08:14:10.058281+00:00",
+      "duration_seconds": 136.799,
+      "extraction_seconds": 0.075,
+      "processing_seconds": 0.35,
+      "spans": {
+        "nav_filter_submit": 1.993,
+        "sorting": 0.554,
+        "extraction": 0.075,
+        "feedback_extraction": 125.927,
+        "ingestion": 0.027,
+        "comprehensive_regenerate": 4.03,
+        "processing": 0.35,
+        "excel_generation": 0.175,
+        "pdf_generation": 0.175
+      }
+    },
+    "report1_feedback": {
+      "slug": "report1_feedback",
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": null,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "ingestion_feedback": 0.011
+      }
+    }
+  }
+}

@@ -7,6 +7,8 @@ export interface ColumnMetadata {
   dataType: ColumnDataType;
   filterable: boolean;
   sortable: boolean;
+  group?: string;
+  groupTitle?: string;
 }
 
 export interface DatasetMetadata {

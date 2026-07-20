@@ -90,6 +90,11 @@ def resolve_report_dir(base_dir: str | Path, report_slug: str) -> Path:
     return base if base.name == report_slug else base / report_slug
 
 
+def resolve_run_scoped_dir(base_dir: str | Path, report_slug: str, run_id: str) -> Path:
+    """Resolve run-scoped storage dir: base/<slug>/<run_id>/"""
+    return resolve_report_dir(base_dir, report_slug) / run_id
+
+
 def normalize_url(url: str) -> str:
     """Normalize a URL for comparison (lowercase host, no trailing slash)."""
     return url.rstrip("/").lower()

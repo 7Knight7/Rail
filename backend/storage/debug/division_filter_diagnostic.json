@@ -1,0 +1,1015 @@
+{
+  "missing_field": "Required filter field not found: excluding_refund_cases (#refundInput, select[id='refundInput'], select[name='refundInput'], select[id*='refund'], tr:has(td:has-text('Excluding Refund Cases')) select, tr:has(th:has-text('Excluding Refund Cases')) select, td:has-text('Excluding Refund Cases') + td select, label:has-text('Excluding Refund Cases') + select, select[name*='ExcludingRefundCases'], select[id*='ExcludingRefundCases'])",
+  "discovered_fields": [
+    {
+      "tag": "button",
+      "field_id": "",
+      "field_name": "",
+      "field_type": "submit",
+      "field_label": "",
+      "selector": "button",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "select",
+      "field_id": "dateRange",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#dateRange",
+      "current_value": "Previous Day",
+      "required": false,
+      "options": [
+        {
+          "value": "PREV_DAY",
+          "label": "Previous Day"
+        },
+        {
+          "value": "WEEKLY",
+          "label": "Last 7 Days"
+        },
+        {
+          "value": "CURR_MONTH",
+          "label": "Current Month"
+        },
+        {
+          "value": "PREV_MONTH",
+          "label": "Previous Month"
+        },
+        {
+          "value": "CURR_YEAR",
+          "label": "Current Financial Year"
+        },
+        {
+          "value": "PREV_YEAR",
+          "label": "Previous Financial Year"
+        },
+        {
+          "value": "CURR_DAY",
+          "label": "Current Day"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "field_id": "fromDate",
+      "field_name": "",
+      "field_type": "text",
+      "field_label": "",
+      "selector": "#fromDate",
+      "current_value": "2026-07-20",
+      "required": true,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "toDate",
+      "field_name": "",
+      "field_type": "text",
+      "field_label": "",
+      "selector": "#toDate",
+      "current_value": "2026-07-20",
+      "required": true,
+      "options": []
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintZoneInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintZoneInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "CR",
+          "label": "Central Railway"
+        },
+        {
+          "value": "EC",
+          "label": "East Central Railway"
+        },
+        {
+          "value": "EO",
+          "label": "East Coast Railway"
+        },
+        {
+          "value": "ER",
+          "label": "Eastern Railway"
+        },
+        {
+          "value": "IRC",
+          "label": "IRCTC"
+        },
+        {
+          "value": "KM",
+          "label": "Kolkata Metro"
+        },
+        {
+          "value": "KR",
+          "label": "Konkan Railway"
+        },
+        {
+          "value": "NC",
+          "label": "North Central Railway"
+        },
+        {
+          "value": "NE",
+          "label": "North Eastern Railway"
+        },
+        {
+          "value": "NF",
+          "label": "Northeast Frontier Railway"
+        },
+        {
+          "value": "NR",
+          "label": "Northern Railway"
+        },
+        {
+          "value": "NW",
+          "label": "North Western Railway"
+        },
+        {
+          "value": "SB",
+          "label": "South East Central Railway"
+        },
+        {
+          "value": "SC",
+          "label": "South Central Railway"
+        },
+        {
+          "value": "SE",
+          "label": "South Eastern Railway"
+        },
+        {
+          "value": "SR",
+          "label": "Southern Railway"
+        },
+        {
+          "value": "SW",
+          "label": "South Western Railway"
+        },
+        {
+          "value": "WC",
+          "label": "West Central Railway"
+        },
+        {
+          "value": "WR",
+          "label": "Western Railway"
+        },
+        {
+          "value": "SO",
+          "label": "South Coast Railway"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintDivInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintDivInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintTypeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintTypeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "132",
+          "label": "Medical Assistance- Train"
+        },
+        {
+          "value": "87",
+          "label": "Security- Train"
+        },
+        {
+          "value": "152",
+          "label": "Divyangjan Facilities- Train"
+        },
+        {
+          "value": "173",
+          "label": "Facilities for Women with Special needs- Train"
+        },
+        {
+          "value": "85",
+          "label": "Electrical Equipment- Train"
+        },
+        {
+          "value": "82",
+          "label": "Coach - Cleanliness- Train"
+        },
+        {
+          "value": "81",
+          "label": "Punctuality- Train"
+        },
+        {
+          "value": "83",
+          "label": "Water Availability- Train"
+        },
+        {
+          "value": "136",
+          "label": "Coach - Maintenance- Train"
+        },
+        {
+          "value": "86",
+          "label": "Catering & Vending Services- Train"
+        },
+        {
+          "value": "88",
+          "label": "Staff Behaviour- Train"
+        },
+        {
+          "value": "89",
+          "label": "Corruption / Bribery- Train"
+        },
+        {
+          "value": "84",
+          "label": "Bed Roll- Train"
+        },
+        {
+          "value": "90",
+          "label": "Miscellaneous- Train"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintSubTypeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintSubTypeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintDeptInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintDeptInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "ACCT",
+          "label": "ACCOUNTS"
+        },
+        {
+          "value": "CHG",
+          "label": "COACHING"
+        },
+        {
+          "value": "CML",
+          "label": "COMMERCIAL"
+        },
+        {
+          "value": "CNW",
+          "label": "CARRIAGE & WAGON"
+        },
+        {
+          "value": "ELE",
+          "label": "ELECTRICAL"
+        },
+        {
+          "value": "ENG",
+          "label": "ENGINEERING"
+        },
+        {
+          "value": "IRC",
+          "label": "IRCTC Online"
+        },
+        {
+          "value": "IRCTG",
+          "label": "IRCTC Catering"
+        },
+        {
+          "value": "IRSDC",
+          "label": "IRSDC"
+        },
+        {
+          "value": "RPF",
+          "label": "RAILWAY PROTECTION FORCE"
+        },
+        {
+          "value": "SNT",
+          "label": "SIGNAL & TELECOMMUNICATION"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "viewType",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#viewType",
+      "current_value": "Train Type Wise",
+      "required": false,
+      "options": [
+        {
+          "value": "traintype",
+          "label": "Train Type Wise"
+        },
+        {
+          "value": "trainnotype",
+          "label": "Train No Wise"
+        },
+        {
+          "value": "zonetype",
+          "label": "Zone Wise"
+        },
+        {
+          "value": "divisiontype",
+          "label": "Division Wise"
+        },
+        {
+          "value": "depottype",
+          "label": "Depot Wise"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "coachId",
+      "field_name": "coachId",
+      "field_type": "select-multiple",
+      "field_label": "Coach Type",
+      "selector": "#coachId",
+      "current_value": "",
+      "required": false,
+      "options": [
+        {
+          "value": "1A",
+          "label": "1A"
+        },
+        {
+          "value": "2A",
+          "label": "2A"
+        },
+        {
+          "value": "FC",
+          "label": "FC"
+        },
+        {
+          "value": "3A",
+          "label": "3A"
+        },
+        {
+          "value": "CC",
+          "label": "CC"
+        },
+        {
+          "value": "SL",
+          "label": "SL"
+        },
+        {
+          "value": "VS",
+          "label": "VS"
+        },
+        {
+          "value": "2S",
+          "label": "2S"
+        },
+        {
+          "value": "3E",
+          "label": "3E"
+        },
+        {
+          "value": "CH",
+          "label": "CH"
+        },
+        {
+          "value": "SH",
+          "label": "SH"
+        },
+        {
+          "value": "EA",
+          "label": "EA"
+        },
+        {
+          "value": "VC",
+          "label": "VC"
+        },
+        {
+          "value": "EV",
+          "label": "EV"
+        },
+        {
+          "value": "EC",
+          "label": "EC"
+        },
+        {
+          "value": "NA",
+          "label": "N/A"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "field_id": "",
+      "field_name": "",
+      "field_type": "checkbox",
+      "field_label": "Select all",
+      "selector": "input",
+      "current_value": "multiselect-all",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "select",
+      "field_id": "assistanceInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#assistanceInput",
+      "current_value": "Yes",
+      "required": false,
+      "options": [
+        {
+          "value": "N",
+          "label": "No"
+        },
+        {
+          "value": "Y",
+          "label": "Yes"
+        },
+        {
+          "value": "O",
+          "label": "Only Assistance"
+        }
+      ]
+    },
+    {
+      "tag": "input",
+      "field_id": "trainTypeInput",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#trainTypeInput",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "viewWiseHeading",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#viewWiseHeading",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "drillFlagForTrainType",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#drillFlagForTrainType",
+      "current_value": "false",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "tempfrom",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#tempfrom",
+      "current_value": "2026-07-19",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "tempto",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#tempto",
+      "current_value": "2026-07-19",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "button",
+      "field_id": "submitbtn",
+      "field_name": "",
+      "field_type": "submit",
+      "field_label": "",
+      "selector": "#submitbtn",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "button",
+      "field_id": "myback",
+      "field_name": "",
+      "field_type": "button",
+      "field_label": "",
+      "selector": "#myback",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "query",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#query",
+      "current_value": "",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "complaintModeInput",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#complaintModeInput",
+      "current_value": "t",
+      "required": false,
+      "options": []
+    }
+  ],
+  "field_count": 22,
+  "select_fields": [
+    {
+      "tag": "select",
+      "field_id": "dateRange",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#dateRange",
+      "current_value": "Previous Day",
+      "required": false,
+      "options": [
+        {
+          "value": "PREV_DAY",
+          "label": "Previous Day"
+        },
+        {
+          "value": "WEEKLY",
+          "label": "Last 7 Days"
+        },
+        {
+          "value": "CURR_MONTH",
+          "label": "Current Month"
+        },
+        {
+          "value": "PREV_MONTH",
+          "label": "Previous Month"
+        },
+        {
+          "value": "CURR_YEAR",
+          "label": "Current Financial Year"
+        },
+        {
+          "value": "PREV_YEAR",
+          "label": "Previous Financial Year"
+        },
+        {
+          "value": "CURR_DAY",
+          "label": "Current Day"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintZoneInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintZoneInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "CR",
+          "label": "Central Railway"
+        },
+        {
+          "value": "EC",
+          "label": "East Central Railway"
+        },
+        {
+          "value": "EO",
+          "label": "East Coast Railway"
+        },
+        {
+          "value": "ER",
+          "label": "Eastern Railway"
+        },
+        {
+          "value": "IRC",
+          "label": "IRCTC"
+        },
+        {
+          "value": "KM",
+          "label": "Kolkata Metro"
+        },
+        {
+          "value": "KR",
+          "label": "Konkan Railway"
+        },
+        {
+          "value": "NC",
+          "label": "North Central Railway"
+        },
+        {
+          "value": "NE",
+          "label": "North Eastern Railway"
+        },
+        {
+          "value": "NF",
+          "label": "Northeast Frontier Railway"
+        },
+        {
+          "value": "NR",
+          "label": "Northern Railway"
+        },
+        {
+          "value": "NW",
+          "label": "North Western Railway"
+        },
+        {
+          "value": "SB",
+          "label": "South East Central Railway"
+        },
+        {
+          "value": "SC",
+          "label": "South Central Railway"
+        },
+        {
+          "value": "SE",
+          "label": "South Eastern Railway"
+        },
+        {
+          "value": "SR",
+          "label": "Southern Railway"
+        },
+        {
+          "value": "SW",
+          "label": "South Western Railway"
+        },
+        {
+          "value": "WC",
+          "label": "West Central Railway"
+        },
+        {
+          "value": "WR",
+          "label": "Western Railway"
+        },
+        {
+          "value": "SO",
+          "label": "South Coast Railway"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintDivInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintDivInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintTypeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintTypeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "132",
+          "label": "Medical Assistance- Train"
+        },
+        {
+          "value": "87",
+          "label": "Security- Train"
+        },
+        {
+          "value": "152",
+          "label": "Divyangjan Facilities- Train"
+        },
+        {
+          "value": "173",
+          "label": "Facilities for Women with Special needs- Train"
+        },
+        {
+          "value": "85",
+          "label": "Electrical Equipment- Train"
+        },
+        {
+          "value": "82",
+          "label": "Coach - Cleanliness- Train"
+        },
+        {
+          "value": "81",
+          "label": "Punctuality- Train"
+        },
+        {
+          "value": "83",
+          "label": "Water Availability- Train"
+        },
+        {
+          "value": "136",
+          "label": "Coach - Maintenance- Train"
+        },
+        {
+          "value": "86",
+          "label": "Catering & Vending Services- Train"
+        },
+        {
+          "value": "88",
+          "label": "Staff Behaviour- Train"
+        },
+        {
+          "value": "89",
+          "label": "Corruption / Bribery- Train"
+        },
+        {
+          "value": "84",
+          "label": "Bed Roll- Train"
+        },
+        {
+          "value": "90",
+          "label": "Miscellaneous- Train"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintSubTypeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintSubTypeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintDeptInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintDeptInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "ACCT",
+          "label": "ACCOUNTS"
+        },
+        {
+          "value": "CHG",
+          "label": "COACHING"
+        },
+        {
+          "value": "CML",
+          "label": "COMMERCIAL"
+        },
+        {
+          "value": "CNW",
+          "label": "CARRIAGE & WAGON"
+        },
+        {
+          "value": "ELE",
+          "label": "ELECTRICAL"
+        },
+        {
+          "value": "ENG",
+          "label": "ENGINEERING"
+        },
+        {
+          "value": "IRC",
+          "label": "IRCTC Online"
+        },
+        {
+          "value": "IRCTG",
+          "label": "IRCTC Catering"
+        },
+        {
+          "value": "IRSDC",
+          "label": "IRSDC"
+        },
+        {
+          "value": "RPF",
+          "label": "RAILWAY PROTECTION FORCE"
+        },
+        {
+          "value": "SNT",
+          "label": "SIGNAL & TELECOMMUNICATION"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "viewType",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#viewType",
+      "current_value": "Train Type Wise",
+      "required": false,
+      "options": [
+        {
+          "value": "traintype",
+          "label": "Train Type Wise"
+        },
+        {
+          "value": "trainnotype",
+          "label": "Train No Wise"
+        },
+        {
+          "value": "zonetype",
+          "label": "Zone Wise"
+        },
+        {
+          "value": "divisiontype",
+          "label": "Division Wise"
+        },
+        {
+          "value": "depottype",
+          "label": "Depot Wise"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "coachId",
+      "field_name": "coachId",
+      "field_type": "select-multiple",
+      "field_label": "Coach Type",
+      "selector": "#coachId",
+      "current_value": "",
+      "required": false,
+      "options": [
+        {
+          "value": "1A",
+          "label": "1A"
+        },
+        {
+          "value": "2A",
+          "label": "2A"
+        },
+        {
+          "value": "FC",
+          "label": "FC"
+        },
+        {
+          "value": "3A",
+          "label": "3A"
+        },
+        {
+          "value": "CC",
+          "label": "CC"
+        },
+        {
+          "value": "SL",
+          "label": "SL"
+        },
+        {
+          "value": "VS",
+          "label": "VS"
+        },
+        {
+          "value": "2S",
+          "label": "2S"
+        },
+        {
+          "value": "3E",
+          "label": "3E"
+        },
+        {
+          "value": "CH",
+          "label": "CH"
+        },
+        {
+          "value": "SH",
+          "label": "SH"
+        },
+        {
+          "value": "EA",
+          "label": "EA"
+        },
+        {
+          "value": "VC",
+          "label": "VC"
+        },
+        {
+          "value": "EV",
+          "label": "EV"
+        },
+        {
+          "value": "EC",
+          "label": "EC"
+        },
+        {
+          "value": "NA",
+          "label": "N/A"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "assistanceInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#assistanceInput",
+      "current_value": "Yes",
+      "required": false,
+      "options": [
+        {
+          "value": "N",
+          "label": "No"
+        },
+        {
+          "value": "Y",
+          "label": "Yes"
+        },
+        {
+          "value": "O",
+          "label": "Only Assistance"
+        }
+      ]
+    }
+  ]
+}

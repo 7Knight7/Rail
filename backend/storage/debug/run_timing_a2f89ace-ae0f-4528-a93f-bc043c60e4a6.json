@@ -1,0 +1,25 @@
+{
+  "run_id": "a2f89ace-ae0f-4528-a93f-bc043c60e4a6",
+  "started_at": "2026-07-19T18:22:46.864408+00:00",
+  "completed_at": "2026-07-19T18:27:51.413503+00:00",
+  "total_duration_seconds": 304.549,
+  "spans": {
+    "browser_connect": 0.674,
+    "nav_filter_submit:report1": 301.955,
+    "handler_execute:report1": 303.419,
+    "report:report1": 303.585
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-19T18:22:47.805386+00:00",
+      "completed_at": "2026-07-19T18:27:51.390620+00:00",
+      "duration_seconds": 303.585,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 301.955
+      }
+    }
+  }
+}

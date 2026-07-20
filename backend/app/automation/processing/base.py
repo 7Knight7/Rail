@@ -26,3 +26,8 @@ class ProcessingResult:
     source_b_mtime: float | None = None
     output_mtime: float | None = None
     run_timestamp: str | None = None
+    output_columns: list[str] | None = None
+    visible_columns: list[str] | None = None
+    selected_column_ids: list[str] | None = None
+    column_order: list[str] | None = None
+    configuration_source: str | None = None

@@ -1,8 +1,16 @@
 export { FilterBuilder } from "./components/FilterBuilder";
 export { VisibleColumnsSection } from "./components/VisibleColumnsSection";
+export { GroupedOutputColumnsSection } from "./components/GroupedOutputColumnsSection";
 export { SearchableColumnSelect } from "./components/SearchableColumnSelect";
 export { useDatasetMetadata } from "./hooks/useDatasetMetadata";
-export type {
+export {
+  useOutputColumnCatalog,
+  usesOutputColumnCatalog,
+} from "./hooks/useOutputColumnCatalog";
+export {
+  useReactiveOutputPreview,
+  usesReactiveOutputPreview,
+} from "./hooks/useReactiveOutputPreview";export type {
   ColumnDataType,
   ColumnMetadata,
   DatasetMetadata,

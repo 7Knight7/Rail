@@ -1,0 +1,31 @@
+{
+  "run_id": "7aba4fa7-3fa5-42b8-ab7d-34173d814b48",
+  "started_at": "2026-07-20T08:15:01.186528+00:00",
+  "completed_at": "2026-07-20T08:15:10.848005+00:00",
+  "total_duration_seconds": 9.661,
+  "spans": {
+    "browser_connect": 0.686,
+    "nav_filter_submit:scr-train": 3.146,
+    "sorting:scr-train": 0.625,
+    "handler_execute:scr-train": 7.22,
+    "ingestion:scr-train": 0.091,
+    "report:scr-train": 8.516
+  },
+  "reports": {
+    "scr-train": {
+      "slug": "scr-train",
+      "started_at": "2026-07-20T08:15:02.205233+00:00",
+      "completed_at": "2026-07-20T08:15:10.720880+00:00",
+      "duration_seconds": 8.516,
+      "extraction_seconds": 7.219,
+      "processing_seconds": 1.18,
+      "spans": {
+        "nav_filter_submit": 3.146,
+        "sorting": 0.625,
+        "extraction": 7.219,
+        "ingestion": 0.091,
+        "processing": 1.18
+      }
+    }
+  }
+}

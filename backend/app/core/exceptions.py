@@ -15,6 +15,17 @@ class NotFoundError(AppException):
         self.identifier = identifier
 
 
+class SummaryNotGeneratedError(AppException):
+    """Run exists for the user but no daily summary row has been persisted yet."""
+
+    def __init__(self, run_id: str):
+        super().__init__(
+            message=f"No summary generated yet for run '{run_id}'",
+            code="SUMMARY_NOT_GENERATED",
+        )
+        self.run_id = run_id
+
+
 class ValidationError(AppException):
     def __init__(self, message: str, field: str | None = None):
         super().__init__(message=message, code="VALIDATION_ERROR")

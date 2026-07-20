@@ -24,6 +24,7 @@ from app.automation.schemas import ReportResult
 from app.automation.table_extractor import TableExtractor
 from app.automation.table_sort import ReceivedSortError
 from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
+from app.automation.wait_utils import tracked_sleep
 
 from .base import BaseReportHandler
 
@@ -55,7 +56,7 @@ class Report4Handler(BaseReportHandler):
     ) -> ReportResult:
         started_at = datetime.now(UTC).isoformat()
         t0 = time.perf_counter()
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_start")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
         type_configs = get_type_configs()
 
         ctx = get_run_context()
@@ -71,7 +72,7 @@ class Report4Handler(BaseReportHandler):
         failed_types: list[str] = []
 
         await self.navigation.navigate_to_report(page, report)
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav")
+        page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
         try:
             await page.wait_for_selector("#complaintTypeInput, #viewType", timeout=15_000)
         except Exception:
@@ -79,7 +80,7 @@ class Report4Handler(BaseReportHandler):
 
         for type_config in type_configs:
             page = await self.ensure_mis_page(
-                page, session, f"{report.slug}_{type_config.name}"
+                page, session, f"{report.slug}_{type_config.name}", report=report
             )
             outcome = await self._run_type_with_retry(
                 page,
@@ -292,7 +293,7 @@ class Report4Handler(BaseReportHandler):
                 await self._save_type_failure_artifacts(
                     page, type_config.name, attempt, last_error
                 )
-                await asyncio.sleep(1.5 * attempt)
+                await tracked_sleep(1.5 * attempt, reason="report4_type_retry")
 
         return {
             "type_name": type_config.name,
@@ -462,20 +463,19 @@ class Report4Handler(BaseReportHandler):
                 if not current:
                     saw_clear = True
                 elif current != old_fingerprint:
-                    # Prefer a clear→new or fingerprint-change signal.
                     if saw_clear or current != old_fingerprint:
-                        await asyncio.sleep(0.35)
+                        await tracked_sleep(0.12, reason="report4_refresh_confirm")
                         confirm = await self._table_fingerprint(report_root)
                         if confirm and confirm != old_fingerprint:
                             return True
             else:
                 if current:
-                    await asyncio.sleep(0.35)
+                    await tracked_sleep(0.12, reason="report4_refresh_confirm")
                     confirm = await self._table_fingerprint(report_root)
                     if confirm:
                         return True
 
-            await asyncio.sleep(0.25)
+            await tracked_sleep(0.1, reason="report4_refresh_poll")
 
         # Final check: reject stale identical fingerprint.
         final_fp = await self._table_fingerprint(report_root)

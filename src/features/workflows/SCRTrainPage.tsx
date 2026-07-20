@@ -23,12 +23,6 @@ const settingsFields = [
   EXPORT_FORMAT_FIELD,
 ];
 
-const previewColumns = [
-  { key: "trainNo", header: "Train No" },
-  { key: "complaints", header: "Complaints" },
-  { key: "division", header: "Division" },
-];
-
 export function SCRTrainPage() {
   return (
     <WorkflowPageLayout
@@ -37,7 +31,6 @@ export function SCRTrainPage() {
       description="Configure and generate the SCR train complaints report"
       settingsFields={settingsFields}
       advancedFields={COMMON_ADVANCED_FIELDS}
-      previewColumns={previewColumns}
     />
   );
 }

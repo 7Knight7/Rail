@@ -1,0 +1,25 @@
+{
+  "run_id": "27e26a33-fb16-4527-9829-763307035eac",
+  "started_at": "2026-07-19T18:29:24.531072+00:00",
+  "completed_at": "2026-07-19T18:29:26.793951+00:00",
+  "total_duration_seconds": 2.263,
+  "spans": {
+    "browser_connect": 0.678,
+    "nav_filter_submit:scr-station": 1.042,
+    "handler_execute:scr-station": 1.108,
+    "report:scr-station": 1.203
+  },
+  "reports": {
+    "scr-station": {
+      "slug": "scr-station",
+      "started_at": "2026-07-19T18:29:25.503372+00:00",
+      "completed_at": "2026-07-19T18:29:26.706893+00:00",
+      "duration_seconds": 1.203,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 1.042
+      }
+    }
+  }
+}

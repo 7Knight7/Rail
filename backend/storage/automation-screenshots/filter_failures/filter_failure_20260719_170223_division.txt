@@ -1,0 +1,6 @@
+report_slug=division
+missing_field=Required filter field not found: excluding_refund_cases (#refundInput, select[id='refundInput'], select[name='refundInput'], select[id*='refund'], tr:has(td:has-text('Excluding Refund Cases')) select, tr:has(th:has-text('Excluding Refund Cases')) select, td:has-text('Excluding Refund Cases') + td select, label:has-text('Excluding Refund Cases') + select, select[name*='ExcludingRefundCases'], select[id*='ExcludingRefundCases'])
+url=https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report16&archiveFlag=N&Id=null&mobile=null&email=null
+timestamp=20260719_170223
+discovered_field_count=22
+discovered_ids=['dateRange', 'fromDate', 'toDate', 'complaintZoneInput', 'complaintDivInput', 'complaintTypeInput', 'complaintSubTypeInput', 'complaintDeptInput', 'viewType', 'coachId', 'assistanceInput', 'trainTypeInput', 'viewWiseHeading', 'drillFlagForTrainType', 'tempfrom', 'tempto', 'submitbtn', 'myback', 'query', 'complaintModeInput']

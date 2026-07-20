@@ -48,7 +48,7 @@ class AutomationConfig(BaseSettings):
         description="Project download directory (never system Downloads folder)",
     )
     filter_interaction_delay_ms: int = Field(
-        default=500,
+        default=150,
         ge=0,
         description="Delay between filter field interactions in milliseconds",
     )

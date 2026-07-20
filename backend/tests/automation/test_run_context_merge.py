@@ -109,8 +109,8 @@ def test_merge_failed_clears_pending_and_keeps_error():
     assert merged.error == "Ingestion failed"
 
 
-def test_ingestion_failure_cannot_be_success():
-    """Processor/ingest failure merges as failed, not success with URLs."""
+def test_processing_failure_merges_as_failed_not_success():
+    """Terminal ingest/process failures must not remain success."""
     ctx = _ctx()
     ctx.store_partial(
         ReportResult(
@@ -125,12 +125,13 @@ def test_ingestion_failure_cannot_be_success():
         ReportResult(
             slug="scr-train",
             dataset_key="scr-train",
-            status="partial_success",
-            error="Processing failed",
+            status="failed",
+            error="REPORT5_EXCEL_VALIDATION_FAILED: header mismatch",
             ingestion_success=True,
             processing_success=False,
         )
     )
     merged = ctx.get_results()[0]
-    assert merged.status != "success"
-    assert merged.error == "Processing failed"
+    assert merged.status == "failed"
+    assert merged.processing_success is False
+    assert "EXCEL_VALIDATION_FAILED" in (merged.error or "")

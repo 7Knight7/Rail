@@ -1,4 +1,4 @@
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProfileDropdown } from "@/components/ProfileDropdown";
 
@@ -47,16 +47,6 @@ export function TopBar({ pageTitle, showTitle = true, onMenuClick }: TopBarProps
         >
           {formatTodayDate()}
         </time>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className="relative h-9 w-9 rounded-xl p-0"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4 w-4 text-rail-muted" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-        </Button>
 
         <div className="hidden h-6 w-px bg-rail-line sm:block" />
 

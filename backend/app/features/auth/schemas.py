@@ -51,6 +51,10 @@ class TokenResponse(BaseModel):
     csrf_token: str | None = None
 
 
+class CsrfTokenResponse(BaseModel):
+    csrf_token: str
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 

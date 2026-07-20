@@ -27,12 +27,6 @@ const settingsFields = [
   EXPORT_FORMAT_FIELD,
 ];
 
-const previewColumns = [
-  { key: "station", header: "Station" },
-  { key: "complaints", header: "Complaints" },
-  { key: "division", header: "Division" },
-];
-
 export function SCRStationPage() {
   return (
     <WorkflowPageLayout
@@ -41,7 +35,6 @@ export function SCRStationPage() {
       description="Configure and generate the SCR station complaints report"
       settingsFields={settingsFields}
       advancedFields={COMMON_ADVANCED_FIELDS}
-      previewColumns={previewColumns}
     />
   );
 }

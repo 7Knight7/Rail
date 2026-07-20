@@ -3,6 +3,7 @@
 import logging
 from typing import TYPE_CHECKING
 
+import httpx
 from playwright.async_api import Browser, async_playwright
 from playwright.async_api import Error as PlaywrightError
 
@@ -21,6 +22,33 @@ class BrowserConnectionError(AppException):
 
     def __init__(self, message: str) -> None:
         super().__init__(message=message, code="BROWSER_CONNECTION_ERROR")
+
+
+CDP_PROBE_TIMEOUT_SECONDS = 2.0
+
+
+async def probe_cdp_reachable(
+    cdp_url: str = DEFAULT_CDP_URL,
+    *,
+    timeout: float = CDP_PROBE_TIMEOUT_SECONDS,
+) -> None:
+    """Verify the Chromium CDP endpoint responds before starting automation."""
+    url = cdp_url.rstrip("/") + "/json/version"
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.get(url)
+        if response.status_code != 200:
+            raise BrowserConnectionError(
+                f"Cannot connect to Chromium at {cdp_url} (HTTP {response.status_code}). "
+                "Is Chrome running with --remote-debugging-port=9222?"
+            )
+    except BrowserConnectionError:
+        raise
+    except Exception as exc:
+        raise BrowserConnectionError(
+            f"Cannot connect to Chromium at {cdp_url}. "
+            "Is Chrome running with --remote-debugging-port=9222?"
+        ) from exc
 
 
 def _log_browser_state(browser: Browser, stage: str) -> None:
@@ -63,12 +91,32 @@ class BrowserManager:
     def browser(self) -> Browser | None:
         return self._browser
 
+    def is_browser_connected(self) -> bool:
+        """Return True when the Playwright CDP browser handle is still usable."""
+        if self._browser is None:
+            return False
+        try:
+            _ = self._browser.contexts
+            return True
+        except PlaywrightError:
+            return False
+        except Exception:
+            return False
+
+    async def reconnect(self) -> Browser:
+        """Drop a dead Playwright session and attach again to the CDP endpoint."""
+        logger.info("browser_reconnect_start cdp_url=%s", self._cdp_url)
+        await self.close()
+        browser = await self.connect()
+        logger.info("playwright_driver_started cdp_connected contexts=%d", len(browser.contexts))
+        return browser
+
     async def connect(self) -> Browser:
         """Start Playwright and attach to Chromium over CDP."""
         if self._browser is not None:
             raise BrowserConnectionError("BrowserManager is already connected")
 
-        logger.info("Starting Playwright")
+        logger.info("playwright_driver_started")
         try:
             self._playwright = await async_playwright().start()
         except PlaywrightError as exc:
@@ -115,8 +163,9 @@ class BrowserManager:
             ) from exc
 
         logger.info(
-            "Connected to Chromium (%d contexts)",
+            "cdp_connected contexts=%d cdp_url=%s",
             len(self._browser.contexts),
+            self._cdp_url,
         )
         _log_browser_state(self._browser, "after_connect")
         return self._browser

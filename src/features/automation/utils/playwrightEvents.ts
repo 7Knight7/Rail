@@ -165,16 +165,19 @@ export function applyPlaywrightEvent(
         startedAt: state.startedAt,
       };
 
-    case "run_failed":
+    case "run_failed": {
+      const failureMessage = event.message ?? "Report generation failed";
       return {
         ...state,
         runStatus: "failed",
-        activityLog: appendLog(
-          state.activityLog,
-          "error",
-          event.message ?? "Report generation failed",
+        steps: state.steps.map((step) =>
+          step.status === "waiting" || step.status === "running"
+            ? { ...step, status: "failed" as const, error: failureMessage }
+            : step,
         ),
+        activityLog: appendLog(state.activityLog, "error", failureMessage),
       };
+    }
 
     case "run_paused":
       return {

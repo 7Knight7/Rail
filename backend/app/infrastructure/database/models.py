@@ -1,7 +1,18 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -565,9 +576,13 @@ class AiPromptTemplateModel(Base):
 
 
 class GeneratedSummaryModel(Base):
-    """Persisted AI-generated summary output."""
+    """Persisted AI or deterministic daily briefing summary output."""
 
     __tablename__ = "generated_summaries"
+    __table_args__ = (
+        Index("ix_generated_summaries_created_by_run", "created_by", "run_id"),
+        Index("ix_generated_summaries_created_by_created", "created_by", "created_at"),
+    )
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=generate_uuid
@@ -587,11 +602,21 @@ class GeneratedSummaryModel(Base):
     generation_time_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="completed")
     error_message: Mapped[str | None] = mapped_column(Text)
+    run_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("automation_runs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    report_date: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_by: Mapped[str | None] = mapped_column(
         String(64), ForeignKey("users.id", ondelete="SET NULL")
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 
@@ -793,6 +818,7 @@ class AutomationArtifactModel(Base):
     report_name: Mapped[str | None] = mapped_column(String(128))
     report_slug: Mapped[str | None] = mapped_column(String(64), index=True)
     status: Mapped[str] = mapped_column(String(32), default="ready")
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

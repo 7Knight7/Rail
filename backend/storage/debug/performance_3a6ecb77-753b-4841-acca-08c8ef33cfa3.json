@@ -1,0 +1,80 @@
+{
+  "run_id": "3a6ecb77-753b-4841-acca-08c8ef33cfa3",
+  "started_at": "2026-07-19T18:28:22.968326+00:00",
+  "completed_at": "2026-07-19T18:33:30.908433+00:00",
+  "total_duration_seconds": 307.94,
+  "portal_wait_seconds": 918.212,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.8,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 1.073,
+    "nav_filter_submit:scr-train": 304.757,
+    "handler_execute:scr-train": 306.124,
+    "report:scr-train": 306.258
+  },
+  "per_report": {
+    "scr-train": {
+      "duration_seconds": 306.258,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 304.757
+      }
+    }
+  },
+  "critical_path_report": "scr-train",
+  "critical_path_seconds": 306.258,
+  "top_bottlenecks": [
+    [
+      "report:scr-train",
+      306.258
+    ],
+    [
+      "handler_execute:scr-train",
+      306.124
+    ],
+    [
+      "nav_filter_submit:scr-train",
+      304.757
+    ],
+    [
+      "browser_connect",
+      1.073
+    ]
+  ]
+}

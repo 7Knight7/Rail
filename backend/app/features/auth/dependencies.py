@@ -40,6 +40,7 @@ def validate_csrf_token(
         "/api/v1/auth/login",
         "/api/v1/auth/register",
         "/api/v1/auth/refresh",
+        "/api/v1/auth/csrf",
         "/api/v1/automation/callback",
     }
     if request.url.path in exempt_paths:

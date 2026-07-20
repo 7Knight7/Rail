@@ -14,7 +14,7 @@ from app.automation.navigation import NavigationService
 from app.automation.pdf_archiver import PdfArchiver
 from app.automation.processing.service import process_report
 from app.automation.report1_filters import build_filters_from_discovery
-from app.automation.report_keys import canonicalize_report_key, pdf_download_url
+from app.automation.report_keys import canonicalize_report_key
 from app.automation.reports import ReportDefinition
 from app.automation.run_context import get_run_context
 from app.automation.schemas import ReportResult
@@ -63,18 +63,51 @@ class BaseReportHandler(ABC):
         page: "Page",
         session: SessionManager,
         context: str = "operation",
+        *,
+        prefer_url_fragment: str | None = None,
+        report: ReportDefinition | None = None,
     ) -> "Page":
-        """Reacquire authenticated MIS page; raise MisSessionError only if none exists."""
+        """Reacquire authenticated MIS page; prefer the active report URL fragment."""
         ctx = get_run_context()
         if ctx is not None:
             await ctx.checkpoint(f"ensure_mis:{context}")
+
+        fragment = prefer_url_fragment
+        if fragment is None and report is not None:
+            fragment = report.url_fragment
 
         if self._browser is not None:
             mis_page = await session.ensure_authenticated_mis_page(
                 self._browser,
                 page,
+                prefer_url_fragment=fragment,
             )
-            log_automation_event(logger, "mis_session_verified", context=context)
+            if report is not None and not await self.navigation.verify_report_page(
+                mis_page, report
+            ):
+                log_automation_event(
+                    logger,
+                    "mis_page_wrong_report",
+                    context=context,
+                    expected_fragment=report.url_fragment,
+                    actual_url=mis_page.url,
+                    report_slug=report.slug,
+                )
+                await self.navigation.navigate_to_report(mis_page, report)
+                mis_page = await session.ensure_authenticated_mis_page(
+                    self._browser,
+                    mis_page,
+                    prefer_url_fragment=report.url_fragment,
+                )
+                if not await self.navigation.verify_report_page(mis_page, report):
+                    await self.navigation.navigate_to_report(mis_page, report)
+            log_automation_event(
+                logger,
+                "mis_session_verified",
+                context=context,
+                page_url=mis_page.url,
+                prefer_url_fragment=fragment,
+            )
             return mis_page
 
         status = await session.verify_mis_session(page)
@@ -87,7 +120,15 @@ class BaseReportHandler(ABC):
                 error=status.error,
             )
             raise MisSessionError(status)
-        log_automation_event(logger, "mis_session_verified", context=context)
+        if report is not None and not await self.navigation.verify_report_page(page, report):
+            await self.navigation.navigate_to_report(page, report)
+        log_automation_event(
+            logger,
+            "mis_session_verified",
+            context=context,
+            page_url=page.url,
+            prefer_url_fragment=fragment,
+        )
         return page
 
     async def verify_session(
@@ -95,9 +136,11 @@ class BaseReportHandler(ABC):
         page: "Page",
         session: SessionManager,
         context: str = "operation",
+        *,
+        report: ReportDefinition | None = None,
     ) -> "Page":
         """Verify MIS session is valid; reacquire when browser is bound."""
-        return await self.ensure_mis_page(page, session, context)
+        return await self.ensure_mis_page(page, session, context, report=report)
 
     async def apply_filters_and_submit(
         self,
@@ -125,8 +168,13 @@ class BaseReportHandler(ABC):
                 await ctx_inner.checkpoint(f"filters:{report.slug}")
             if session is not None:
                 page = await self.ensure_mis_page(
-                    page, session, f"{report.slug}_before_submit"
+                    page,
+                    session,
+                    f"{report.slug}_before_submit",
+                    report=report,
                 )
+            elif not await self.navigation.verify_report_page(page, report):
+                await self.navigation.navigate_to_report(page, report)
 
             report_root = await self.filter_service.get_report_root(page)
 
@@ -260,15 +308,50 @@ class BaseReportHandler(ABC):
         csv_path: Path,
         report_slug: str,
         source: str = "html_extracted_csv",
+        *,
+        expected_row_count: int | None = None,
     ) -> bool:
         """Ingest the CSV file using the canonical dataset key."""
         from app.automation.workflow import ingest_downloaded_file
 
-        return await ingest_downloaded_file(csv_path, report_slug, source)
+        return await ingest_downloaded_file(
+            csv_path,
+            report_slug,
+            source,
+            expected_row_count=expected_row_count,
+        )
 
-    async def invoke_processor(self, report_slug: str, ingestion_success: bool):
+    async def invoke_processor(
+        self,
+        report_slug: str,
+        ingestion_success: bool,
+        *,
+        column_selection: dict | None = None,
+    ):
         """Call the registered processor for this report slug."""
-        return await process_report(canonicalize_report_key(report_slug), ingestion_success)
+        from app.automation.run_context import get_run_context
+        from app.automation.report_keys import canonicalize_report_key
+
+        selection = column_selection
+        if selection is None:
+            ctx = get_run_context()
+            if ctx and ctx.manual_config:
+                manual = ctx.manual_config
+                slug = canonicalize_report_key(report_slug)
+                manual_slug = canonicalize_report_key(str(manual.get("report_slug") or slug))
+                if manual_slug == slug:
+                    selection = dict(manual)
+                    selection["run_id"] = ctx.run_id
+        elif selection is not None:
+            ctx = get_run_context()
+            if ctx and "run_id" not in selection:
+                selection = dict(selection)
+                selection["run_id"] = ctx.run_id
+        return await process_report(
+            canonicalize_report_key(report_slug),
+            ingestion_success,
+            column_selection=selection,
+        )
 
     async def archive_pdf(
         self,
@@ -368,35 +451,93 @@ class BaseReportHandler(ABC):
             )
 
         async def _work() -> ReportResult:
+            from app.automation.run_context import get_run_context
             from app.automation.workflow import ingest_downloaded_file
             from app.automation.run_registry import register_artifact
             from app.infrastructure.database.session import SessionLocal
+            from app.features.reports.scr_fresh import is_scr_manual_fresh, verify_current_run_source
+
+            ctx = get_run_context()
+
+            if ctx is not None and (
+                is_scr_manual_fresh(ctx.manual_config) or key == "scr-station"
+            ):
+                try:
+                    verify_current_run_source(
+                        csv_path,
+                        run_id=ctx.run_id,
+                        report_slug=key,
+                        run_started_at=ctx.run_started_at,
+                    )
+                except ValueError as exc:
+                    log_automation_event(
+                        logger,
+                        "stale_source_rejected",
+                        run_id=ctx.run_id,
+                        report_slug=key,
+                        source_path=str(csv_path),
+                        error=str(exc),
+                    )
+                    return self.build_failed_result(
+                        key,
+                        str(exc),
+                        source_paths=paths,
+                        row_counts=counts,
+                        source_csv_path=str(csv_path),
+                        source_row_count=row_count,
+                    )
 
             ingestion_success = await ingest_downloaded_file(
-                csv_path, key, source=ingest_source
+                csv_path,
+                key,
+                source=ingest_source,
+                expected_row_count=row_count if key == "scr-station" else None,
             )
             if not ingestion_success:
                 return self.build_failed_result(
                     key,
-                    "Ingestion failed",
-                    partial=True,
+                    f"INGESTION_FAILED: Could not ingest current-run source for {key}",
                     source_paths=paths,
                     row_counts=counts,
                     source_csv_path=str(csv_path),
                     source_row_count=row_count,
                 )
 
+            if ctx is not None and (
+                is_scr_manual_fresh(ctx.manual_config) or key == "scr-station"
+            ):
+                log_automation_event(
+                    logger,
+                    "current_run_dataset_ingested",
+                    run_id=ctx.run_id,
+                    report_slug=key,
+                    source_path=str(csv_path),
+                    row_count=row_count,
+                )
+
             processing_result = await self.invoke_processor(key, ingestion_success)
             if not processing_result.success:
+                err = processing_result.error or "Processing failed"
+                if not err.startswith(("PROCESSING_FAILED", "REPORT")):
+                    err = f"PROCESSING_FAILED: {err}"
                 return self.build_failed_result(
                     key,
-                    processing_result.error or "Processing failed",
-                    partial=True,
+                    err,
                     source_paths=paths,
                     row_counts=counts,
                     ingestion_success=True,
                     source_csv_path=str(csv_path),
                     source_row_count=row_count,
+                )
+
+            if ctx is not None and processing_result.selected_column_ids:
+                log_automation_event(
+                    logger,
+                    "selected_columns_applied",
+                    run_id=ctx.run_id,
+                    report_slug=key,
+                    selected_column_ids=processing_result.selected_column_ids,
+                    visible_columns=processing_result.visible_columns,
                 )
 
             result = self.build_success_result(
@@ -412,6 +553,11 @@ class BaseReportHandler(ABC):
                 ingestion_success=True,
                 source_csv_path=str(csv_path),
                 source_row_count=row_count,
+                output_columns=processing_result.output_columns,
+                visible_columns=processing_result.visible_columns,
+                selected_column_ids=processing_result.selected_column_ids,
+                column_order=processing_result.column_order,
+                configuration_source=processing_result.configuration_source,
             )
             result.started_at = started_at
             result.extraction_seconds = extraction_seconds
@@ -432,8 +578,7 @@ class BaseReportHandler(ABC):
             if not (excel_ok and pdf_ok):
                 return self.build_failed_result(
                     key,
-                    "Processor completed but Excel/PDF missing or empty",
-                    partial=True,
+                    "ARTIFACT_REGISTRATION_FAILED: Processor completed but Excel/PDF missing or empty",
                     source_paths=paths,
                     row_counts=counts,
                     ingestion_success=True,
@@ -441,7 +586,32 @@ class BaseReportHandler(ABC):
                     source_row_count=row_count,
                 )
 
+            log_automation_event(
+                logger,
+                "excel_generated",
+                run_id=ctx.run_id if ctx else None,
+                report_slug=key,
+                excel_path=processing_result.excel_path,
+            )
+            log_automation_event(
+                logger,
+                "pdf_generated",
+                run_id=ctx.run_id if ctx else None,
+                report_slug=key,
+                pdf_path=processing_result.pdf_path,
+            )
+
             if ctx is not None:
+                from app.automation.run_registry import build_dual_artifact_metadata
+
+                artifact_metadata = None
+                if processing_result.selected_column_ids:
+                    artifact_metadata = build_dual_artifact_metadata(
+                        selected_column_ids=processing_result.selected_column_ids,
+                        column_order=processing_result.column_order,
+                        run_id=ctx.run_id,
+                        report_slug=key,
+                    )
                 async with SessionLocal() as session:
                     artifact_ids: dict[str, str] = {}
                     if processing_result.excel_path:
@@ -452,6 +622,7 @@ class BaseReportHandler(ABC):
                             report_name=key,
                             file_type="excel",
                             file_path=processing_result.excel_path,
+                            metadata=artifact_metadata,
                         )
                         if art:
                             artifact_ids["excel"] = art.id
@@ -464,6 +635,7 @@ class BaseReportHandler(ABC):
                             report_name=key,
                             file_type="pdf",
                             file_path=processing_result.pdf_path,
+                            metadata=artifact_metadata,
                         )
                         if art:
                             artifact_ids["pdf"] = art.id
@@ -479,6 +651,21 @@ class BaseReportHandler(ABC):
                         result.excel_download_url = (
                             f"/api/v1/automation/artifacts/{artifact_ids['excel']}/download"
                         )
+                    log_automation_event(
+                        logger,
+                        "artifacts_registered",
+                        run_id=ctx.run_id,
+                        report_slug=key,
+                        excel_artifact_id=artifact_ids.get("excel"),
+                        pdf_artifact_id=artifact_ids.get("pdf"),
+                    )
+                    log_automation_event(
+                        logger,
+                        "report_terminal_status",
+                        run_id=ctx.run_id,
+                        report_slug=key,
+                        status="success",
+                    )
                     rt = ctx.timing.ensure_report(key)
                     result.processing_seconds = rt.processing_seconds
                     result.duration_seconds = rt.duration_seconds
@@ -505,6 +692,11 @@ class BaseReportHandler(ABC):
         ingestion_success: bool = True,
         source_csv_path: str | None = None,
         source_row_count: int | None = None,
+        output_columns: list[str] | None = None,
+        visible_columns: list[str] | None = None,
+        selected_column_ids: list[str] | None = None,
+        column_order: list[str] | None = None,
+        configuration_source: str | None = None,
     ) -> ReportResult:
         """Build a successful ReportResult with download URL."""
         key = canonicalize_report_key(slug)
@@ -523,13 +715,19 @@ class BaseReportHandler(ABC):
             ingestion_success=ingestion_success,
             excel_path=excel_path,
             pdf_path=pdf_path,
-            pdf_download_url=pdf_download_url(key) if pdf_path else None,
+            pdf_download_url=None,
             archive_path=archive_path,
             processing_attempted=True,
             processing_success=True,
             processor_used=processor_used,
             input_row_count=input_row_count,
             processed_row_count=processed_row_count,
+            output_columns=output_columns,
+            visible_columns=visible_columns,
+            selected_column_ids=selected_column_ids,
+            column_order=column_order,
+            configuration_source=configuration_source,
+            error=None,
         )
 
     def build_failed_result(

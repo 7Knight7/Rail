@@ -151,3 +151,25 @@ async def test_refresh_after_login(client: AsyncClient, test_user):
     )
     assert refresh_response.status_code == 200
     assert "access_token" in refresh_response.json()
+
+
+async def test_issue_csrf_requires_authentication(client: AsyncClient):
+    response = await client.post("/api/v1/auth/csrf")
+    assert response.status_code == 401
+
+
+async def test_issue_csrf_returns_token(client: AsyncClient, test_user):
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "testuser", "password": "TestPass123"},
+    )
+    assert login_response.status_code == 200
+
+    response = await client.post(
+        "/api/v1/auth/csrf",
+        cookies=login_response.cookies,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["csrf_token"]
+    assert "csrf_session" in response.cookies

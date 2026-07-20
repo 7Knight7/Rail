@@ -15,6 +15,37 @@ logger = logging.getLogger(__name__)
 SCR_PATTERN = re.compile(r"south\s*central\s*railway", re.IGNORECASE)
 SCR_FILL = PatternFill(fill_type="solid", fgColor="FFFF00")
 SCR_FONT = Font(color="000000")
+NO_FILL = PatternFill(fill_type=None)
+YELLOW_FILL_RGB = frozenset({"00FFFF00", "FFFF00", "FFFFFF00"})
+
+
+def cell_has_yellow_fill(cell) -> bool:
+    """Return True when the cell uses SCR-style yellow fill."""
+    fill = cell.fill
+    if fill is None or fill.fill_type in (None, "none"):
+        return False
+    rgb = getattr(fill.fgColor, "rgb", None)
+    return rgb in YELLOW_FILL_RGB
+
+
+def clear_complaint_data_row_formatting(
+    worksheet: Worksheet,
+    *,
+    start_row: int,
+    end_row: int | None = None,
+    start_col: int = 1,
+    end_col: int | None = None,
+) -> None:
+    """Reports 5/6: reset data rows to no fill (clears template/inherited yellow)."""
+    if end_row is None:
+        end_row = worksheet.max_row
+    if end_col is None:
+        end_col = worksheet.max_column
+
+    for row_idx in range(start_row, end_row + 1):
+        for col_idx in range(start_col, end_col + 1):
+            cell = worksheet.cell(row=row_idx, column=col_idx)
+            cell.fill = NO_FILL
 
 
 def mode_matches(expected_mode: str, mode_value: str) -> bool:

@@ -1,0 +1,107 @@
+{
+  "run_id": "9b5f9c0d-3f6e-47b8-b375-47f9fb598fb5",
+  "started_at": "2026-07-19T16:33:00.461141+00:00",
+  "completed_at": "2026-07-19T16:35:23.561049+00:00",
+  "total_duration_seconds": 143.1,
+  "portal_wait_seconds": 421.304,
+  "application_seconds": 0.388,
+  "fixed_sleep_seconds": 1.0,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 1.943,
+    "nav_filter_submit:report1": 3.408,
+    "sorting:report1": 1.019,
+    "extraction:report1": 0.13,
+    "feedback_extraction:report1": 129.612,
+    "ingestion_feedback:report1_feedback": 0.014,
+    "ingestion:report1": 0.039,
+    "comprehensive_regenerate:report1": 3.974,
+    "processing:report1": 0.335,
+    "handler_execute:report1": 140.501,
+    "report:report1": 140.717
+  },
+  "per_report": {
+    "report1": {
+      "duration_seconds": 140.717,
+      "extraction_seconds": 0.13,
+      "processing_seconds": 0.335,
+      "spans": {
+        "nav_filter_submit": 3.408,
+        "sorting": 1.019,
+        "extraction": 0.13,
+        "feedback_extraction": 129.612,
+        "ingestion": 0.039,
+        "comprehensive_regenerate": 3.974,
+        "processing": 0.335,
+        "excel_generation": 0.167,
+        "pdf_generation": 0.167
+      }
+    }
+  },
+  "critical_path_report": "report1",
+  "critical_path_seconds": 140.717,
+  "top_bottlenecks": [
+    [
+      "report:report1",
+      140.717
+    ],
+    [
+      "handler_execute:report1",
+      140.501
+    ],
+    [
+      "feedback_extraction:report1",
+      129.612
+    ],
+    [
+      "comprehensive_regenerate:report1",
+      3.974
+    ],
+    [
+      "nav_filter_submit:report1",
+      3.408
+    ]
+  ]
+}

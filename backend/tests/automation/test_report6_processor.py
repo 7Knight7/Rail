@@ -81,10 +81,11 @@ def test_filters_station_mode_only(
     
     mixed_csv = extracted / "mixed_complaints.csv"
     mixed_csv.write_text(
-        "Ref. No.,Complaint Date,Train/Station,Mode,Type,Sub Type,Department,Status\n"
-        "REF001,2026-07-10,Train A,Train,Type1,SubType1,Dept1,Pending\n"
-        "REF002,2026-07-10,Station A,Station,Type2,SubType2,Dept2,Pending\n"
-        "REF003,2026-07-10,Station B,Station,Type3,SubType3,Dept3,Pending\n",
+        "Ref. No.,Mode,Train/Station,Type,Sub Type,Department,Status,Zone,Div,"
+        "feedbackRemark,complaintDesc,remarks,userId\n"
+        "REF001,Train,Train A,Type1,SubType1,Dept1,Pending,SC,HYB,,Desc1,Rem1,u1\n"
+        "REF002,Station,Station A,Type2,SubType2,Dept2,Pending,SC,HYB,,Desc2,Rem2,u2\n"
+        "REF003,Station,Station B,Type3,SubType3,Dept3,Pending,SC,HYB,,Desc3,Rem3,u3\n",
         encoding="utf-8",
     )
 
@@ -151,8 +152,9 @@ def test_fails_if_no_station_rows(
     
     train_only_csv = extracted / "train_only.csv"
     train_only_csv.write_text(
-        "Ref. No.,Complaint Date,Train/Station,Mode,Type,Sub Type,Department,Status\n"
-        "REF001,2026-07-10,Train A,Train,Type1,SubType1,Dept1,Pending\n",
+        "Ref. No.,Mode,Train/Station,Type,Sub Type,Department,Status,Zone,Div,"
+        "feedbackRemark,complaintDesc,remarks,userId\n"
+        "REF001,Train,Train A,Type1,SubType1,Dept1,Pending,SC,HYB,,Desc,Rem,u1\n",
         encoding="utf-8",
     )
 
@@ -175,12 +177,14 @@ def test_fails_if_no_station_rows(
     assert "Station" in (result.error or "")
 
 
-def test_scr_row_highlighted(
+def test_scr_row_not_highlighted(
     processor: Report6Processor,
     station_complaints_csv: Path,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    from app.automation.formatting.scr import cell_has_yellow_fill
+
     monkeypatch.setattr(
         "app.automation.processing.report6_processor.config.extracted_data_dir",
         str(tmp_path / "extracted"),
@@ -197,19 +201,11 @@ def test_scr_row_highlighted(
     result = processor.process(source_a_path=station_complaints_csv, report_slug="report6_station")
     assert result.success is True
 
-    workbook = load_workbook(result.excel_path)
-    worksheet = workbook.active
-    
-    scr_found = False
+    worksheet = load_workbook(result.excel_path).active
     for row_idx in range(3, worksheet.max_row + 1):
         for col_idx in range(1, worksheet.max_column + 1):
             cell = worksheet.cell(row=row_idx, column=col_idx)
-            if cell.value and "south central railway" in str(cell.value).lower():
-                scr_found = True
-                assert cell.fill.fgColor.rgb in {"00FFFF00", "FFFF00", "FFFFFF00"}
-                break
-    
-    assert scr_found
+            assert not cell_has_yellow_fill(cell)
 
 
 def test_output_headers_match_spec(

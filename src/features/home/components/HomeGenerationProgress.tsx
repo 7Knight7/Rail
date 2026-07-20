@@ -41,8 +41,10 @@ export interface HomeGenerationProgressProps {
   isBusy: boolean;
   isPaused: boolean;
   hasFailed: boolean;
+  isStopped?: boolean;
   isComplete: boolean;
   acting: boolean;
+  failureMessage?: string;
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
@@ -58,8 +60,10 @@ export function HomeGenerationProgress({
   isBusy,
   isPaused,
   hasFailed,
+  isStopped = false,
   isComplete,
   acting,
+  failureMessage,
   onPause,
   onResume,
   onStop,
@@ -72,18 +76,35 @@ export function HomeGenerationProgress({
     <div className="animate-fade-in space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <StatusBadge variant={isComplete ? "success" : hasFailed ? "error" : "info"}>
-            {isComplete ? "Complete" : hasFailed ? "Stopped" : isPaused ? "Paused" : "In progress"}
+          <StatusBadge variant={isComplete ? "success" : isStopped ? "error" : hasFailed ? "error" : "info"}>
+            {isComplete
+              ? hasFailed
+                ? "Completed with errors"
+                : "Complete"
+              : isStopped
+                ? "Stopped"
+                : hasFailed
+                  ? "Failed"
+                  : isPaused
+                    ? "Paused"
+                    : "In progress"}
           </StatusBadge>
           <h2 className="mt-3 text-xl font-semibold tracking-tight text-slate-900">
             {isComplete
-              ? "Today's reports are ready"
-              : hasFailed
+              ? hasFailed
+                ? "Reports finished with errors"
+                : "Today's reports are ready"
+              : isStopped
                 ? "Report generation stopped"
-                : currentStep
-                  ? `Generating ${currentStep.label}`
-                  : "Preparing reports…"}
+                : hasFailed
+                  ? "Report generation failed"
+                  : currentStep
+                    ? `Generating ${currentStep.label}`
+                    : "Preparing reports…"}
           </h2>
+          {hasFailed && failureMessage && (
+            <p className="mt-2 max-w-2xl text-sm text-red-600">{failureMessage}</p>
+          )}
           {isBusy && !isPaused && (
             <p className="mt-1 text-sm text-slate-500">{formatRemainingTime(remainingMinutes)}</p>
           )}

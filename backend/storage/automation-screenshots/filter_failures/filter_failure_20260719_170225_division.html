@@ -1,0 +1,1624 @@
+<html class="h-100"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <script src="/rmmis/js_assets/jquery.min.js"></script>
+
+        
+
+  
+            
+     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+ 
+
+   
+  
+<script src="/rmmis/js_assets/moment-with-locales.js"></script>
+<script src="/rmmis/js_assets/bootstrap.min.js"></script>
+<script src="/rmmis/js_assets/moment.min.js" type="text/javascript"></script>
+<script src="/rmmis/js_assets/bootstrap-datetimepicker.min.js"></script>
+<link href="/rmmis/css_assets/bootstrap.min.css" rel="stylesheet">
+<link href="/rmmis/css_assets/jquery-ui.css" rel="stylesheet">
+
+<link href="/rmmis/css_assets/font-awesome.min.css" rel="stylesheet">
+
+
+<link href="/rmmis/css_assets/bootstrap-datetimepicker.css" rel="stylesheet">
+<link href="/rmmis/css_assets/bootstrap-datetimepicker.min.css" rel="stylesheet">
+<link href="/rmmis/css_assets/custom.css" rel="stylesheet">
+
+<link href="/rmmis/css_assets/all.css" rel="stylesheet">
+
+<link rel="stylesheet" href="/rmmis/css_assets/bootstrap-select.min.css">
+<link rel="stylesheet" href="/rmmis/css_assets/bootstrap-multiselect.css" type="text/css">
+<link rel="stylesheet" href="/rmmis/css_assets/admin.css" type="text/css">
+<link rel="stylesheet" href="/rmmis/css_assets/jquery.jgrowl.min.css" type="text/css">
+
+
+
+<style>
+.bg {
+	background-position: center center;
+	background-size: cover;
+}
+.col-1-5 {
+    flex: 0 0 23.3%;
+    max-width: 23.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 76.6%;
+    max-width: 76.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+
+@media (min-width: 992px)
+{
+.col-1-5 {
+    flex: 0 0 12.3%;
+    max-width: 12.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 87.6%;
+    max-width: 87.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+}
+
+@media (min-width: 768px)
+{
+.col-1-5 {
+    flex: 0 0 12.3%;
+    max-width: 12.3%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+.col-10-5 {
+    flex: 0 0 87.6%;
+    max-width: 87.6%;
+    position: relative;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+
+}</style></head>
+
+
+
+  
+
+
+<body id="page-top" class="h-100">
+
+	
+
+
+<div class="ajax-loader" style="display: none;">
+<img src="/rmmis/img_assets/ajax-loader.gif">
+<br>Loading..</div>
+	<!--    header start  -->
+	<div class="row customheight m-0 h-100">
+	<div class="col-1-5 p-0 h-100 sidebarbg no-print" style="overflow:auto">
+		
+
+
+<style>
+.jGrowl-message{
+color:white !important;
+}
+</style>
+<script>
+$(document).ready(function() {
+    //var notification = new Notification("New Complaints Received, Please Check!!");
+    
+     $.ajax({
+					
+			        url: window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/showreportlinks.jsp",
+			        
+			        async: true,
+			        success : function(response) {
+			      	  
+						    	
+			       
+		   if(response.error=="true")
+			   {
+		      	
+					$(".reports").addClass("d-none");
+			   }
+		   else{
+				$(".reports").removeClass("d-none");
+				   
+			   }
+			        },
+			        error: function (xhr, status) {
+				    	 console.log("Errortype."+status);
+					    	 
+				     }
+					});
+			   
+
+
+	  $("#toggle1").click(function() {
+		  $(".sidebar").show();
+		  $("#toggle1").hide();
+		  
+		});
+
+	  $("#toggle2").click(function() {
+		  $(".sidebar").hide();
+		  $("#toggle1").show();
+		  
+		});
+$(".tempc").click(function() {
+	$('#collapseOne').collapse('toggle');
+});
+$(".tempc1").click(function() {
+	$('#collapseOne12').collapse('toggle');
+});
+$(".tempc2").click(function() {
+	$('#collapseOne121').collapse('toggle');
+});
+});
+</script>
+
+
+
+	<!-- Sidebar -->
+	<ul class="sidebar navbar-nav  text-light sidebarbg">
+
+		
+		<li class="nav-item  active nav-link  text-center font-16">RailMadad</li>
+		
+		
+	<li class="reports">	
+			<div id="accordion">
+	
+	 <div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+      
+        <button class="btn btn-block tempc1 p-0 adminbtn-xl text-left pl-md-3 pl-1" data-target="#collapseOne12" aria-expanded="true" aria-controls="collapseOne12">
+       <span class="nav-link " style="color:black" title="For Current Month &amp; Last Month">
+					MIS Reports</span>
+        </button>
+     
+    </div>
+
+   <div id="collapseOne12" class="collapse show" data-parent="#accordion" style="">
+      <div class="card-body" style="padding:1px;">
+      
+<ul style="list-style-type:none;padding-inline-start: 2px;">
+							
+		
+	<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report1" report-type="N"> <span class=" " style="color:black">1) Comprehensive (with drill down) </span></a></li>
+	 
+			
+					
+		<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report2" report-type="N" style="color:black"> <span class=" " style="color:black">2) Cause Wise </span></a></li>
+		<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report3" report-type="N"> <span class=" " style="color:black">3) SLA Breach
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report4" report-type="N"> <span class=" " style="color:black">4) Cause Wise SLA
+			</span></a></li>
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report5" report-type="N"> <span class=" " style="color:black">5) Channel Dept Wise
+			</span></a></li>
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report6" report-type="N"> <span class=" " style="color:black">6) Feedback (with drill down) 
+			</span></a></li>
+						
+								
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report7" report-type="N"> <span class=" " style="color:black">7) Mode Wise Cause Wise
+			</span></a></li>
+			
+			<!--  <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report8" report-type='N'> <span class=" "  style="color:black">8) Bottom Performance
+			</span></a></li>-->
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report9" report-type="N"> <span class=" " style="color:black">8) Station Profiling
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report10" report-type="N"> <span class=" " style="color:black">9) Train Profiling
+			</span></a></li>
+			
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report16" report-type="N"> <span class=" " style="color:black">10) Zone/Train Type wise Report 
+			</span></a></li>  
+			
+				
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report22" report-type="N"> <span class=" " style="color:black">11) Train Watering Complaint 
+			</span></a></li> 
+			
+				 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report17" report-type="N"> <span class=" " style="color:black">12) Suggestion Comprehensive (with drill down)
+			</span></a></li>  
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report18" report-type="N"> <span class=" " style="color:black">13) Inquiry Wise 1
+			</span></a></li>  
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report19" report-type="N"> <span class=" " style="color:black">14) Inquiry Wise 2
+			</span></a></li>  
+			<!-- <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/reportprsdata" report-type='Y'> <span class=" "  style="color:black">16) Complaints per Million Passsenger Report
+			
+			</span></a></li> -->
+			
+		
+		<!--  
+			    <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback1" report-type='Y'> <span class=" "  style="color:black">16) IR Feedback Report Type 1
+			
+			</span></a></li> 
+				<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback2" report-type='Y'> <span class=" "  style="color:black">17) IR Feedback Summary
+			
+			</span></a></li> 
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/irfeedback3" report-type='Y'> <span class=" "  style="color:black">18) IR Feedback Zone Division Wise(with drill down)
+			
+			</span></a></li>
+			-->
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report20" report-type="Y"> <span class=" " style="color:black">15) FRT (with drill down)
+			
+			</span></a></li>
+				<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/atrstatus" report-type="Y"> <span class=" " style="color:black">16) ATR Status
+			
+			</span></a></li>
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/atrcausewisereport" report-type="Y"> <span class=" " style="color:black">17) Cause wise ATR Report
+			
+			</span></a></li>   
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/vandebharatreport" report-type="N"> <span class=" " style="color:black">18) Vande Bharat Report 
+			</span></a></li> 
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/headsubheadchangereport" report-type="Y"> <span class=" " style="color:black">19) Head Subhead Change Report
+			
+			</span></a></li>
+			  
+			
+			
+				
+			  
+			
+			 <li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report21" report-type="N"> <span class=" " style="color:black">22) Zone &amp; Cause Wise Complaint/Feedback
+			</span></a></li> 
+			
+			
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/report23" report-type="N"> <span class=" " style="color:black">23) Rail Anubhav Report
+			</span></a></li>  
+			
+		 
+		 
+			
+</ul>     </div>
+    </div>
+  </div>
+  
+  
+  
+  
+  
+</div>
+		
+</li>
+			
+
+<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/trainwateringreport"> <span class="nav-link " style="color:black" title="For Train Watering Complaints">
+					Train Watering Complaints </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+
+
+
+			
+
+					
+
+	<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0 tempc2 adminbtn-xl text-left pl-md-3 pl-1" data-target="#collapseOne121" aria-expanded="true" aria-controls="collapseOne121">
+       <span class="nav-link " style="color:black" title="For Current Month &amp; Last Month">
+					RailMadad Shield Reports</span>
+        </button>
+        </div>
+         <div id="collapseOne121" class="collapse" data-parent="#accordion">
+      <div class="card-body" style="padding:1px;">
+      <ul>
+     
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/shieldscorereport" report-type="Y"> <span class=" " style="color:black">1) Shield Score Report
+			
+			</span></a></li> 
+			<li class="nav-item active pl-md-3 pl-1"><a class="nav-link navigate_to_link" link="/mis_reports/shieldperformreport" report-type="Y"> <span class=" " style="color:black">2) Shield Performance Report
+			
+			</span></a></li></ul> 
+      </div>
+      </div>
+    
+    
+    
+    </div>
+	</div>
+	
+	
+	
+	
+	</li>
+	
+	
+	
+
+	
+
+	<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/quarterwisecomplaintreport"> <span class="nav-link " style="color:black" title="For Quarter Wise Report">
+					RailMadad Quarter Wise Data </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+
+
+
+
+<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/mis_reports/financialyearwisecomplaintreport"> <span class="nav-link " style="color:black" title="For Quarter Wise Report">
+					RailMadad Financial Year Data </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li>
+	
+	
+			
+	
+			
+			
+			<li class="reports">
+	
+	<div id="accordian" style="padding-top:10px;">
+	<div class="card" style="padding:0px;">
+    <div class="card-header" style="padding:0px;">
+    
+    
+    
+     <button class="btn btn-block p-0  adminbtn-xl text-left pl-md-3 pl-1">
+      <a class="nav-link navigate_to_link" link="/SearchComplaintAdmin"> <span class="nav-link " style="color:black" title="For Search Complaint">
+					Search Complaint </span></a>
+     </button>
+     </div>
+	</div>
+	</div>
+	</li> 
+			
+	
+	
+
+	</ul>
+	
+
+		</div>
+		<div class="col-10-5 p-0" style="background-color:white;">
+		<!--    header end   -->
+		
+		<div class="row m-0 ">
+	<div class="col-12 p-2 bg-white h-100 no-print">
+     	
+
+			<h5 class="d-inline font-14">&nbsp;Welcome: GM_SC</h5>
+			
+		<a href="/rmmis/Logout.jsp">
+<button class="btn btn-sm float-right custombtnnew btn-info adminbtn">Logout</button>
+</a>
+
+
+
+
+<button class="btn btn-sm float-right mr-2 custombtnnew btn-info editbtnself adminbtn">Change Password</button> 
+
+
+			
+	
+	
+		
+
+
+ 
+
+	</div>
+</div>
+		
+		<div class="row m-0 p-2 ml-2 dashboardmainsection custom-height-main-content" style="background-color:#f4f6f9;overflow:auto" id="dashboardmainsection">
+	
+
+<div class="col-md-12 mb-2">
+			
+			<font class="content-header">
+Zone/Train Type wise Report 	</font>
+</div>
+<div class="col-md-12 bg-white pb-5 pt-2">
+
+						<div class="row">
+						
+						<div class="col-md-2">
+	   <div class="form-group">
+    <label class="">Date Range</label>
+     <select class="form-control " id="dateRange">
+     
+     
+
+       <option value="PREV_DAY">Previous Day</option>
+               <option value="WEEKLY">Last 7 Days</option>
+
+       <option value="CURR_MONTH">Current Month</option>
+            <option value="PREV_MONTH">Previous Month</option>
+            <option value="CURR_YEAR">Current Financial Year</option>
+                 <option value="PREV_YEAR">Previous Financial Year</option>
+     
+      
+   
+       
+<option value="CURR_DAY">Current Day</option>			 
+  
+    </select>
+    
+  </div>
+							</div>
+								
+								<div class="col-md-2 fromDate d-none">
+								<div class="form-group">
+									<label class="">From Date</label> <input class="form-control " type="text" id="fromDate" required="" style="">
+
+								</div>
+							</div>
+
+							<div class="col-md-2 toDate d-none">
+								<div class="form-group">
+									<label class="">To Date</label> <input class="form-control " type="text" id="toDate" required="" style="">
+
+								</div>
+							</div>
+						
+						<div class="col-md-2">
+						  <div class="form-group" id="zonediv">
+    <label class="">Zone</label>
+    <select class="form-control " id="complaintZoneInput"><option value="">ALL</option><option value="CR">Central Railway</option><option value="EC">East Central Railway</option><option value="EO">East Coast Railway</option><option value="ER">Eastern Railway</option><option value="IRC">IRCTC</option><option value="KM">Kolkata Metro</option><option value="KR">Konkan Railway</option><option value="NC">North Central Railway</option><option value="NE">North Eastern Railway</option><option value="NF">Northeast Frontier Railway</option><option value="NR">Northern Railway</option><option value="NW">North Western Railway</option><option value="SB">South East Central Railway</option><option value="SC">South Central Railway</option><option value="SE">South Eastern Railway</option><option value="SR">Southern Railway</option><option value="SW">South Western Railway</option><option value="WC">West Central Railway</option><option value="WR">Western Railway</option><option value="SO">South Coast Railway</option></select>
+  </div>
+						</div>
+						<div class="col-md-2">
+						 <div class="form-group" id="divisiondiv">
+    <label class="">Division</label>
+
+    <select class="form-control " id="complaintDivInput"><option value="">ALL</option></select>
+  </div>
+						</div>
+						
+						
+						<div class="col-md-2">
+						   <div class="form-group" id="comptypediv">
+					    <label class=""> Type</label>
+					    <select class="form-control " id="complaintTypeInput"><option value="">ALL</option><option value="132">Medical Assistance- Train</option><option value="87">Security- Train</option><option value="152">Divyangjan Facilities- Train</option><option value="173">Facilities for Women with Special needs- Train</option><option value="85">Electrical Equipment- Train</option><option value="82">Coach - Cleanliness- Train</option><option value="81">Punctuality- Train</option><option value="83">Water Availability- Train</option><option value="136">Coach - Maintenance- Train</option><option value="86">Catering &amp; Vending Services- Train</option><option value="88">Staff Behaviour- Train</option><option value="89">Corruption / Bribery- Train</option><option value="84">Bed Roll- Train</option><option value="90">Miscellaneous- Train</option></select>
+					  </div>
+						</div>
+						<div class="col-md-2">
+						<div class="form-group" id="subtypediv">
+    <label class=""> Sub Type</label>
+    <select class="form-control " id="complaintSubTypeInput"><option value="">ALL</option></select>
+  </div>
+						</div>
+						<div class="col-md-2">
+						 <div class="form-group">
+    <label class="">Department</label>
+    <select class="form-control " id="complaintDeptInput"><option value="">ALL</option><option value="ACCT">ACCOUNTS</option><option value="CHG">COACHING</option><option value="CML">COMMERCIAL</option><option value="CNW">CARRIAGE &amp; WAGON </option><option value="ELE">ELECTRICAL</option><option value="ENG">ENGINEERING</option><option value="IRC">IRCTC Online</option><option value="IRCTG">IRCTC Catering</option><option value="IRSDC">IRSDC</option><option value="RPF">RAILWAY PROTECTION FORCE</option><option value="SNT">SIGNAL &amp; TELECOMMUNICATION</option></select>
+  </div>
+						</div>
+							<div class="col-md-2">
+						 <div class="form-group">
+    <label class="">View</label>
+    <select class="form-control " id="viewType">
+<option value="traintype">Train Type Wise</option>
+<option value="trainnotype">Train No Wise</option>
+<option value="zonetype">Zone Wise</option>
+<option value="divisiontype">Division Wise</option>
+<option value="depottype">Depot Wise</option>
+
+    </select>
+  </div>
+						</div>
+						
+						    
+                        <div class="col-md-2 ">
+                            <div class="container-fluid">
+                                     <label for="coachId">Coach Type</label>
+                                     <div class="mb-3 mt-3 ">
+                                     <span class="multiselect-native-select"><select class="" id="coachId" name="coachId" multiple=""><option value="1A">1A</option><option value="2A">2A</option><option value="FC">FC</option><option value="3A">3A</option><option value="CC">CC</option><option value="SL">SL</option><option value="VS">VS</option><option value="2S">2S</option><option value="3E">3E</option><option value="CH">CH</option><option value="SH">SH</option><option value="EA">EA</option><option value="VC">VC</option><option value="EV">EV</option><option value="EC">EC</option><option value="NA">N/A</option></select><div class="btn-group" style="width: 100%;"><button type="button" class="multiselect dropdown-toggle btn btn-default" data-toggle="dropdown" title="None selected" style="width: 100%; overflow: hidden; text-overflow: ellipsis;"><span class="multiselect-selected-text">None selected</span> <b class="caret"></b></button><ul class="multiselect-container dropdown-menu"><li class="multiselect-item multiselect-all"><a tabindex="0" class="multiselect-all"><label class="checkbox"><input type="checkbox" value="multiselect-all" style="">  Select all</label></a></li><li><a tabindex="0"><label class="checkbox" title="1A"><input type="checkbox" value="1A" style=""> 1A</label></a></li><li><a tabindex="0"><label class="checkbox" title="2A"><input type="checkbox" value="2A" style=""> 2A</label></a></li><li><a tabindex="0"><label class="checkbox" title="FC"><input type="checkbox" value="FC" style=""> FC</label></a></li><li><a tabindex="0"><label class="checkbox" title="3A"><input type="checkbox" value="3A" style=""> 3A</label></a></li><li><a tabindex="0"><label class="checkbox" title="CC"><input type="checkbox" value="CC" style=""> CC</label></a></li><li><a tabindex="0"><label class="checkbox" title="SL"><input type="checkbox" value="SL" style=""> SL</label></a></li><li><a tabindex="0"><label class="checkbox" title="VS"><input type="checkbox" value="VS" style=""> VS</label></a></li><li><a tabindex="0"><label class="checkbox" title="2S"><input type="checkbox" value="2S" style=""> 2S</label></a></li><li><a tabindex="0"><label class="checkbox" title="3E"><input type="checkbox" value="3E" style=""> 3E</label></a></li><li><a tabindex="0"><label class="checkbox" title="CH"><input type="checkbox" value="CH" style=""> CH</label></a></li><li><a tabindex="0"><label class="checkbox" title="SH"><input type="checkbox" value="SH" style=""> SH</label></a></li><li><a tabindex="0"><label class="checkbox" title="EA"><input type="checkbox" value="EA" style=""> EA</label></a></li><li><a tabindex="0"><label class="checkbox" title="VC"><input type="checkbox" value="VC" style=""> VC</label></a></li><li><a tabindex="0"><label class="checkbox" title="EV"><input type="checkbox" value="EV" style=""> EV</label></a></li><li><a tabindex="0"><label class="checkbox" title="EC"><input type="checkbox" value="EC" style=""> EC</label></a></li><li><a tabindex="0"><label class="checkbox" title="N/A"><input type="checkbox" value="NA" style=""> N/A</label></a></li></ul></div></span> 
+                                      <div class="invalid-tooltip">Please select train list.</div>
+                                    </div>
+                                   
+                                  </div>
+                          </div>
+                          
+                          
+                          			
+								<div class="col-md-2">
+						<div class="form-group" id="assistancediv">
+    					<label class="">Excluding Assistance Cases</label>
+   						 <select class="form-control " id="assistanceInput">
+     						 <option value="N">No</option>
+    						 <option value="Y" selected="">Yes</option>
+                			 <option value="O">Only Assistance</option>
+     
+   						 </select>
+					  </div>
+					  
+						</div>
+                        
+						<input type="hidden" id="trainTypeInput" value="" style="">
+						<input type="hidden" id="viewWiseHeading" value="" style="">
+						<input type="hidden" id="drillFlagForTrainType" value="false" style="">
+							<div class="col-md-12 text-center" style="margin-top:auto;margin-bottom:auto;">
+							   <input type="hidden" class="form-control " id="tempfrom" value="2026-07-18" style="">
+						    			        <input type="hidden" class="form-control " id="tempto" value="2026-07-18" style="">
+							<button type="submit" class="btn btn-md btn-info" id="submitbtn">
+						Submit
+						</button>
+						
+						</div>
+					
+						</div>
+						
+						
+						
+						
+						
+						<div class="row">
+						<div class="col-12 table-responsive" id="data1">
+
+	
+		
+	
+<script>
+$(document).ready(function() { 
+	
+	 	
+
+	var complaintIdList = '132,134';
+	var subComplaintIdList = '133,135,178,183,179,184,188,189,190,191,192,193,166';
+	
+		generateTableHeadings();
+		generateTableContent();
+		
+	
+function generateTableHeadings(){
+	 var headings ="";
+	 headings+="<th scope='col'>S.No.</th>";
+	 if($('#viewType').val()=="trainnotype"){
+		 headings+="<th scope='col'>Train Name</th>";
+		 headings+="<th scope='col'>Owning Zone</th>";
+		 headings+="<th scope='col'>Owning Division</th>";
+	 }
+	 if($('#viewType').val()=="divisiontype" && $('#viewWiseHeading').val()!="divisionView"){
+		 headings+="<th scope='col'>Owning Zone</th>";
+	 }
+	 if($('#viewType').val()=="depottype"){
+		 headings+="<th scope='col'>Depot</th>";
+		 headings+="<th scope='col'>Owning Zone</th>";
+	 }
+	 headings+="<th scope='col' class='collabel'></th>";
+	 headings+="<th scope='col'> Received</th>";
+     headings+="<th scope='col'>% Share</th>";
+     headings+="<th scope='col'>Closed</th>";
+     headings+="<th scope='col'>% Closed</th>";
+     headings+="<th scope='col'>Pending</th>";
+     headings+="<th scope='col'>Average Rating</th>";
+     
+     $('#tableHeadings').html(headings);
+   
+}
+function generateTableContent(){
+	
+
+	  var orgt="";
+      var totalCount=0;
+     
+      var recvt="";
+      var settledt="";
+      var ratingt="";
+     
+ 	 var i=0;
+ 	 var perSharet="";
+ 	 var perDispt="";
+ 	 var ratingNamet="";
+ 	var fromDate="";
+	var toDate="";
+     if( $('#dateRange').val()!="DATE_RANGE")
+	 {
+	 fromDate=$("#tempfrom").val();
+	 toDate=$("#tempto").val();
+	 }
+ else
+	 {
+	 fromDate= $("#fromDate").val();
+	 toDate= $("#toDate").val();
+	 }
+ 	 
+var pending="";
+if($('#viewWiseHeading').val()==""){
+	
+	if($('#viewType').val()=="traintype"){
+		$(".collabel").html("Train Type");
+	}
+	else if($('#viewType').val()=="trainnotype"){
+		$(".collabel").html("Train No.");
+	}
+	else if($('#viewType').val()=="zonetype"){
+		$(".collabel").html("Zone");
+	}
+	else{
+		$(".collabel").html("Division");
+	}
+}
+else{
+	$(".collabel").html("Train No.");
+}
+
+
+var coachNoList = [];
+var coach = $("#coachId").val();
+     //alert("train" + train);
+     for (var k = 0; k < coach.length; k++) {
+
+         coachNoList[k] = coach[k];
+     }
+     
+     coachNoList = coachNoList.join();
+     console.log(coachNoList);
+     
+    // console.log(allSelected);
+
+     
+	$.ajax({
+
+	       url: window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/AllReportFetchServlet",
+	       async: true,
+	       data:{
+		       
+		       fetchDataType:'report16data',
+		      
+		       complaintZoneInput:  $('#complaintZoneInput').val(),
+	        	complaintDivInput: $('#complaintDivInput').val(),
+	        	complaintTypeInput: $('#complaintTypeInput').val(),
+	        	complaintSubTypeInput: $('#complaintSubTypeInput').val(),	        	        
+	        	complaintDeptInput: $('#complaintDeptInput').val(),
+	        	fromInput:fromDate,
+	        	toInput:toDate,
+	        	dateRange:$('#dateRange').val(),
+	        	drillFlagForTrainType:$('#drillFlagForTrainType').val(),
+	        	trainTypeInput:$('#trainTypeInput').val(),
+	        	complaintModeInput:$('#complaintModeInput').val(),
+	        	viewType:$('#viewType').val(),
+				coachNo: coachNoList,
+	        	assistanceInput : $('#assistanceInput').val()	        	
+
+	        	
+
+			       },
+	       success : function(response) {
+
+	    	   $('#detailtable').DataTable().clear().destroy();
+		        var tablerows="";
+		        var report1Response=response.report1ResponseModel;
+		        console.log(report1Response);
+		        $( report1Response).each(function( index ) {
+                     i=i+1;
+                    
+		        	if(report1Response[index].org != null ){
+ 		        		tablerows+= "<tr>"+
+ 		        		"  <td scope='col'>"+i+"</td>";
+ 		        		if($('#drillFlagForTrainType').val()=="false" && $('#viewType').val()=="trainnotype"){
+ 		        			tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].trainNameForReport+"</td>";
+ 	 		         		tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].znName+"</td>";
+ 	 		         		tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].divName+"</td>";
+ 	 		       			tablerows+= " <td scope='col'><a id='"+report1Response[index].trainNo+"' style='color:black;'>"+report1Response[index].trainNo+ "</a></td>";
+
+ 		        		}
+ 		        		else if($('#drillFlagForTrainType').val()=="false" && $('#viewType').val()=="depottype"){
+		        			tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].traindepo+"</td>";
+		        			if(report1Response[index].traindepo=="NA"){
+	 		         		tablerows+= " <td scope='col' style='text-align:center'>NA</td>";
+	 		         		tablerows+= " <td scope='col' style='text-align:center'>NA</td>";
+		        			}
+		        			else{
+		        				tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].znName+"</td>";
+		 		         		tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].divName+"</td>";
+
+			        			}
+
+		        		}
+ 		        		else if($('#drillFlagForTrainType').val()=="false" && $('#viewType').val()=="traintype"){
+ 	 		       			tablerows+= " <td scope='col'><a class='reload' id='"+report1Response[index].trainTypeReport+"' style='color:blue;'>"+report1Response[index].trainTypeMapped+ "</a></td>";
+
+ 		        		}
+ 		        		else if($('#drillFlagForTrainType').val()=="false" && $('#viewType').val()=="zonetype")
+ 		        		{
+ 	 		       			tablerows+= " <td scope='col'><a class='reload' id='"+report1Response[index].znCode+"' style='color:blue;'>"+report1Response[index].znName+ "</a></td>";
+ 	 		        			
+ 	 		        	}
+ 		         		else if($('#drillFlagForTrainType').val()=="false" && $('#viewType').val()=="divisiontype")
+ 		        		{
+ 		         			tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].znName+"</td>";
+ 	 		       			tablerows+= " <td scope='col'><a class='reload' id='"+report1Response[index].divCode+"-"+report1Response[index].znCode+"' style='color:blue;'>"+report1Response[index].divName+ "</a></td>";		
+ 	 		        	}
+ 		         		else{
+ 	 		       			tablerows+= " <td scope='col'><a id='"+report1Response[index].trainNo+"' style='color:black;'>"+report1Response[index].trainNo+ "</a></td>";
+
+ 		         		}
+ 		        		
+ 		         		tablerows+= " <td scope='col' style='text-align:center'><a class='drill' id='"+report1Response[index].org+"#REC"+"' style='color:blue;'>"+report1Response[index].recv+ "</a></td>";
+
+ 		        		tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].perShare+"</td>";
+ 		        	   
+ 		        	    
+ 		        		tablerows+= " <td scope='col' style='text-align:center'><a class='drill' id='"+report1Response[index].org+"#SETTLED"+"' style='color:blue;'>"+report1Response[index].settled+ "</a></td>";
+ 		        		tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].perDisposal+"</td>";
+ 		        		tablerows+= " <td scope='col' style='text-align:center'><a class='drill' id='"+report1Response[index].org+"#CB"+"' style='color:blue;'>"+report1Response[index].cb+ "</a></td>";
+ 		        		
+ 		        		tablerows+= " <td scope='col' style='text-align:center'>"+report1Response[index].ratingName+"</td>";
+ 		      
+
+ 		        		
+		        	}else{
+		        		totalCount=i;
+                        orgt=report1Response[index].org;
+     			  		  recvt=report1Response[index].recv ;
+     			  		  settledt=report1Response[index].settled;
+       			  		 pending=report1Response[index].cb;
+     			  		perSharet=report1Response[index].perShare;
+     			  	     perDispt=report1Response[index].perDisposal;
+     			  	    ratingNamet=report1Response[index].ratingName;
+
+			        	}
+
+		        	
+		        });
+
+		        var tfootrow="";
+ 		        if(totalCount>0){
+ 		        	tfootrow+= "<tr>";
+ 		        	tfootrow+= " <th scope='col'></th>";
+ 		        	if($('#viewType').val()=="trainnotype" ){
+ 		        		tfootrow+= " <th scope='col'></th>";
+ 		        		tfootrow+= " <th scope='col'></th>";
+ 		        		tfootrow+= " <th scope='col'></th>";
+ 		        	}
+ 		        	if($('#viewType').val()=="depottype" ){
+ 		        		tfootrow+= " <th scope='col'></th>";
+ 		        		tfootrow+= " <th scope='col'></th>";
+ 		        		
+ 		        	}
+ 		        	if($('#viewType').val()=="divisiontype" && $('#viewWiseHeading').val()!="divisionView"){
+ 		        		tfootrow+= " <th scope='col'></th>";
+ 		        	}
+ 		        	
+ 		        	if($('#trainTypeInput').val()=="")
+		        		{
+ 		        		tfootrow+= " <th scope='col'><a class='reload' id='totaltype' style='color:blue;'>Total</a></th>";
+	
+		        		}
+ 		        	else
+ 		        	tfootrow+= " <th scope='col'>Total</th>";
+
+ 		        	tfootrow+= " <th scope='col' style='text-align:center'><a class='drill' id='"+orgt+"#REC"+"' style='color:blue;'>"+recvt+ "</a></th>";
+
+ 		        	tfootrow+= " <th scope='col' style='text-align:center'>100%</th>";
+
+ 		        	tfootrow+= " <th scope='col' style='text-align:center'><a class='drill' id='"+orgt+"#SETTLED"+"' style='color:blue;'>"+settledt+ "</a></th>";
+
+ 		        	tfootrow+= " <th scope='col' style='text-align:center'>"+perDispt+"</th>";
+		        		tfootrow+= " <th scope='col' style='text-align:center'><a class='drill' id='"+orgt+"#CB' style='color:blue;'>"+pending+"</a></th>";
+		        	 	
+ 	tfootrow+= " <th scope='col' style='text-align:center'>"+ratingNamet+"</th>";
+
+
+ 	
+ 	tfootrow+= "</tr>";  }
+
+
+ 		       $('#tfootid').html(tfootrow);
+		        
+		        $('#table1').html(tablerows);
+		        $('.ajax-loader').hide();
+		   	 $("#submitbtn").removeAttr("disabled");
+		    	var t= $('#detailtable').DataTable( {
+			        dom: 'Bfrtip',
+			      
+			        buttons: [{
+			            extend: 'print',
+			            text: '<i class="fa fa-print"></i> Print',
+			            title: $('h1').text(),
+			            exportOptions: {
+			              columns: ':not(.no-print)',
+			              
+			            },
+			           
+			            footer: true,
+			            autoPrint: true
+			          },
+			          {
+			              extend: 'excel',
+			              text: '<i class="fa fa-file-excel-o"></i> Excel',
+			             
+			            
+			              title: $('h1').text(),
+			              exportOptions: {
+			                columns: ':not(.no-print)'
+			              },
+			              footer: true
+			             
+			            }
+
+
+			          ],
+			        searching: false, paging: true, info: false,
+			        "pageLength": 40,
+			        "columnDefs": [{
+			            "searchable": false,
+			            "orderable": false,
+			            "targets": 0
+			        }]
+			    } );
+				
+				 t.on( 'order.dt search.dt', function () {
+				        t.column(0, {search:'applied', order:'applied' }).nodes().each( function (cell, i) {
+				            cell.innerHTML = i+1;
+				           
+				        } );
+				    } ).draw();
+			    
+
+
+		       
+	       },
+	       error : function(xhr,status){
+		       }
+ 	});
+
+	
+}
+
+
+
+
+
+	
+	 
+	
+	  
+
+
+
+		 $('#myback').hide();
+	 
+		 
+	 
+
+
+		
+		   function reloadtable()
+		    {
+			  
+			  
+		    	 $(".reload").prop("disabled","true");
+		    	 $('.ajax-loader').show();
+		    	 $('#data1').html("<div></div");
+		    	 
+		    	 $('#data1').load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/mis_reports/report16view.jsp",function(){
+
+		 $(".reload").removeAttr("disabled");
+		 $('.ajax-loader').hide();
+			
+	}
+		        	);}
+	  
+
+
+	    
+ $(".report16").on('click', ".reload",function()
+{
+	var id=$(this).attr('id');
+	var div="";
+	
+   if($('#viewType').val()=="traintype"){
+	$('#trainTypeInput').val(id);
+	$('#viewWiseHeading').val("trainTypeView");
+	$('#drillFlagForTrainType').val("true");
+	reloadtable();
+   }
+   else if($('#viewType').val()=="zonetype"){
+	   $('#complaintZoneInput').val(id);
+	   $('#viewWiseHeading').val("zoneView");
+	   fetchdivision();
+	   $('#drillFlagForTrainType').val("true");
+	   reloadtable();
+   }
+   else if($('#viewType').val()=="divisiontype"){
+	  $('#viewWiseHeading').val("divisionView");
+      var arrid=id.split("-");
+      $('#complaintZoneInput').val(arrid[1]);    
+    		div=arrid[0];
+    		fetchdivision(div).then((val)=>{
+    			$('#complaintDivInput').val(arrid[0]);
+      	      console.log($('#complaintDivInput').val());
+      	      $('#drillFlagForTrainType').val("true");
+      	      console.log(div);
+      	      
+      	  	  reloadtable();
+
+
+        		})
+	
+	   }
+   
+}
+
+  );
+		
+		
+		
+ $(".report16").on('click', ".drill",function() {
+	 
+	 	var fromDate="";
+		var toDate="";
+	     if( $('#dateRange').val()!="DATE_RANGE")
+		 {
+		 fromDate=$("#tempfrom").val();
+		 toDate=$("#tempto").val();
+		 }
+	 else
+		 {
+		 fromDate= $("#fromDate").val();
+		 toDate= $("#toDate").val();
+		 }
+	 	 
+			
+		    	var id=$(this).attr('id');
+		    	console.log(id);
+		    	if(id.split("#").length<=2)
+			    	{
+		    		var value=id.split('#')[0];
+			    	var type=id.split('#')[0];
+			    	var filter=id.split('#')[1];
+			    	}
+		    	else
+			    	{
+		    		var value=id.split('#')[0];
+			    	var type=id.split('#')[1];
+			    	var filter=id.split('#')[2];
+			    	}
+		    	var query="";
+		  
+		    	console.log(value+type);
+		    	var complaintZoneInput=$('#complaintZoneInput').val();
+
+		    	var complaintDivInput=$('#complaintDivInput').val();
+	        	var complaintTypeInput= $('#complaintTypeInput').val();
+	        	var complaintSubTypeInput= $('#complaintSubTypeInput').val();
+	        	var complaintDeptInput= $('#complaintDeptInput').val();	        	        
+	        
+		    	 var trainTypeInput= $('#trainTypeInput').val();
+		    	 var complaintModeInput= $('#complaintModeInput').val();
+		    	 
+		    	 var fromInput = fromDate;
+		    	 var toInput = toDate;
+	        	var	assistanceInput = $('#assistanceInput').val();    
+
+	        	
+	        	if($('#dateRange').val()!="DATE_RANGE")
+	        		{ 	
+			    	if(filter=='FORWARD'){
+			    		query=" WHERE rly.complaint_ref_no IS NOT NULL AND rep.tempstatus='Forwarded' AND compmode='T'";
+				    	
+			    	}
+			    	else{
+				    	query=" WHERE rly.complaint_ref_no IS NOT NULL AND rep.id=rep.max_id AND compmode='T' ";
+				    	}
+
+			    	if(value !=null && value !='null')
+				    	{
+				    	if(type=="trainno")
+			    		query+="AND rly.trainno='"+value+"'";
+
+				    	else if(type=="traintype"){
+					    	
+				    		query+="AND rly.train_type_for_report='"+value+"'";
+				    	}
+				    	else if(type=="zone"){
+				    		query+="AND rly.owning_rly_zn_cd='"+value+"'";
+
+
+					    	}
+				    	else if(type=="division"){
+
+				    		query+="AND rly.owning_rly_div_cd='"+value+"'";
+
+
+					    	}
+				    	else if(type=="traindepo"){
+
+	if(value!="NA"){
+
+		query+=" AND train_depo='"+value+"' ";
+	}
+	else{
+		query+=" AND train_depo IS NULL ";
+	}
+					    	}
+			    		
+				    		}
+			    	
+
+		      
+					query=query+" AND DATE(rep.created_on)>=DATE('"+fromInput+"') AND DATE(rep.created_on)<=DATE('"+toInput+"')";
+
+
+
+		        	if(filter=='OB')
+	       		 	{
+				query=query+" AND DATE('"+fromInput+"')>DATE(rep.created_on) AND ((rep.final_status='Closed' AND DATE('"+fromInput+"')<=DATE(rep.modified_on) ) OR (rep.final_status<>'Closed'))";
+	       		 	}
+	   		 	else if(filter=='REC')
+			 	{
+				query=query+" AND DATE(rep.created_on)>=DATE('"+fromInput+"') AND DATE(rep.created_on)<=DATE('"+toInput+"')";
+			 	}
+	   		 else if(filter=='SETTLED')
+			 	{
+				query=query+" AND rep.final_status='Closed' AND DATE(rep.modified_on)>=DATE('"+fromInput+"') AND DATE(rep.modified_on)<=DATE('"+toInput+"')";
+			 	}
+	   		else if(filter=='CB')
+		 	{
+			query=query+" AND DATE('"+toInput+"')>=DATE(rep.created_on) AND (  (rep.final_status='Closed' AND DATE('"+toInput+"')<DATE(rep.modified_on)) OR ( rep.final_status<>'Closed')) ";
+		 	}
+	       		 	
+					
+			    	
+
+			    	if(complaintZoneInput !='')
+			  		{
+			  			query+=" AND rly.owning_rly_zn_cd='"+complaintZoneInput+"'";
+			  		}
+				  if(complaintDivInput !='')
+			  		{
+			  			query+=" AND rly.owning_rly_div_cd='"+complaintDivInput+"'";
+			  		}
+				
+				  if(complaintTypeInput !='')
+			  		{
+			  			query+=" AND rep.complaint_type='"+complaintTypeInput+"'";
+			  		}
+				  if(complaintSubTypeInput !='')
+			  		{
+			  			query+=" AND rep.complaint_sub_type='"+complaintSubTypeInput+"'";
+			  		}
+	              if(complaintDeptInput!=''){
+
+	                   query+=" AND rly_department.dept_code='"+complaintDeptInput+"'";
+		
+	                }
+	              if(trainTypeInput!=''){
+
+	                  query+=" AND rly.train_type_for_report='"+trainTypeInput+"'";
+		
+	               }
+	              if(complaintModeInput!=''){
+
+	                  query+=" AND compmode='"+complaintModeInput+"'" ;
+		
+	               }
+	              
+	        	  if(assistanceInput!="" && assistanceInput=="Y")
+	  			{
+	  				query+=" AND rep.complaint_type NOT IN (" + complaintIdList + ") ";
+	  				query+=" AND rep.complaint_sub_type NOT IN (" + subComplaintIdList + ")";
+
+	  			}
+	   			if(assistanceInput!="" && assistanceInput=="O")
+	  			{
+	  				query+=" AND ( rep.complaint_type IN (" + complaintIdList + ") ";
+	  				query+=" OR rep.complaint_sub_type IN (" + subComplaintIdList + ") )";
+
+	  			}
+	              
+	        		}
+	        	else
+	        		{
+	        		
+	        	  	if(filter=='FORWARD'){
+			    		query=" WHERE rly.complaint_ref_no IS NOT NULL AND rly.tempstatus='Forwarded' AND complaint_mode='T'";
+				    	
+			    	}
+			    	else{
+				    	query=" WHERE rly.complaint_ref_no IS NOT NULL  AND complaint_mode='T' ";
+				    	}
+
+			    	if(value !=null && value !='null')
+				    	{
+				    	if(type=="trainno")
+			    		query+="AND rly.trainno='"+value+"'";
+
+				    	else if(type=="traintype"){
+					    	
+				    		query+="AND rly.train_type_for_report='"+value+"'";
+				    	}
+				    	else if(type=="zone"){
+				    		query+="AND rly.owning_rly_zn_cd='"+value+"'";
+
+
+					    	}
+				    	else if(type=="division"){
+
+				    		query+="AND rly.owning_rly_div_cd='"+value+"'";
+
+
+					    	}
+				    	else if(type=="traindepo"){
+
+	if(value!="NA"){
+
+		query+=" AND train_depo='"+value+"' ";
+	}
+	else{
+		query+=" AND train_depo IS NULL ";
+	}
+					    	}
+			    		
+				    		}
+	      
+				query=query+" AND DATE(rly.created_on)>=DATE('"+fromInput+"') AND DATE(rly.created_on)<=DATE('"+toInput+"')";
+
+
+
+	        	if(filter=='OB')
+       		 	{
+			query=query+" AND DATE('"+fromInput+"')>DATE(rly.created_on) AND ((rly_complaint_status.complaint_status='Closed' AND DATE('"+fromInput+"')<=DATE(rly.modified_on) ) OR (rly_complaint_status.complaint_status<>'Closed'))";
+       		 	}
+   		 	else if(filter=='REC')
+		 	{
+			query=query+" AND DATE(rly.created_on)>=DATE('"+fromInput+"') AND DATE(rly.created_on)<=DATE('"+toInput+"')";
+		 	}
+   		 else if(filter=='SETTLED')
+		 	{
+			query=query+" AND rly_complaint_status.complaint_status='Closed' AND DATE(rly.modified_on)>=DATE('"+fromInput+"') AND DATE(rly.modified_on)<=DATE('"+toInput+"')";
+		 	}
+   		else if(filter=='CB')
+	 	{
+		query=query+" AND DATE('"+toInput+"')>=DATE(rly.created_on) AND (  (rly_complaint_status.complaint_status='Closed' AND DATE('"+toInput+"')<DATE(rly.modified_on)) OR ( rly_complaint_status.complaint_status<>'Closed')) ";
+	 	}
+
+		    	if(complaintZoneInput !='')
+		  		{
+		  			query+=" AND rly.owning_rly_zn_cd='"+complaintZoneInput+"'";
+		  		}
+			  if(complaintDivInput !='')
+		  		{
+		  			query+=" AND rly.owning_rly_div_cd='"+complaintDivInput+"'";
+		  		}
+			
+			  if(complaintTypeInput !='')
+		  		{
+		  			query+=" AND rly.complaint_type='"+complaintTypeInput+"'";
+		  		}
+			  if(complaintSubTypeInput !='')
+		  		{
+		  			query+=" AND rly.complaint_sub_type='"+complaintSubTypeInput+"'";
+		  		}
+              if(complaintDeptInput!=''){
+
+                   query+=" AND rly_department.dept_code='"+complaintDeptInput+"'";
+	
+                }
+              if(trainTypeInput!=''){
+
+                  query+=" AND rly.train_type_for_report='"+trainTypeInput+"'";
+	
+               }
+              if(complaintModeInput!=''){
+
+                  query+=" AND complaint_mode='"+complaintModeInput+"'" ;
+	
+               }
+              
+        	  if(assistanceInput!="" && assistanceInput=="Y")
+  			{
+  				query+=" AND rly.complaint_type NOT IN (" + complaintIdList + ") ";
+  				query+=" AND rly.complaint_sub_type NOT IN (" + subComplaintIdList + ")";
+
+  			}
+   			if(assistanceInput!="" && assistanceInput=="O")
+  			{
+  				query+=" AND ( rly.complaint_type IN (" + complaintIdList + ") ";
+  				query+=" OR rly.complaint_sub_type IN (" + subComplaintIdList + ") )";
+
+  			}
+	       }
+	        	
+	        
+              console.log(query);
+              
+              
+	    	  $('#query').val(query);
+		  		
+	    	  $('#exampleModal').modal('show');
+	    	  var coachNoList = [];
+	    	  var coach = $("#coachId").val();
+	    	       //alert("train" + train);
+	    	       for (var k = 0; k < coach.length; k++) {
+
+	    	           coachNoList[k] = coach[k];
+	    	       }
+	    	       
+	    	       coachNoList = coachNoList.join();
+	  		     console.log("-------------r16view" + coachNoList);
+	    	
+	    		     
+	    	  $('#exampleModal').modal('show').find('.modal-body').load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/rawdatapanel.jsp", { "query":query,
+	    			fromInput:fromDate,
+		        	toInput:toDate,
+		        	dateRange:$('#dateRange').val(),
+		        	forwardFlag:'0',
+		        	coachNo: coachNoList
+		        	 });		  	 
+	    })
+});
+
+
+</script>
+<style>
+table.table-bordered > tbody > tr > td {
+    border: 1px solid black !important;
+}
+.dt-button{
+color: #fff !important;
+    background-color: #008b8b !important;
+}
+</style>
+
+
+ <button type="button" class="btn btn-info" style="float: right; text-align: center; margin-right: 5px; display: none;" id="myback">
+  Back <i class="fa fa-arrow-left" aria-hidden="true"></i>
+
+  </button>
+  
+<input type="hidden" id="query" style="">
+      <div id="detailtable_wrapper" class="dataTables_wrapper"><div class="dt-buttons"> <button class="dt-button buttons-print" tabindex="0" aria-controls="detailtable" type="button"><span><i class="fa fa-print"></i> Print</span></button> <button class="dt-button buttons-excel buttons-html5" tabindex="0" aria-controls="detailtable" type="button"><span><i class="fa fa-file-excel-o"></i> Excel</span></button> </div><table class="table table-bordered report16 no-footer dataTable" id="detailtable" aria-describedby="detailtable_info" style="">
+      <thead class="thead-light">
+    <tr id="tableHeadings"><th scope="col" class="sorting_disabled" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="S.No." style="width: 39.375px;">S.No.</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Train Name: activate to sort column ascending" style="width: 90.4219px;">Train Name</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Owning Zone: activate to sort column ascending" style="width: 86.0703px;">Owning Zone</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Owning Division: activate to sort column ascending" style="width: 115.5px;">Owning Division</th><th scope="col" class="collabel sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Train No.: activate to sort column ascending" style="width: 60.8203px;">Train No.</th><th scope="col" class="sorting sorting_desc" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label=" Received: activate to sort column ascending" style="width: 62.0234px;" aria-sort="descending"> Received</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="% Share: activate to sort column ascending" style="width: 55.2891px;">% Share</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Closed: activate to sort column ascending" style="width: 48.2891px;">Closed</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="% Closed: activate to sort column ascending" style="width: 61.2109px;">% Closed</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Pending: activate to sort column ascending" style="width: 58.0078px;">Pending</th><th scope="col" class="sorting" tabindex="0" aria-controls="detailtable" rowspan="1" colspan="1" aria-label="Average Rating: activate to sort column ascending" style="width: 97.4297px;">Average Rating</th></tr>
+  </thead>
+  <tbody id="table1"><tr class="odd">  <td scope="col" class="">1</td> <td scope="col" style="text-align:center">NZM  BDTS  YUVA [SUPERFAST]</td> <td scope="col" style="text-align:center">Western Railway</td> <td scope="col" style="text-align:center">MUMBAI DIVISION</td> <td scope="col"><a id="12248" style="color:black;">12248</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12248#trainno#REC" style="color:blue;">82</a></td> <td scope="col" style="text-align:center">1.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12248#trainno#SETTLED" style="color:blue;">78</a></td> <td scope="col" style="text-align:center">95.12</td> <td scope="col" style="text-align:center"><a class="drill" id="12248#trainno#CB" style="color:blue;">4</a></td> <td scope="col" style="text-align:center">UnSatisfactory</td></tr><tr class="even">  <td scope="col" class="">2</td> <td scope="col" style="text-align:center">SMVB-GHY S/F EXPRESS [SUPERFAST]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">LUMDING DIVISION</td> <td scope="col"><a id="12509" style="color:black;">12509</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12509#trainno#REC" style="color:blue;">48</a></td> <td scope="col" style="text-align:center">0.59</td> <td scope="col" style="text-align:center"><a class="drill" id="12509#trainno#SETTLED" style="color:blue;">46</a></td> <td scope="col" style="text-align:center">95.83</td> <td scope="col" style="text-align:center"><a class="drill" id="12509#trainno#CB" style="color:blue;">2</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">3</td> <td scope="col" style="text-align:center">JSG-G [MEMU]</td> <td scope="col" style="text-align:center">South East Central Railway</td> <td scope="col" style="text-align:center">NAGPUR DIVISION</td> <td scope="col"><a id="68862" style="color:black;">68862</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="68862#trainno#REC" style="color:blue;">45</a></td> <td scope="col" style="text-align:center">0.55</td> <td scope="col" style="text-align:center"><a class="drill" id="68862#trainno#SETTLED" style="color:blue;">40</a></td> <td scope="col" style="text-align:center">88.89</td> <td scope="col" style="text-align:center"><a class="drill" id="68862#trainno#CB" style="color:blue;">5</a></td> <td scope="col" style="text-align:center">UnSatisfactory</td></tr><tr class="even">  <td scope="col" class="">4</td> <td scope="col" style="text-align:center">NZM DURG SF HUMSAFAR EXP. [SUPERFAST]</td> <td scope="col" style="text-align:center">South East Central Railway</td> <td scope="col" style="text-align:center">RAIPUR DIVISION</td> <td scope="col"><a id="22868" style="color:black;">22868</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="22868#trainno#REC" style="color:blue;">39</a></td> <td scope="col" style="text-align:center">0.48</td> <td scope="col" style="text-align:center"><a class="drill" id="22868#trainno#SETTLED" style="color:blue;">39</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="22868#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">5</td> <td scope="col" style="text-align:center">PURI-YNRK DAILY EXP [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">East Coast Railway</td> <td scope="col" style="text-align:center">KHURDA DIVISION</td> <td scope="col"><a id="18477" style="color:black;">18477</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="18477#trainno#REC" style="color:blue;">36</a></td> <td scope="col" style="text-align:center">0.44</td> <td scope="col" style="text-align:center"><a class="drill" id="18477#trainno#SETTLED" style="color:blue;">36</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="18477#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">6</td> <td scope="col" style="text-align:center">HWH NDLS POORVA EXPRESS [SUPERFAST]</td> <td scope="col" style="text-align:center">Eastern Railway</td> <td scope="col" style="text-align:center">HOWRAH DIVISION</td> <td scope="col"><a id="12303" style="color:black;">12303</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12303#trainno#REC" style="color:blue;">34</a></td> <td scope="col" style="text-align:center">0.42</td> <td scope="col" style="text-align:center"><a class="drill" id="12303#trainno#SETTLED" style="color:blue;">34</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12303#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">7</td> <td scope="col" style="text-align:center">MAS-NDLS GRAND TRUNK EXP [SUPERFAST]</td> <td scope="col" style="text-align:center">Southern Railway</td> <td scope="col" style="text-align:center">CHENNAI DIVISION</td> <td scope="col"><a id="12615" style="color:black;">12615</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12615#trainno#REC" style="color:blue;">34</a></td> <td scope="col" style="text-align:center">0.42</td> <td scope="col" style="text-align:center"><a class="drill" id="12615#trainno#SETTLED" style="color:blue;">34</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12615#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">UnSatisfactory</td></tr><tr class="even">  <td scope="col" class="">8</td> <td scope="col" style="text-align:center">AVADH ASSAM EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">TINSUKIA DIVISION</td> <td scope="col"><a id="15910" style="color:black;">15910</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15910#trainno#REC" style="color:blue;">34</a></td> <td scope="col" style="text-align:center">0.42</td> <td scope="col" style="text-align:center"><a class="drill" id="15910#trainno#SETTLED" style="color:blue;">34</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="15910#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">9</td> <td scope="col" style="text-align:center">HUMSAFAR EXPRESS [SUPERFAST]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">LUMDING DIVISION</td> <td scope="col"><a id="12504" style="color:black;">12504</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12504#trainno#REC" style="color:blue;">33</a></td> <td scope="col" style="text-align:center">0.40</td> <td scope="col" style="text-align:center"><a class="drill" id="12504#trainno#SETTLED" style="color:blue;">21</a></td> <td scope="col" style="text-align:center">63.64</td> <td scope="col" style="text-align:center"><a class="drill" id="12504#trainno#CB" style="color:blue;">12</a></td> <td scope="col" style="text-align:center">Nil</td></tr><tr class="even">  <td scope="col" class="">10</td> <td scope="col" style="text-align:center">GKP-YPR EXP [SUPERFAST]</td> <td scope="col" style="text-align:center">North Eastern Railway</td> <td scope="col" style="text-align:center">LUCKNOW DIVISION</td> <td scope="col"><a id="12591" style="color:black;">12591</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12591#trainno#REC" style="color:blue;">33</a></td> <td scope="col" style="text-align:center">0.40</td> <td scope="col" style="text-align:center"><a class="drill" id="12591#trainno#SETTLED" style="color:blue;">33</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12591#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Excellent</td></tr><tr class="odd">  <td scope="col" class="">11</td> <td scope="col" style="text-align:center">MALWA EXPRESS [SUPERFAST]</td> <td scope="col" style="text-align:center">Western Railway</td> <td scope="col" style="text-align:center">RATLAM DIVISION</td> <td scope="col"><a id="12920" style="color:black;">12920</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12920#trainno#REC" style="color:blue;">33</a></td> <td scope="col" style="text-align:center">0.40</td> <td scope="col" style="text-align:center"><a class="drill" id="12920#trainno#SETTLED" style="color:blue;">31</a></td> <td scope="col" style="text-align:center">93.94</td> <td scope="col" style="text-align:center"><a class="drill" id="12920#trainno#CB" style="color:blue;">2</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">12</td> <td scope="col" style="text-align:center">TVC-NDLS KERALA SF EXP  [SUPERFAST]</td> <td scope="col" style="text-align:center">Southern Railway</td> <td scope="col" style="text-align:center">THIRUVANANTHAPURAM DIVISION</td> <td scope="col"><a id="12625" style="color:black;">12625</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12625#trainno#REC" style="color:blue;">32</a></td> <td scope="col" style="text-align:center">0.39</td> <td scope="col" style="text-align:center"><a class="drill" id="12625#trainno#SETTLED" style="color:blue;">32</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12625#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">13</td> <td scope="col" style="text-align:center">ASR-KIR EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">KATIHAR DIVISION</td> <td scope="col"><a id="15708" style="color:black;">15708</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15708#trainno#REC" style="color:blue;">31</a></td> <td scope="col" style="text-align:center">0.38</td> <td scope="col" style="text-align:center"><a class="drill" id="15708#trainno#SETTLED" style="color:blue;">30</a></td> <td scope="col" style="text-align:center">96.77</td> <td scope="col" style="text-align:center"><a class="drill" id="15708#trainno#CB" style="color:blue;">1</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">14</td> <td scope="col" style="text-align:center">ANVT-PURI PURSHOTTAM [SUPERFAST]</td> <td scope="col" style="text-align:center">East Coast Railway</td> <td scope="col" style="text-align:center">KHURDA DIVISION</td> <td scope="col"><a id="12802" style="color:black;">12802</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12802#trainno#REC" style="color:blue;">30</a></td> <td scope="col" style="text-align:center">0.37</td> <td scope="col" style="text-align:center"><a class="drill" id="12802#trainno#SETTLED" style="color:blue;">29</a></td> <td scope="col" style="text-align:center">96.67</td> <td scope="col" style="text-align:center"><a class="drill" id="12802#trainno#CB" style="color:blue;">1</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">15</td> <td scope="col" style="text-align:center">NDLS-SBC KARNATAKA EXP [SUPERFAST]</td> <td scope="col" style="text-align:center">South Western Railway</td> <td scope="col" style="text-align:center">BANGALORE DIVISION</td> <td scope="col"><a id="12628" style="color:black;">12628</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12628#trainno#REC" style="color:blue;">27</a></td> <td scope="col" style="text-align:center">0.33</td> <td scope="col" style="text-align:center"><a class="drill" id="12628#trainno#SETTLED" style="color:blue;">27</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12628#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">16</td> <td scope="col" style="text-align:center">PURI-ANVT PURUSHOTTAM [SUPERFAST]</td> <td scope="col" style="text-align:center">East Coast Railway</td> <td scope="col" style="text-align:center">KHURDA DIVISION</td> <td scope="col"><a id="12801" style="color:black;">12801</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12801#trainno#REC" style="color:blue;">27</a></td> <td scope="col" style="text-align:center">0.33</td> <td scope="col" style="text-align:center"><a class="drill" id="12801#trainno#SETTLED" style="color:blue;">27</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12801#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">17</td> <td scope="col" style="text-align:center">PNBE-ERS SF EXP [SUPERFAST]</td> <td scope="col" style="text-align:center">Southern Railway</td> <td scope="col" style="text-align:center">THIRUVANANTHAPURAM DIVISION</td> <td scope="col"><a id="22644" style="color:black;">22644</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="22644#trainno#REC" style="color:blue;">27</a></td> <td scope="col" style="text-align:center">0.33</td> <td scope="col" style="text-align:center"><a class="drill" id="22644#trainno#SETTLED" style="color:blue;">27</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="22644#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Excellent</td></tr><tr class="even">  <td scope="col" class="">18</td> <td scope="col" style="text-align:center">JAT-PUNE JHELUM EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Central Railway</td> <td scope="col" style="text-align:center">PUNE DIVISION</td> <td scope="col"><a id="11078" style="color:black;">11078</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="11078#trainno#REC" style="color:blue;">26</a></td> <td scope="col" style="text-align:center">0.32</td> <td scope="col" style="text-align:center"><a class="drill" id="11078#trainno#SETTLED" style="color:blue;">26</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="11078#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">19</td> <td scope="col" style="text-align:center">DNR-SMVB SANGHAMITRA EXP [SUPERFAST]</td> <td scope="col" style="text-align:center">South Western Railway</td> <td scope="col" style="text-align:center">BANGALORE DIVISION</td> <td scope="col"><a id="12296" style="color:black;">12296</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12296#trainno#REC" style="color:blue;">26</a></td> <td scope="col" style="text-align:center">0.32</td> <td scope="col" style="text-align:center"><a class="drill" id="12296#trainno#SETTLED" style="color:blue;">26</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12296#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">20</td> <td scope="col" style="text-align:center">PNVL-GKP EXP  [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">North Eastern Railway</td> <td scope="col" style="text-align:center">LUCKNOW DIVISION</td> <td scope="col"><a id="15066" style="color:black;">15066</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15066#trainno#REC" style="color:blue;">25</a></td> <td scope="col" style="text-align:center">0.31</td> <td scope="col" style="text-align:center"><a class="drill" id="15066#trainno#SETTLED" style="color:blue;">25</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="15066#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">21</td> <td scope="col" style="text-align:center">BJU-NDLS  SPECIAL  [TRAIN ON DEMAND]</td> <td scope="col" style="text-align:center">East Central Railway</td> <td scope="col" style="text-align:center">SONEPUR DIVISION</td> <td scope="col"><a id="02563" style="color:black;">02563</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="02563#trainno#REC" style="color:blue;">24</a></td> <td scope="col" style="text-align:center">0.29</td> <td scope="col" style="text-align:center"><a class="drill" id="02563#trainno#SETTLED" style="color:blue;">22</a></td> <td scope="col" style="text-align:center">91.67</td> <td scope="col" style="text-align:center"><a class="drill" id="02563#trainno#CB" style="color:blue;">2</a></td> <td scope="col" style="text-align:center">UnSatisfactory</td></tr><tr class="even">  <td scope="col" class="">22</td> <td scope="col" style="text-align:center">MALWA EXPRESS [SUPERFAST]</td> <td scope="col" style="text-align:center">Western Railway</td> <td scope="col" style="text-align:center">RATLAM DIVISION</td> <td scope="col"><a id="12919" style="color:black;">12919</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12919#trainno#REC" style="color:blue;">24</a></td> <td scope="col" style="text-align:center">0.29</td> <td scope="col" style="text-align:center"><a class="drill" id="12919#trainno#SETTLED" style="color:blue;">22</a></td> <td scope="col" style="text-align:center">91.67</td> <td scope="col" style="text-align:center"><a class="drill" id="12919#trainno#CB" style="color:blue;">2</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">23</td> <td scope="col" style="text-align:center">LGH-PRYJ EXPRESS [SUPERFAST]</td> <td scope="col" style="text-align:center">North Central Railway</td> <td scope="col" style="text-align:center">PRAYAGRAJ DIVISION</td> <td scope="col"><a id="20404" style="color:black;">20404</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="20404#trainno#REC" style="color:blue;">24</a></td> <td scope="col" style="text-align:center">0.29</td> <td scope="col" style="text-align:center"><a class="drill" id="20404#trainno#SETTLED" style="color:blue;">24</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="20404#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">24</td> <td scope="col" style="text-align:center">ADI - DBG SPECIAL [TRAIN ON DEMAND]</td> <td scope="col" style="text-align:center">Western Railway</td> <td scope="col" style="text-align:center">AHMEDABAD DIVISION</td> <td scope="col"><a id="09465" style="color:black;">09465</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="09465#trainno#REC" style="color:blue;">23</a></td> <td scope="col" style="text-align:center">0.28</td> <td scope="col" style="text-align:center"><a class="drill" id="09465#trainno#SETTLED" style="color:blue;">23</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="09465#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">25</td> <td scope="col" style="text-align:center">BRAHMAPUTRA MAIL [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">LUMDING DIVISION</td> <td scope="col"><a id="15657" style="color:black;">15657</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15657#trainno#REC" style="color:blue;">23</a></td> <td scope="col" style="text-align:center">0.28</td> <td scope="col" style="text-align:center"><a class="drill" id="15657#trainno#SETTLED" style="color:blue;">21</a></td> <td scope="col" style="text-align:center">91.30</td> <td scope="col" style="text-align:center"><a class="drill" id="15657#trainno#CB" style="color:blue;">2</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">26</td> <td scope="col" style="text-align:center">NAGAON EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">LUMDING DIVISION</td> <td scope="col"><a id="15630" style="color:black;">15630</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15630#trainno#REC" style="color:blue;">22</a></td> <td scope="col" style="text-align:center">0.27</td> <td scope="col" style="text-align:center"><a class="drill" id="15630#trainno#SETTLED" style="color:blue;">22</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="15630#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Nil</td></tr><tr class="odd">  <td scope="col" class="">27</td> <td scope="col" style="text-align:center">AVADH ASSAM EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">TINSUKIA DIVISION</td> <td scope="col"><a id="15909" style="color:black;">15909</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15909#trainno#REC" style="color:blue;">22</a></td> <td scope="col" style="text-align:center">0.27</td> <td scope="col" style="text-align:center"><a class="drill" id="15909#trainno#SETTLED" style="color:blue;">21</a></td> <td scope="col" style="text-align:center">95.45</td> <td scope="col" style="text-align:center"><a class="drill" id="15909#trainno#CB" style="color:blue;">1</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">28</td> <td scope="col" style="text-align:center">DHANBAD - ALLEPY EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">East Central Railway</td> <td scope="col" style="text-align:center">DHANBAD DIVISION</td> <td scope="col"><a id="13351" style="color:black;">13351</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="13351#trainno#REC" style="color:blue;">21</a></td> <td scope="col" style="text-align:center">0.26</td> <td scope="col" style="text-align:center"><a class="drill" id="13351#trainno#SETTLED" style="color:blue;">21</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="13351#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">29</td> <td scope="col" style="text-align:center">VIVEK EXPRESS [SUPERFAST]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">TINSUKIA DIVISION</td> <td scope="col"><a id="22503" style="color:black;">22503</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="22503#trainno#REC" style="color:blue;">21</a></td> <td scope="col" style="text-align:center">0.26</td> <td scope="col" style="text-align:center"><a class="drill" id="22503#trainno#SETTLED" style="color:blue;">21</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="22503#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">30</td> <td scope="col" style="text-align:center">SC-NHLN [TRAIN ON DEMAND]</td> <td scope="col" style="text-align:center">South Central Railway</td> <td scope="col" style="text-align:center">SECUNDERABAD DIVISION</td> <td scope="col"><a id="07046" style="color:black;">07046</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="07046#trainno#REC" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">0.24</td> <td scope="col" style="text-align:center"><a class="drill" id="07046#trainno#SETTLED" style="color:blue;">19</a></td> <td scope="col" style="text-align:center">95.00</td> <td scope="col" style="text-align:center"><a class="drill" id="07046#trainno#CB" style="color:blue;">1</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">31</td> <td scope="col" style="text-align:center">ASR CSMT EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Central Railway</td> <td scope="col" style="text-align:center">BOMBAY DIVISION</td> <td scope="col"><a id="11058" style="color:black;">11058</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="11058#trainno#REC" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">0.24</td> <td scope="col" style="text-align:center"><a class="drill" id="11058#trainno#SETTLED" style="color:blue;">19</a></td> <td scope="col" style="text-align:center">95.00</td> <td scope="col" style="text-align:center"><a class="drill" id="11058#trainno#CB" style="color:blue;">1</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">32</td> <td scope="col" style="text-align:center">PUI-ADI S/F EXP [SUPERFAST]</td> <td scope="col" style="text-align:center">East Coast Railway</td> <td scope="col" style="text-align:center">KHURDA DIVISION</td> <td scope="col"><a id="12843" style="color:black;">12843</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12843#trainno#REC" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">0.24</td> <td scope="col" style="text-align:center"><a class="drill" id="12843#trainno#SETTLED" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="12843#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">33</td> <td scope="col" style="text-align:center">SCL-TVC EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">LUMDING DIVISION</td> <td scope="col"><a id="15608" style="color:black;">15608</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15608#trainno#REC" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">0.24</td> <td scope="col" style="text-align:center"><a class="drill" id="15608#trainno#SETTLED" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="15608#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">34</td> <td scope="col" style="text-align:center">LTT-GHY EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">LUMDING DIVISION</td> <td scope="col"><a id="15647" style="color:black;">15647</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15647#trainno#REC" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">0.24</td> <td scope="col" style="text-align:center"><a class="drill" id="15647#trainno#SETTLED" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="15647#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">UnSatisfactory</td></tr><tr class="odd">  <td scope="col" class="">35</td> <td scope="col" style="text-align:center">ADI - SHC EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Western Railway</td> <td scope="col" style="text-align:center">AHMEDABAD DIVISION</td> <td scope="col"><a id="19483" style="color:black;">19483</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="19483#trainno#REC" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">0.24</td> <td scope="col" style="text-align:center"><a class="drill" id="19483#trainno#SETTLED" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="19483#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">36</td> <td scope="col" style="text-align:center">PURI-AII S/F [SUPERFAST]</td> <td scope="col" style="text-align:center">East Coast Railway</td> <td scope="col" style="text-align:center">KHURDA DIVISION</td> <td scope="col"><a id="20823" style="color:black;">20823</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="20823#trainno#REC" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">0.24</td> <td scope="col" style="text-align:center"><a class="drill" id="20823#trainno#SETTLED" style="color:blue;">20</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="20823#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">37</td> <td scope="col" style="text-align:center">DBRG-CDG EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Northeast Frontier Railway</td> <td scope="col" style="text-align:center">TINSUKIA DIVISION</td> <td scope="col"><a id="15903" style="color:black;">15903</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="15903#trainno#REC" style="color:blue;">19</a></td> <td scope="col" style="text-align:center">0.23</td> <td scope="col" style="text-align:center"><a class="drill" id="15903#trainno#SETTLED" style="color:blue;">19</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="15903#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">38</td> <td scope="col" style="text-align:center">SHC - ADI EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Western Railway</td> <td scope="col" style="text-align:center">AHMEDABAD DIVISION</td> <td scope="col"><a id="19484" style="color:black;">19484</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="19484#trainno#REC" style="color:blue;">19</a></td> <td scope="col" style="text-align:center">0.23</td> <td scope="col" style="text-align:center"><a class="drill" id="19484#trainno#SETTLED" style="color:blue;">19</a></td> <td scope="col" style="text-align:center">100.00</td> <td scope="col" style="text-align:center"><a class="drill" id="19484#trainno#CB" style="color:blue;">0</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="odd">  <td scope="col" class="">39</td> <td scope="col" style="text-align:center">CSMT-SBC UDYAN EXPRESS [MAIL EXPRESS]</td> <td scope="col" style="text-align:center">Central Railway</td> <td scope="col" style="text-align:center">SHOLAPUR DIVISION</td> <td scope="col"><a id="11301" style="color:black;">11301</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="11301#trainno#REC" style="color:blue;">18</a></td> <td scope="col" style="text-align:center">0.22</td> <td scope="col" style="text-align:center"><a class="drill" id="11301#trainno#SETTLED" style="color:blue;">17</a></td> <td scope="col" style="text-align:center">94.44</td> <td scope="col" style="text-align:center"><a class="drill" id="11301#trainno#CB" style="color:blue;">1</a></td> <td scope="col" style="text-align:center">Satisfactory</td></tr><tr class="even">  <td scope="col" class="">40</td> <td scope="col" style="text-align:center">PUSHPAK SF EXP [SUPERFAST]</td> <td scope="col" style="text-align:center">North Eastern Railway</td> <td scope="col" style="text-align:center">LUCKNOW DIVISION</td> <td scope="col"><a id="12533" style="color:black;">12533</a></td> <td scope="col" style="text-align:center" class="sorting_1"><a class="drill" id="12533#trainno#REC" style="color:blue;">18</a></td> <td scope="col" style="text-align:center">0.22</td> <td scope="col" style="text-align:center"><a class="drill" id="12533#trainno#SETTLED" style="color:blue;">17</a></td> <td scope="col" style="text-align:center">94.44</td> <td scope="col" style="text-align:center"><a class="drill" id="12533#trainno#CB" style="color:blue;">1</a></td> <td scope="col" style="text-align:center">UnSatisfactory</td></tr></tbody>
+  
+
+   <tfoot id="tfootid"><tr><th scope="col" rowspan="1" colspan="1"></th><th scope="col" rowspan="1" colspan="1"></th><th scope="col" rowspan="1" colspan="1"></th><th scope="col" rowspan="1" colspan="1"></th><th scope="col" rowspan="1" colspan="1"><a class="reload" id="totaltype" style="color:blue;">Total</a></th><th scope="col" style="text-align:center" rowspan="1" colspan="1"><a class="drill" id="undefined#REC" style="color:blue;">8171</a></th><th scope="col" style="text-align:center" rowspan="1" colspan="1">100%</th><th scope="col" style="text-align:center" rowspan="1" colspan="1"><a class="drill" id="undefined#SETTLED" style="color:blue;">8006</a></th><th scope="col" style="text-align:center" rowspan="1" colspan="1">97.98</th><th scope="col" style="text-align:center" rowspan="1" colspan="1"><a class="drill" id="undefined#CB" style="color:blue;">165</a></th><th scope="col" style="text-align:center" rowspan="1" colspan="1">Satisfactory</th></tr></tfoot>
+     
+</table><div class="dataTables_paginate paging_simple_numbers" id="detailtable_paginate"><a class="paginate_button previous disabled" aria-controls="detailtable" data-dt-idx="0" tabindex="-1" id="detailtable_previous">Previous</a><span><a class="paginate_button current" aria-controls="detailtable" data-dt-idx="1" tabindex="0">1</a><a class="paginate_button " aria-controls="detailtable" data-dt-idx="2" tabindex="0">2</a><a class="paginate_button " aria-controls="detailtable" data-dt-idx="3" tabindex="0">3</a><a class="paginate_button " aria-controls="detailtable" data-dt-idx="4" tabindex="0">4</a><a class="paginate_button " aria-controls="detailtable" data-dt-idx="5" tabindex="0">5</a><span class="ellipsis">…</span><a class="paginate_button " aria-controls="detailtable" data-dt-idx="6" tabindex="0">52</a></span><a class="paginate_button next" aria-controls="detailtable" data-dt-idx="7" tabindex="0" id="detailtable_next">Next</a></div></div>
+
+<div><p style="color:red;">Disclaimer: <br>
+1. Train Type, Category, owning zone &amp; owning division is decided on the basis of data comes from ICMS <br>
+2. All above data is according to owning/primary zone and division basis</p></div>
+
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document" style="width:100% !important;max-width:95% !important;">
+    <div class="modal-content">
+      <div class="modal-header" style="">
+        <h5 class="modal-title " id="exampleModalLabel" style="width:90%;">List of Complaints</h5>
+         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      
+  
+      </div>
+  
+    </div>
+  </div>
+</div>  
+
+</div>
+						
+						
+						
+						</div>
+						
+						
+							
+							
+						
+						
+						
+					</div>
+
+
+
+
+
+<input type="hidden" id="complaintModeInput" value="t" style="">
+<script src="/rmmis/admin/mis_reports/commonjs/dateutility.js?version=10"></script>
+					
+				  <script src="/rmmis/admin/mis_reports/commonjs/comptypesub.js?version=10"></script>
+
+				  <script src="/rmmis/admin/mis_reports/commonjs/zonedivlist.js?version=10"></script>
+ 
+        
+ 
+				  <script src="/rmmis/admin/mis_reports/js/report16.js?version=34"></script>
+				  <script src="/rmmis/admin/mis_reports/commonjs/deptlist.js?version=10"></script>
+				  
+</div>
+		
+			<div class="modal" id="changePasswordAdminModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordAdminLabel" aria-hidden="true">
+		<div class="modal-dialog login-modal-dialog" role="document">
+			<div class="modal-content">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">×</span>
+				</button>
+				<div class="modalHeader">
+				       <center><h5 class="modal-title">Change Password Admin</h5></center> 
+				</div>
+				<div class="modal-body">
+					<div id="changePasswordAdminContent">
+					
+					
+					
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	</div>
+	</div>
+
+	
+	  <script src="/rmmis/js_assets/jquery.min.js"></script>
+
+		<script src="/rmmis/js_assets/bootstrap.bundle.min.js"></script>
+
+	<script src="/rmmis/js_assets/jquery.easing.min.js"></script>
+	<script src="/rmmis/js_assets/jquery-ui.js"></script>
+	<script src="/rmmis/js_assets/d3.v5.min.js"></script>
+
+<script src="/rmmis/js_assets/d3pie.min.js"></script>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="/rmmis/js_assets/jquery.easing.min.js"></script>
+	<script src="/rmmis/js_assets/sb-admin.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="/rmmis/css_assets/datatables.min.css">
+	<script type="text/javascript" src="/rmmis/js_assets/datatables.min.js"></script>
+		
+<!-- Latest compiled and minified JavaScript -->
+<script src="/rmmis/js_assets/bootstrap-select.min.js"></script>
+<!-- CHANNEL WISE GOOGLE CHART -->
+<script type="text/javascript" src="/rmmis/js_assets/bootstrap-multiselect.js"></script>
+	<script src="/rmmis/js_assets/bootstrap-datetimepicker.min.js"></script>
+	<script src="/rmmis/js_assets/jquery.jgrowl.min.js"></script>
+
+
+
+	<script>
+
+	$(".editbtnself").click(function(){
+     	
+   		 
+		var userId="GM_SC";		
+		
+		 $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/EditUserProfile.jsp?Id="+userId);
+
+							
+		
+		    });	
+	
+	</script>
+
+
+
+<script>
+
+var checksession = function() {
+	
+
+	$.ajax({
+		method : 'GET',
+		url : window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/CheckSession',
+		
+		success : function(responseText) {
+			if(responseText=="false"){
+				 $(location).attr('href', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2)));	
+					
+				}
+		},
+		 error: function (xhr, status, thrownError) {
+	     }
+	}); 
+	}
+var onloadcheck = function() {
+	 var params = new window.URLSearchParams(window.location.search);
+	    if(params != null && params !='')
+	    	{
+	    	if(params.get('page')!=null)
+			{
+	    		var link=params.get('page');
+	    	    var archiveFlag=params.get('archiveFlag');
+	    	    var Id=params.get('Id');
+	    	    var mobile=params.get('mobile');
+	    	    var email=params.get('email');
+	    	    $("#dashboardmainsection").html("<div></div>");
+
+	   	  	  
+		    	 $('.ajax-loader').show();
+		    	    
+	    	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?page="+link+"&archiveFlag="+archiveFlag+"&Id="+Id+"&mobile="+mobile+"&email="+email,
+
+	    	    		function(){
+	   	    	 $('.ajax-loader').hide();
+
+	   	  	  }
+	    	    	    );	    	
+	    		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&archiveFlag="+archiveFlag+"&Id="+Id+"&mobile="+mobile+"&email="+email);
+
+			}
+	    	}
+	}
+
+
+$( document ).ready(function() {
+
+	checksession();
+	onloadcheck();
+	
+			$.ajax({
+		 method : 'GET',
+			url : window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/FetchData',
+			
+			data : {
+				
+				fetchdatatype:'checkpasswordupdatedon'
+			},
+	        async: true,
+			success : function(responseText) {
+
+                if(responseText.updateDateValidation){
+	            		 $('#changePasswordAdminContent').load("ChangePasswordAdmin.jsp");
+	            		 $("#changePasswordAdminModal").modal('show');
+               	 
+                }
+                else{	
+                }
+              
+			
+			},
+			error: function (xhr, status, thrownError) {
+			}
+		});
+			
+			$('#changePasswordAdminModal').on('hide.bs.modal', function () {
+				 $(location).attr('href', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+'/Logout.jsp');	
+				});
+			
+    
+    $(".navigate_to_link").click(function(){
+    	checksession();
+    var link=$(this).attr("link");
+    var reportType=$(this).attr("report-type");
+    if(reportType != null)
+    	{
+	    $("#dashboardmainsection").html("<div></div>");
+    	
+   	 $('.ajax-loader').show();
+ 	
+	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?archiveFlag="+reportType
+	    		,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&archiveFlag="+reportType);
+	    
+    	}
+    else
+    	{
+	    $("#dashboardmainsection").html("<div></div>");
+    	
+   	 $('.ajax-loader').show();
+ 	
+	    $("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp"
+	    		,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+		window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link);
+	    
+    	}
+
+    });
+
+
+    $("#dashboardmainsection").on('click','.navigatenext',function(){
+    	checksession();
+        var refNo=$(this).attr("refNo");
+        var link=$(this).attr("link");
+        var archiveFlag=$(this).attr("archive-flag");
+        var email=$(this).attr("email");
+        var mobile=$(this).attr("mobile");
+   	 $('.ajax-loader').show();
+	    $("#dashboardmainsection").html("<div></div>");
+	     
+    	$("#dashboardmainsection").load(window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/"+link+".jsp?Id="+refNo+"&archiveflag="+archiveFlag+"&mobile="+mobile+"&email="+email
+    			,
+
+	    		function(){
+	    	 $('.ajax-loader').hide();
+
+	  	  });
+    	window.history.pushState('', 'New Page Title', window.location.pathname.substring(0, window.location.pathname.indexOf("/",2))+"/admin/home.jsp?page="+link+"&Id="+refNo+"&archiveflag="+archiveFlag+"&mobile="+mobile+"&email="+email);
+    	    
+        	
+      
+
+        });
+    
+    
+  
+});
+
+</script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css"> 
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.0.1/css/buttons.dataTables.min.css">
+<script type="text/javascript" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/dataTables.buttons.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.html5.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/buttons/2.0.1/js/buttons.print.min.js"></script>
+
+</body></html>

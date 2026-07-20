@@ -1,0 +1,52 @@
+{
+  "run_id": "a2f89ace-ae0f-4528-a93f-bc043c60e4a6",
+  "started_at": "2026-07-19T18:22:46.864408+00:00",
+  "completed_at": "2026-07-19T18:27:51.413503+00:00",
+  "total_duration_seconds": 304.549,
+  "portal_wait_seconds": 909.633,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.1,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.674,
+    "nav_filter_submit:report1": 301.955,
+    "handler_execute:report1": 303.419,
+    "report:report1": 303.585
+  },
+  "per_report": {
+    "report1": {
+      "duration_seconds": 303.585,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 301.955
+      }
+    }
+  },
+  "critical_path_report": "report1",
+  "critical_path_seconds": 303.585,
+  "top_bottlenecks": [
+    [
+      "report:report1",
+      303.585
+    ],
+    [
+      "handler_execute:report1",
+      303.419
+    ],
+    [
+      "nav_filter_submit:report1",
+      301.955
+    ],
+    [
+      "browser_connect",
+      0.674
+    ]
+  ]
+}

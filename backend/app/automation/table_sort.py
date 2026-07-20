@@ -232,6 +232,40 @@ class ReceivedColumnService:
         if await table.count() == 0:
             return []
 
+        target = column_header.strip().lower()
+        try:
+            handle = await table.element_handle()
+            if handle is not None:
+                values = await table.page.evaluate(
+                    """([tableEl, targetHeader]) => {
+                      if (!tableEl) return [];
+                      const norm = (t) => (t || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+                      const headers = [...tableEl.querySelectorAll('thead th, thead td')]
+                        .map(el => norm(el.textContent));
+                      let col = headers.indexOf(norm(targetHeader));
+                      if (col < 0) {
+                        col = headers.findIndex(h => h.includes(norm(targetHeader)));
+                      }
+                      if (col < 0) return [];
+                      const out = [];
+                      for (const tr of tableEl.querySelectorAll('tbody tr')) {
+                        const rowText = norm(tr.textContent);
+                        if (rowText.includes('total')) continue;
+                        const cells = tr.querySelectorAll('td');
+                        if (cells.length <= col) continue;
+                        const digits = (cells[col].textContent || '').replace(/[^\\d]/g, '');
+                        if (digits) out.push(parseInt(digits, 10));
+                        if (out.length >= 10) break;
+                      }
+                      return out;
+                    }""",
+                    [handle, target],
+                )
+                if isinstance(values, list):
+                    return [int(v) for v in values if isinstance(v, (int, float))]
+        except Exception:
+            pass
+
         headers = table.locator("thead th")
         header_count = await headers.count()
         column_index = -1

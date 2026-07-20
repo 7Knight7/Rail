@@ -1,0 +1,139 @@
+{
+  "run_id": "613f55f4-d431-4c92-81e0-38da739c09d6",
+  "started_at": "2026-07-20T06:26:22.612324+00:00",
+  "completed_at": "2026-07-20T06:30:48.529919+00:00",
+  "total_duration_seconds": 265.918,
+  "portal_wait_seconds": 791.329,
+  "application_seconds": 0.278,
+  "fixed_sleep_seconds": 1.8,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.332,
+    "nav_filter_submit:report1": 2.871,
+    "sorting:report1": 0.707,
+    "extraction:report1": 0.106,
+    "feedback_extraction:report1": 254.838,
+    "ingestion_feedback:report1_feedback": 0.015,
+    "ingestion:report1": 0.047,
+    "comprehensive_regenerate:report1": 2.037,
+    "processing:report1": 0.216,
+    "handler_execute:report1": 265.105,
+    "report:report1": 265.333
+  },
+  "per_report": {
+    "report1": {
+      "duration_seconds": 265.333,
+      "extraction_seconds": 0.106,
+      "processing_seconds": 0.216,
+      "spans": {
+        "nav_filter_submit": 2.871,
+        "sorting": 0.707,
+        "extraction": 0.106,
+        "feedback_extraction": 254.838,
+        "ingestion": 0.047,
+        "comprehensive_regenerate": 2.037,
+        "processing": 0.216,
+        "excel_generation": 0.108,
+        "pdf_generation": 0.108
+      }
+    }
+  },
+  "critical_path_report": "report1",
+  "critical_path_seconds": 265.333,
+  "top_bottlenecks": [
+    [
+      "report:report1",
+      265.333
+    ],
+    [
+      "handler_execute:report1",
+      265.105
+    ],
+    [
+      "feedback_extraction:report1",
+      254.838
+    ],
+    [
+      "nav_filter_submit:report1",
+      2.871
+    ],
+    [
+      "comprehensive_regenerate:report1",
+      2.037
+    ]
+  ]
+}

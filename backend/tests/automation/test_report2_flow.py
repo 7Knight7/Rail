@@ -47,10 +47,10 @@ def test_merge_random_source_b_order_name_based(tmp_path: Path, monkeypatch: pyt
 
     source_a = tmp_path / "a.csv"
     source_a.write_text(
-        "S.No.,Organisation,Received\n"
-        "1,Alpha Division (Zone),30\n"
-        "2,Beta Division (Zone),20\n"
-        "3,Gamma Division (Zone),10\n",
+        "S.No.,Organisation,Received,% Share,Closed\n"
+        "1,Alpha Division (Zone),30,50,25\n"
+        "2,Beta Division (Zone),20,40,18\n"
+        "3,Gamma Division (Zone),10,30,9\n",
         encoding="utf-8",
     )
     # Deliberately shuffled Source B order
@@ -103,9 +103,9 @@ def test_missing_match_leaves_blank_feedback(tmp_path: Path, monkeypatch: pytest
     )
     source_a = tmp_path / "a.csv"
     source_a.write_text(
-        "S.No.,Organisation,Received\n"
-        "1,Known Division (Z),10\n"
-        "2,Missing Division (Z),9\n",
+        "S.No.,Organisation,Received,% Share,Closed\n"
+        "1,Known Division (Z),10,100,8\n"
+        "2,Missing Division (Z),9,90,7\n",
         encoding="utf-8",
     )
     source_b = tmp_path / "b.csv"
@@ -132,9 +132,9 @@ def test_ambiguous_match_leaves_blank_not_guess(tmp_path: Path, monkeypatch: pyt
     )
     source_a = tmp_path / "a.csv"
     source_a.write_text(
-        "S.No.,Organisation,Received\n"
-        "1,Delhi Division (NR),10\n"
-        "2,Alpha Division (Z),9\n",
+        "S.No.,Organisation,Received,% Share,Closed\n"
+        "1,Delhi Division (NR),10,50,8\n"
+        "2,Alpha Division (Z),9,45,7\n",
         encoding="utf-8",
     )
     source_b = tmp_path / "b.csv"

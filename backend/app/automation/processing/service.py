@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from pathlib import Path
 
@@ -9,8 +10,10 @@ from sqlalchemy import select
 
 from app.automation.processing.base import ProcessingResult
 from app.automation.processing.registry import PROCESSORS
+from app.automation.processing.scr_output_columns import SCR_NAMESPACED_SLUGS
 from app.automation.report_keys import canonicalize_report_key
 from app.automation.utils import log_automation_event
+from app.features.reports.scr_fresh import is_scr_manual_fresh, verify_current_run_source
 from app.infrastructure.database.session import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -19,7 +22,12 @@ FEEDBACK_DATASET_ID = "report1_feedback"
 DIVISION_FEEDBACK_DATASET_ID = "division_feedback"
 
 
-async def process_report(report_slug: str, ingestion_success: bool) -> ProcessingResult:
+async def process_report(
+    report_slug: str,
+    ingestion_success: bool,
+    *,
+    column_selection: dict | None = None,
+) -> ProcessingResult:
     """Run Phase 8 processing when ingestion succeeded."""
     if not ingestion_success:
         return ProcessingResult(attempted=False, success=False)
@@ -41,6 +49,9 @@ async def process_report(report_slug: str, ingestion_success: bool) -> Processin
     )
 
     try:
+        from app.automation.run_context import get_run_context
+
+        ctx = get_run_context()
         async with SessionLocal() as session:
             from app.features.datasets.service import DatasetService
             from app.infrastructure.database.models import ReportDatasetModel
@@ -63,6 +74,27 @@ async def process_report(report_slug: str, ingestion_success: bool) -> Processin
                 )
 
             source_a_path = Path(model.source_file_path)
+            if ctx is not None and canonical in SCR_NAMESPACED_SLUGS:
+                run_source = ctx.current_run_sources.get(canonical)
+                if run_source:
+                    source_a_path = Path(run_source)
+                if canonical == "scr-station" or is_scr_manual_fresh(ctx.manual_config):
+                    try:
+                        verify_current_run_source(
+                            source_a_path,
+                            run_id=ctx.run_id,
+                            report_slug=canonical,
+                            run_started_at=ctx.run_started_at,
+                        )
+                    except ValueError as exc:
+                        return ProcessingResult(
+                            attempted=True,
+                            success=False,
+                            processor_used=processor.processor_name,
+                            error=str(exc),
+                            source_a_path=str(source_a_path),
+                        )
+
             if source_a_path.suffix.lower() == ".pdf":
                 return ProcessingResult(
                     attempted=True,
@@ -187,11 +219,15 @@ async def process_report(report_slug: str, ingestion_success: bool) -> Processin
                         error=f"Report 2 Source B file missing: {source_b_path}",
                     )
 
-            processing_result = processor.process(
-                source_a_path=source_a_path,
-                report_slug=canonical,
-                source_b_path=source_b_path,
-            )
+            process_kwargs: dict = {
+                "source_a_path": source_a_path,
+                "report_slug": canonical,
+                "source_b_path": source_b_path,
+            }
+            if "column_selection" in inspect.signature(processor.process).parameters:
+                process_kwargs["column_selection"] = column_selection
+
+            processing_result = processor.process(**process_kwargs)
             processing_result.attempted = True
             processing_result.processor_used = processor.processor_name
 

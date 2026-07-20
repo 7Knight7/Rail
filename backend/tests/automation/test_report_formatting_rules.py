@@ -9,11 +9,11 @@ from pathlib import Path
 import pytest
 from openpyxl import load_workbook
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A3, A4, landscape
+from reportlab.lib.pagesizes import A2, A3, A4, landscape
 
 from app.automation.formatting.pdf_table import build_fitted_table, choose_landscape_layout
 from app.automation.formatting.serial import apply_serial_number, renumber_data_rows
-from app.automation.processing.report1_processor import HIDDEN_COLUMNS, Report1Processor
+from app.automation.processing.report1_processor import Report1Processor
 from app.automation.processing.report2_processor import Report2Processor
 from app.automation.utils import artifact_filename_timestamp, previous_day_report_date
 
@@ -79,7 +79,7 @@ def test_wide_table_falls_back_to_a3_without_overflow():
     row = [f"value-{i}-xxxxxxxx" for i in range(20)]
     table_data = [headers, row]
     pagesize, col_widths, _font, margin = choose_landscape_layout(table_data)
-    assert pagesize in {landscape(A4), landscape(A3)}
+    assert pagesize in {landscape(A4), landscape(A3), landscape(A2)}
     usable = pagesize[0] - (2 * margin)
     assert sum(col_widths) <= usable + 0.5
     table, chosen, used_margin = build_fitted_table(
@@ -118,12 +118,16 @@ def test_report1_title_and_filename_use_previous_day(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    comprehensive, _feedback = r1_inputs
+    comprehensive, feedback = r1_inputs
     _monkeypatch_outputs(monkeypatch, "app.automation.processing.report1_processor", tmp_path)
     expected = _expected_report_date()
     today = datetime.now().strftime("%d-%m-%Y")
 
-    result = Report1Processor().process(source_a_path=comprehensive, report_slug="report1")
+    result = Report1Processor().process(
+        source_a_path=comprehensive,
+        report_slug="report1",
+        source_b_path=feedback,
+    )
     assert result.success is True
     assert expected in Path(result.excel_path).name
     assert expected in Path(result.pdf_path).name
@@ -142,22 +146,26 @@ def test_report1_pdf_fits_width_and_shows_edge_columns(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    comprehensive, _feedback = r1_inputs
+    comprehensive, feedback = r1_inputs
     _monkeypatch_outputs(monkeypatch, "app.automation.processing.report1_processor", tmp_path)
 
-    result = Report1Processor().process(source_a_path=comprehensive, report_slug="report1")
+    result = Report1Processor().process(
+        source_a_path=comprehensive,
+        report_slug="report1",
+        source_b_path=feedback,
+    )
     assert result.success is True
 
     width, height = _pdf_mediabox_size(Path(result.pdf_path))
     assert width > height  # landscape
     assert width >= landscape(A4)[0] - 1.0
-    assert abs(width - landscape(A4)[0]) < 1.0 or abs(width - landscape(A3)[0]) < 1.0
+    assert abs(width - landscape(A4)[0]) < 1.0 or abs(width - landscape(A3)[0]) < 1.0 or abs(width - landscape(A2)[0]) < 1.0
 
     workbook = load_workbook(result.excel_path)
     ws = workbook.active
     headers = [str(ws.cell(row=2, column=c).value or "") for c in range(1, ws.max_column + 1)]
-    visible_indices = [i for i in range(1, len(headers) + 1) if i not in HIDDEN_COLUMNS]
-    visible_headers = [headers[i - 1] for i in visible_indices]
+    visible_indices = list(range(1, len(headers) + 1))
+    visible_headers = headers
     assert visible_headers[0] == "S.No."
     assert visible_headers[-1] == "% Unsatisfactory"
 
@@ -186,10 +194,14 @@ def test_report1_sno_regenerated_sequentially(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    comprehensive, _feedback = r1_inputs
+    comprehensive, feedback = r1_inputs
     _monkeypatch_outputs(monkeypatch, "app.automation.processing.report1_processor", tmp_path)
 
-    result = Report1Processor().process(source_a_path=comprehensive, report_slug="report1")
+    result = Report1Processor().process(
+        source_a_path=comprehensive,
+        report_slug="report1",
+        source_b_path=feedback,
+    )
     workbook = load_workbook(result.excel_path)
     ws = workbook.active
     serials: list[str] = []
@@ -206,10 +218,11 @@ def test_report1_sno_regenerated_sequentially(
 
 
 @pytest.fixture
-def r2_inputs(tmp_path: Path) -> Path:
+def r2_inputs(tmp_path: Path) -> tuple[Path, Path]:
     extracted = tmp_path / "extracted" / "report2"
     extracted.mkdir(parents=True)
     target = extracted / "report2_division_comprehensive_raw.csv"
+    feedback = extracted / "report2_division_feedback_raw.csv"
     lines = [
         "S.No.,Organisation,Opening Balance,Received,% Share,Closed,Closing Balance,"
         "% Disposal,Avg. Disposal Time,Avg. Rating,Avg. Pendency Time,Forwarded,Avg. FRT"
@@ -230,20 +243,22 @@ def r2_inputs(tmp_path: Path) -> Path:
     lines.append(",Total,,15000,,30,,,,,,,")
     feedback_lines.append(",Total,5000,,,,,,")
     target.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    (extracted / "report2_division_feedback_raw.csv").write_text(
-        "\n".join(feedback_lines) + "\n",
-        encoding="utf-8",
-    )
-    return target
+    feedback.write_text("\n".join(feedback_lines) + "\n", encoding="utf-8")
+    return target, feedback
 
 
 def test_report2_sno_is_one_through_n_after_top25(
-    r2_inputs: Path,
+    r2_inputs: tuple[Path, Path],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    comprehensive, feedback = r2_inputs
     _monkeypatch_outputs(monkeypatch, "app.automation.processing.report2_processor", tmp_path)
-    result = Report2Processor().process(source_a_path=r2_inputs, report_slug="report2")
+    result = Report2Processor().process(
+        source_a_path=comprehensive,
+        report_slug="report2",
+        source_b_path=feedback,
+    )
     assert result.success is True
 
     workbook = load_workbook(result.excel_path)
@@ -268,15 +283,20 @@ def test_report2_sno_is_one_through_n_after_top25(
 
 
 def test_report2_title_and_filename_use_previous_day(
-    r2_inputs: Path,
+    r2_inputs: tuple[Path, Path],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    comprehensive, feedback = r2_inputs
     _monkeypatch_outputs(monkeypatch, "app.automation.processing.report2_processor", tmp_path)
     expected = _expected_report_date()
     today = datetime.now().strftime("%d-%m-%Y")
 
-    result = Report2Processor().process(source_a_path=r2_inputs, report_slug="report2")
+    result = Report2Processor().process(
+        source_a_path=comprehensive,
+        report_slug="report2",
+        source_b_path=feedback,
+    )
     assert result.success is True
     assert expected in Path(result.excel_path).name
     assert expected in Path(result.pdf_path).name
@@ -320,14 +340,174 @@ def test_processors_never_use_today_in_final_names(
     expected = _expected_report_date()
     today = datetime.now().strftime("%d-%m-%Y")
     if fixture_builder == "r1":
-        source = request.getfixturevalue("r1_inputs")[0]
-        result = processor_cls().process(source_a_path=source, report_slug=slug)
+        comprehensive, feedback = request.getfixturevalue("r1_inputs")
+        result = processor_cls().process(
+            source_a_path=comprehensive,
+            report_slug=slug,
+            source_b_path=feedback,
+        )
     else:
-        source = request.getfixturevalue("r2_inputs")
-        result = processor_cls().process(source_a_path=source, report_slug=slug)
+        comprehensive, feedback = request.getfixturevalue("r2_inputs")
+        result = processor_cls().process(
+            source_a_path=comprehensive,
+            report_slug=slug,
+            source_b_path=feedback,
+        )
     assert result.success is True
     for path in (result.excel_path, result.pdf_path):
         name = Path(path).name
         assert expected in name
         if expected != today:
             assert today not in name
+
+
+def test_report1_pdf_totals_match_excel(
+    r1_inputs: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    comprehensive, feedback = r1_inputs
+    _monkeypatch_outputs(monkeypatch, "app.automation.processing.report1_processor", tmp_path)
+    result = Report1Processor().process(
+        source_a_path=comprehensive,
+        report_slug="report1",
+        source_b_path=feedback,
+    )
+    assert result.success is True
+    ws = load_workbook(result.excel_path).active
+    headers = [str(ws.cell(row=2, column=c).value or "") for c in range(1, ws.max_column + 1)]
+    closed_col = headers.index("Closed") + 1
+    closed_total = str(ws.cell(row=ws.max_row, column=closed_col).value or "")
+    assert closed_total == "30"
+    assert str(ws.cell(row=ws.max_row, column=2).value or "") == "Total"
+    pdf_bytes = Path(result.pdf_path).read_bytes()
+    assert pdf_bytes[:5] == b"%PDF-"
+    assert len(pdf_bytes) > 100
+
+
+def test_report2_pdf_totals_match_excel(
+    r2_inputs: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    comprehensive, feedback = r2_inputs
+    _monkeypatch_outputs(monkeypatch, "app.automation.processing.report2_processor", tmp_path)
+    result = Report2Processor().process(
+        source_a_path=comprehensive,
+        report_slug="report2",
+        source_b_path=feedback,
+    )
+    assert result.success is True
+    ws = load_workbook(result.excel_path).active
+    headers = [str(ws.cell(row=2, column=c).value or "") for c in range(1, ws.max_column + 1)]
+    received_col = headers.index("Received") + 1
+    received_total = str(ws.cell(row=ws.max_row, column=received_col).value or "")
+    assert received_total == "24700"
+    assert "% Disposal" not in headers
+    assert "Total" in str(ws.cell(row=ws.max_row, column=2).value or "")
+    pdf_bytes = Path(result.pdf_path).read_bytes()
+    assert pdf_bytes[:5] == b"%PDF-"
+    assert len(pdf_bytes) > 100
+
+
+FIXTURES_R5 = Path(__file__).resolve().parent.parent / "fixtures" / "report5"
+FIXTURES_R6 = Path(__file__).resolve().parent.parent / "fixtures" / "report6"
+
+
+def _count_pdf_pages(pdf_path: Path) -> int:
+    raw = pdf_path.read_bytes().decode("latin-1", errors="ignore")
+    return raw.count("/Type /Page") - raw.count("/Type /Pages")
+
+
+@pytest.fixture
+def r5_csv(tmp_path: Path) -> Path:
+    extracted = tmp_path / "extracted" / "report5"
+    extracted.mkdir(parents=True)
+    target = extracted / "report5_complaints_raw.csv"
+    target.write_text(
+        (FIXTURES_R5 / "train_complaints_raw.csv").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    return target
+
+
+@pytest.fixture
+def r6_csv(tmp_path: Path) -> Path:
+    extracted = tmp_path / "extracted" / "report6_station"
+    extracted.mkdir(parents=True)
+    target = extracted / "report6_station_complaints_raw.csv"
+    target.write_text(
+        (FIXTURES_R6 / "station_complaints_raw.csv").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    return target
+
+
+def test_report5_pdf_fits_width_and_shows_edge_columns(
+    r5_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    from app.automation.processing.report5_processor import Report5Processor
+    from app.automation.formatting.pdf_table import build_wrapped_fitted_table
+
+    _monkeypatch_outputs(monkeypatch, "app.automation.processing.report5_processor", tmp_path)
+    monkeypatch.setattr(Report5Processor, "_find_template", lambda self: None)
+    result = Report5Processor().process(source_a_path=r5_csv, report_slug="report5")
+    assert result.success is True
+
+    width, height = _pdf_mediabox_size(Path(result.pdf_path))
+    assert width > height
+
+    ws = load_workbook(result.excel_path).active
+    headers = [str(ws.cell(row=2, column=c).value or "") for c in range(1, ws.max_column + 1)]
+    assert headers[0] == "S.No."
+    assert headers[-1] == "User ID"
+    assert len(headers) == 13
+    assert "Status" not in headers
+
+    data_rows = []
+    for row_idx in range(3, ws.max_row + 1):
+        data_rows.append([str(ws.cell(row=row_idx, column=i).value or "") for i in range(1, len(headers) + 1)])
+    table_data = [headers, *data_rows]
+    table, pagesize, margin = build_wrapped_fitted_table(
+        table_data,
+        [("GRID", (0, 0), (-1, -1), 0.5, colors.black)],
+    )
+    usable = pagesize[0] - 2 * margin
+    wrapped_w, _ = table.wrap(usable, pagesize[1])
+    assert wrapped_w <= usable + 1.0
+
+
+def test_report6_pdf_fits_width_and_shows_edge_columns(
+    r6_csv: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    from app.automation.processing.report6_processor import Report6Processor
+    from app.automation.formatting.pdf_table import build_wrapped_fitted_table
+
+    _monkeypatch_outputs(monkeypatch, "app.automation.processing.report6_processor", tmp_path)
+    monkeypatch.setattr(Report6Processor, "_find_template", lambda self: None)
+    result = Report6Processor().process(source_a_path=r6_csv, report_slug="report6_station")
+    assert result.success is True
+
+    ws = load_workbook(result.excel_path).active
+    headers = [str(ws.cell(row=2, column=c).value or "") for c in range(1, ws.max_column + 1)]
+    assert headers[0] == "S.No."
+    assert headers[-1] == "User ID"
+    assert len(headers) == 11
+    assert "Status" not in headers
+    assert "Created On" not in headers
+
+    data_rows = []
+    for row_idx in range(3, ws.max_row + 1):
+        data_rows.append([str(ws.cell(row=row_idx, column=i).value or "") for i in range(1, len(headers) + 1)])
+    table, pagesize, margin = build_wrapped_fitted_table(
+        [headers, *data_rows],
+        [("GRID", (0, 0), (-1, -1), 0.5, colors.black)],
+    )
+    usable = pagesize[0] - 2 * margin
+    wrapped_w, _ = table.wrap(usable, pagesize[1])
+    assert wrapped_w <= usable + 1.0
+    assert Path(result.pdf_path).read_bytes()[:5] == b"%PDF-"

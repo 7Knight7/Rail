@@ -1,0 +1,64 @@
+{
+  "run_id": "7a6cad3e-1afa-4e63-b97e-8e5969460ea2",
+  "started_at": "2026-07-20T05:58:08.071347+00:00",
+  "completed_at": "2026-07-20T05:58:20.897404+00:00",
+  "total_duration_seconds": 12.826,
+  "portal_wait_seconds": 29.23,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.2,
+  "fixed_sleep_events": [
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    },
+    {
+      "reason": "cascading_filter_settle",
+      "seconds": 0.1
+    }
+  ],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 3.599,
+    "nav_filter_submit:report1": 1.996,
+    "sorting:report1": 0.358,
+    "extraction:report1": 6.025,
+    "handler_execute:report1": 8.51,
+    "report:report1": 8.742
+  },
+  "per_report": {
+    "report1": {
+      "duration_seconds": 8.742,
+      "extraction_seconds": 6.025,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 1.996,
+        "sorting": 0.358,
+        "extraction": 6.025
+      }
+    }
+  },
+  "critical_path_report": "report1",
+  "critical_path_seconds": 8.742,
+  "top_bottlenecks": [
+    [
+      "report:report1",
+      8.742
+    ],
+    [
+      "handler_execute:report1",
+      8.51
+    ],
+    [
+      "extraction:report1",
+      6.025
+    ],
+    [
+      "browser_connect",
+      3.599
+    ],
+    [
+      "nav_filter_submit:report1",
+      1.996
+    ]
+  ]
+}

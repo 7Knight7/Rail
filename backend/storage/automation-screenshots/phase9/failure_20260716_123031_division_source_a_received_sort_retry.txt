@@ -1,0 +1,5 @@
+phase=source_a_received_sort_retry
+report_slug=division
+url=https://railmadad.indianrailways.gov.in/rmmis/admin/home.jsp?page=/mis_reports/report6&archiveFlag=N&Id=null&mobile=null&email=null
+error=Received column header not found
+timestamp=20260716_123031

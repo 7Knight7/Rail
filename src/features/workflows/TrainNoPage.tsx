@@ -17,13 +17,6 @@ const settingsFields = [
   EXPORT_FORMAT_FIELD,
 ];
 
-const previewColumns = [
-  { key: "rank", header: "Rank", width: "60px" },
-  { key: "trainNo", header: "Train No" },
-  { key: "count", header: "Complaints" },
-  { key: "route", header: "Route" },
-];
-
 export function TrainNoPage() {
   return (
     <WorkflowPageLayout
@@ -32,7 +25,6 @@ export function TrainNoPage() {
       description="Configure and generate the top 20 complaint trains report"
       settingsFields={settingsFields}
       advancedFields={COMMON_ADVANCED_FIELDS}
-      previewColumns={previewColumns}
     />
   );
 }
