@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from openpyxl import Workbook
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.automation.config import config
@@ -22,7 +23,11 @@ from app.automation.run_registry import (
     validate_artifact_file,
 )
 from app.domain.entities.user import User, UserRole
-from app.features.auth.dependencies import require_admin, validate_csrf_token
+from app.features.auth.dependencies import (
+    require_admin,
+    require_officer_or_admin,
+    validate_csrf_token,
+)
 from app.infrastructure.database.session import get_db_session
 from app.main import app
 from unittest.mock import AsyncMock
@@ -56,6 +61,7 @@ async def api_client(admin_user: User, test_session: AsyncSession):
 
     app.dependency_overrides[get_automation_service] = lambda: AsyncMock()
     app.dependency_overrides[require_admin] = override_admin
+    app.dependency_overrides[require_officer_or_admin] = override_admin
     app.dependency_overrides[validate_csrf_token] = override_csrf
     app.dependency_overrides[get_db_session] = override_db
 
@@ -90,7 +96,9 @@ async def test_artifact_preview_download_and_zip(
     pdf_path = pdf_dir / "sample.pdf"
     excel_path = excel_dir / "sample.xlsx"
     pdf_path.write_bytes(b"%PDF-1.4 sample")
-    excel_path.write_bytes(b"PK\x03\x04excel")
+    workbook = Workbook()
+    workbook.active["A1"] = "sample"
+    workbook.save(excel_path)
 
     monkeypatch.setattr(config, "output_pdf_dir", str(tmp_path / "pdf"))
     monkeypatch.setattr(config, "output_excel_dir", str(tmp_path / "excel"))
@@ -148,6 +156,20 @@ async def test_artifact_preview_download_and_zip(
         names = zf.namelist()
         assert any(n.endswith(".pdf") for n in names)
         assert any(n.endswith(".xlsx") for n in names)
+
+
+def test_validate_artifact_rejects_invalid_excel(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "output_pdf_dir", str(tmp_path / "pdf"))
+    monkeypatch.setattr(config, "output_excel_dir", str(tmp_path / "excel"))
+    monkeypatch.setattr(config, "extracted_data_dir", str(tmp_path / "extracted"))
+    monkeypatch.setattr(config, "pdf_archive_dir", str(tmp_path / "archive"))
+    excel_dir = tmp_path / "excel"
+    excel_dir.mkdir()
+    broken = excel_dir / "broken.xlsx"
+    broken.write_bytes(b"PK\x03\x04not-a-real-xlsx")
+
+    with pytest.raises(ArtifactPathError, match="Invalid Excel|Incomplete Excel|Corrupt Excel"):
+        validate_artifact_file(broken, file_type="excel")
 
 
 @pytest.mark.asyncio

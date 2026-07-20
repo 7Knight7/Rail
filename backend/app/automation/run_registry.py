@@ -110,6 +110,24 @@ def validate_artifact_file(
         header = resolved.read_bytes()[:5]
         if header != b"%PDF-":
             raise ArtifactPathError("Invalid PDF", status_code=500)
+    if file_type == "excel":
+        if resolved.suffix.lower() != ".xlsx":
+            raise ArtifactPathError("Excel suffix required", status_code=400)
+        if not zipfile.is_zipfile(resolved):
+            raise ArtifactPathError("Invalid Excel", status_code=500)
+        try:
+            with zipfile.ZipFile(resolved) as workbook_zip:
+                names = set(workbook_zip.namelist())
+                required_entries = {"[Content_Types].xml", "xl/workbook.xml"}
+                if not required_entries.issubset(names):
+                    raise ArtifactPathError("Incomplete Excel", status_code=500)
+                corrupt_member = workbook_zip.testzip()
+                if corrupt_member is not None:
+                    raise ArtifactPathError("Corrupt Excel", status_code=500)
+        except ArtifactPathError:
+            raise
+        except zipfile.BadZipFile as exc:
+            raise ArtifactPathError("Invalid Excel", status_code=500) from exc
     return resolved
 
 
