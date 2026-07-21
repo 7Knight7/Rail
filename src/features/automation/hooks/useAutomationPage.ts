@@ -423,6 +423,12 @@ export function useAutomationPage(): UseAutomationPageReturn {
       return;
     }
 
+    if (result?.error_code === "SERVICE_UNAVAILABLE") {
+      setGenerationStarted(false);
+      resetRun();
+      return;
+    }
+
     if (
       result?.error_code === "BROWSER_CONNECTION_ERROR" ||
       (result && !result.success && !result.run_id)

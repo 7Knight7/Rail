@@ -10,8 +10,7 @@
     "scr-station.div_code",
     "scr-station.feedback_remark",
     "scr-station.complaint_desc",
-    "scr-station.remarks",
-    "scr-station.pnr_uts_no"
+    "scr-station.remarks"
   ],
   "column_order": [
     "scr-station.sno",
@@ -24,8 +23,7 @@
     "scr-station.div_code",
     "scr-station.feedback_remark",
     "scr-station.complaint_desc",
-    "scr-station.remarks",
-    "scr-station.pnr_uts_no"
+    "scr-station.remarks"
   ],
   "export_format": "xlsx",
   "config_overrides": {

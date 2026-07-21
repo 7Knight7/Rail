@@ -1,0 +1,23 @@
+{
+  "run_id": "c19289a7-78c2-4a8d-9557-2d00c864a973",
+  "started_at": "2026-07-21T04:21:45.976411+00:00",
+  "completed_at": "2026-07-21T04:21:45.978046+00:00",
+  "total_duration_seconds": 0.002,
+  "portal_wait_seconds": 0.0,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.0,
+  "fixed_sleep_events": [],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.0
+  },
+  "per_report": {},
+  "critical_path_report": null,
+  "critical_path_seconds": null,
+  "top_bottlenecks": [
+    [
+      "browser_connect",
+      0.0
+    ]
+  ]
+}

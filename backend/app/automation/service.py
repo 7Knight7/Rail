@@ -101,7 +101,7 @@ class AutomationService:
         user_id: str | None = None,
         report_slugs: list[str] | None = None,
     ) -> MultiReportResult:
-        """Connect to Chrome via CDP and run catalog reports (blocking until done)."""
+        """Connect to Microsoft Edge via CDP and run catalog reports (blocking until done)."""
         run_id = str(uuid4())
         report_slug = _lock_report_slug(report_slugs)
         if not try_acquire_automation_lock(run_id, report_slug):

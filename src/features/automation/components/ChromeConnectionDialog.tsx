@@ -10,9 +10,10 @@ import {
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
-const CHROME_COMMAND = `Get-Process chrome -ErrorAction SilentlyContinue | Stop-Process -Force
-Start-Sleep -Seconds 2
-& "$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --user-data-dir="$env:LOCALAPPDATA\\Google\\Chrome\\User Data" --profile-directory="Default"`;
+const EDGE_COMMAND = `& "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe" \`
+  --remote-debugging-port=9222 \`
+  --remote-debugging-address=127.0.0.1 \`
+  --user-data-dir="C:\\EdgeDebug"`;
 
 interface ChromeConnectionDialogProps {
   open: boolean;
@@ -25,8 +26,8 @@ export function ChromeConnectionDialog({ open, onClose, detail }: ChromeConnecti
 
   const copyCommand = async () => {
     try {
-      await navigator.clipboard.writeText(CHROME_COMMAND);
-      showToast("success", "Copied", "Chrome start command copied to clipboard");
+      await navigator.clipboard.writeText(EDGE_COMMAND);
+      showToast("success", "Copied", "Edge start command copied to clipboard");
     } catch {
       showToast("error", "Copy failed", "Could not copy to clipboard");
     }
@@ -38,27 +39,37 @@ export function ChromeConnectionDialog({ open, onClose, detail }: ChromeConnecti
         <DialogHeader>
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-6 w-6 text-amber-500" />
-            <DialogTitle>Chrome Connection Required</DialogTitle>
+            <DialogTitle>Microsoft Edge Connection Required</DialogTitle>
           </div>
           <DialogDescription className="space-y-3 pt-2">
             <p>
-              Report automation connects to your Chrome window on port{" "}
-              <strong>9222</strong>. Normal Chrome does not enable this automatically.
+              Report automation connects to your Microsoft Edge window on port{" "}
+              <strong>9222</strong>. Normal Edge does not enable this automatically.
             </p>
             <ol className="list-decimal space-y-1 pl-5 text-sm">
-              <li>Close all Chrome windows.</li>
+              <li>
+                Ensure backend (<code className="rounded bg-slate-100 px-1">http://127.0.0.1:8000</code>)
+                and frontend (<code className="rounded bg-slate-100 px-1">http://127.0.0.1:5173</code>)
+                are running.
+              </li>
               <li>
                 Run in PowerShell from the project folder:{" "}
-                <code className="rounded bg-slate-100 px-1">.\scripts\start-chrome-debug.ps1</code>
+                <code className="rounded bg-slate-100 px-1">.\scripts\start-edge.ps1</code>{" "}
+                or <code className="rounded bg-slate-100 px-1">npm run dev:all</code>
               </li>
-              <li>Log in to RailMadad in that Chrome window.</li>
+              <li>Log in to RailMadad in that Edge window.</li>
               <li>Click Generate again.</li>
             </ol>
             {detail ? (
               <p className="rounded-md bg-red-50 p-2 text-xs text-red-800">{detail}</p>
-            ) : null}
+            ) : (
+              <p className="rounded-md bg-amber-50 p-2 text-xs text-amber-900">
+                Microsoft Edge automation session was not found. Start Edge with remote
+                debugging on port 9222.
+              </p>
+            )}
             <pre className="max-h-32 overflow-auto rounded-md bg-slate-900 p-3 text-xs text-slate-100">
-              {CHROME_COMMAND}
+              {EDGE_COMMAND}
             </pre>
           </DialogDescription>
         </DialogHeader>

@@ -1,7 +1,28 @@
 """In-process browser automation configuration from environment variables."""
 
+from __future__ import annotations
+
+from pathlib import Path
+
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+EDGE_EXECUTABLE_CANDIDATES: tuple[Path, ...] = (
+    Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+    Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+)
+
+
+def resolve_edge_executable(explicit_path: str | None = None) -> Path | None:
+    """Return the first existing Microsoft Edge executable path."""
+    if explicit_path:
+        candidate = Path(explicit_path)
+        if candidate.is_file():
+            return candidate
+    for candidate in EDGE_EXECUTABLE_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 class AutomationConfig(BaseSettings):
@@ -12,9 +33,25 @@ class AutomationConfig(BaseSettings):
         extra="ignore",
     )
 
-    chrome_debug_url: str = Field(
+    automation_browser: str = Field(
+        default="edge",
+        validation_alias=AliasChoices("AUTOMATION_BROWSER"),
+        description="Automation browser target (edge)",
+    )
+    browser_cdp_url: str = Field(
         default="http://127.0.0.1:9222",
-        description="Chrome DevTools Protocol endpoint for attach mode",
+        validation_alias=AliasChoices("BROWSER_CDP_URL", "CHROME_DEBUG_URL"),
+        description="Chromium DevTools Protocol endpoint for attach mode",
+    )
+    edge_executable_path: str | None = Field(
+        default=r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        validation_alias=AliasChoices("EDGE_EXECUTABLE_PATH"),
+        description="Path to msedge.exe for automation debugging",
+    )
+    edge_user_data_dir: str = Field(
+        default=r"C:\EdgeDebug",
+        validation_alias=AliasChoices("EDGE_USER_DATA_DIR"),
+        description="Dedicated Edge profile directory for automation debugging",
     )
     download_folder: str = Field(
         default="downloads",
@@ -76,6 +113,14 @@ class AutomationConfig(BaseSettings):
         validation_alias=AliasChoices("OUTPUT_PDF_DIR"),
         description="Directory for processed PDF output",
     )
+
+    @property
+    def chrome_debug_url(self) -> str:
+        """Backward-compatible alias for browser_cdp_url."""
+        return self.browser_cdp_url
+
+    def resolved_edge_executable(self) -> Path | None:
+        return resolve_edge_executable(self.edge_executable_path)
 
 
 config = AutomationConfig()

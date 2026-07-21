@@ -1,0 +1,160 @@
+{
+  "run_id": "44e8aed2-2b8e-4ee7-896c-5b4f02cbb22b",
+  "started_at": "2026-07-21T06:13:42.095876+00:00",
+  "completed_at": "2026-07-21T06:21:43.362269+00:00",
+  "total_duration_seconds": 481.266,
+  "spans": {
+    "browser_connect": 9.17,
+    "nav_filter_submit:report1": 3.365,
+    "sorting:report1": 0.461,
+    "extraction:report1": 0.077,
+    "feedback_extraction:report1": 126.623,
+    "ingestion_feedback:report1_feedback": 0.034,
+    "ingestion:report1": 0.032,
+    "comprehensive_regenerate:report1": 3.381,
+    "processing:report1": 0.546,
+    "handler_execute:report1": 136.65,
+    "report:report1": 136.89,
+    "nav_filter_submit:division": 64.696,
+    "sorting:division": 4.182,
+    "ingestion_feedback:division_feedback": 0.063,
+    "ingestion:division": 0.18,
+    "handler_execute:division": 145.856,
+    "report:division": 146.15,
+    "nav_filter_submit:train-no": 4.716,
+    "sorting:train-no": 0.465,
+    "handler_execute:train-no": 14.021,
+    "ingestion:train-no": 0.226,
+    "report:train-no": 14.709,
+    "sorting:types": 0.68,
+    "ingestion:types": 0.156,
+    "processing:types": 3.594,
+    "handler_execute:types": 112.719,
+    "report:types": 116.214,
+    "nav_filter_submit:scr-train": 4.209,
+    "sorting:scr-train": 0.654,
+    "handler_execute:scr-train": 15.852,
+    "report:scr-train": 16.72,
+    "ingestion:scr-train": 0.239,
+    "nav_filter_submit:scr-station": 33.992,
+    "sorting:scr-station": 1.944,
+    "handler_execute:scr-station": 36.67,
+    "ingestion:scr-station": 0.219,
+    "report:scr-station": 39.157
+  },
+  "reports": {
+    "report1": {
+      "slug": "report1",
+      "started_at": "2026-07-21T06:13:52.980834+00:00",
+      "completed_at": "2026-07-21T06:16:09.870313+00:00",
+      "duration_seconds": 136.89,
+      "extraction_seconds": 0.077,
+      "processing_seconds": 0.546,
+      "spans": {
+        "nav_filter_submit": 3.365,
+        "sorting": 0.461,
+        "extraction": 0.077,
+        "feedback_extraction": 126.623,
+        "ingestion": 0.032,
+        "comprehensive_regenerate": 3.381,
+        "processing": 0.546,
+        "excel_generation": 0.273,
+        "pdf_generation": 0.273
+      }
+    },
+    "report1_feedback": {
+      "slug": "report1_feedback",
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": null,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "ingestion_feedback": 0.034
+      }
+    },
+    "division": {
+      "slug": "division",
+      "started_at": "2026-07-21T06:16:09.913090+00:00",
+      "completed_at": "2026-07-21T06:18:36.063285+00:00",
+      "duration_seconds": 146.15,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "nav_filter_submit": 64.696,
+        "sorting": 4.182,
+        "ingestion": 0.18
+      }
+    },
+    "division_feedback": {
+      "slug": "division_feedback",
+      "started_at": null,
+      "completed_at": null,
+      "duration_seconds": null,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {
+        "ingestion_feedback": 0.063
+      }
+    },
+    "train-no": {
+      "slug": "train-no",
+      "started_at": "2026-07-21T06:18:36.103949+00:00",
+      "completed_at": "2026-07-21T06:18:50.813179+00:00",
+      "duration_seconds": 14.709,
+      "extraction_seconds": 14.016,
+      "processing_seconds": 1.17,
+      "spans": {
+        "nav_filter_submit": 4.716,
+        "sorting": 0.465,
+        "extraction": 14.016,
+        "ingestion": 0.226,
+        "processing": 1.17
+      }
+    },
+    "types": {
+      "slug": "types",
+      "started_at": "2026-07-21T06:18:50.815772+00:00",
+      "completed_at": "2026-07-21T06:20:47.029741+00:00",
+      "duration_seconds": 116.214,
+      "extraction_seconds": 108.884,
+      "processing_seconds": 3.594,
+      "spans": {
+        "sorting": 0.68,
+        "extraction": 108.884,
+        "ingestion": 0.156,
+        "processing": 3.594
+      }
+    },
+    "scr-train": {
+      "slug": "scr-train",
+      "started_at": "2026-07-21T06:20:47.107997+00:00",
+      "completed_at": "2026-07-21T06:21:03.827552+00:00",
+      "duration_seconds": 16.72,
+      "extraction_seconds": 15.849,
+      "processing_seconds": 2.144,
+      "spans": {
+        "nav_filter_submit": 4.209,
+        "sorting": 0.654,
+        "extraction": 15.849,
+        "ingestion": 0.239,
+        "processing": 2.144
+      }
+    },
+    "scr-station": {
+      "slug": "scr-station",
+      "started_at": "2026-07-21T06:21:03.828685+00:00",
+      "completed_at": "2026-07-21T06:21:42.986115+00:00",
+      "duration_seconds": 39.157,
+      "extraction_seconds": 36.667,
+      "processing_seconds": 0.81,
+      "spans": {
+        "nav_filter_submit": 33.992,
+        "sorting": 1.944,
+        "extraction": 36.667,
+        "ingestion": 0.219,
+        "processing": 0.81
+      }
+    }
+  }
+}

@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.automation.browser import BrowserConnectionError, probe_cdp_reachable
+from app.automation.browser import BrowserConnectionError, ensure_edge_cdp_ready
 from app.automation.config import config
 from app.automation.dependencies import get_automation_service
 from app.automation.report_keys import canonicalize_report_key
@@ -130,16 +130,16 @@ async def start_automation(
     _user: Annotated[User, Depends(require_admin)],
     body: StartAutomationRequest = StartAutomationRequest(),
 ) -> MultiReportResult | StartAcceptedResponse:
-    """Connect to Chrome via CDP and run catalog reports.
+    """Connect to Microsoft Edge via CDP and run catalog reports.
 
     When ``async_mode`` is true, returns ``run_id`` immediately; poll GET /runs/{id}.
     """
     report_slugs = body.report_slugs
     if body.async_mode:
         try:
-            await probe_cdp_reachable(config.chrome_debug_url)
+            await ensure_edge_cdp_ready(config.browser_cdp_url)
         except BrowserConnectionError as exc:
-            logger.warning("Automation async start blocked: CDP unreachable at %s", config.chrome_debug_url)
+            logger.warning("Automation async start blocked: CDP unreachable at %s", config.browser_cdp_url)
             return MultiReportResult(
                 success=False,
                 connected=False,

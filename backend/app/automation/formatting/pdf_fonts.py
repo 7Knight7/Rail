@@ -19,14 +19,29 @@ _UNICODE_EMBEDDED = False
 _initialized = False
 
 
+def _bundled_font_dir() -> Path:
+    return Path(__file__).resolve().parent / "fonts"
+
+
 def _font_candidates() -> list[tuple[str, Path, Path | None]]:
     candidates: list[tuple[str, Path, Path | None]] = []
+    bundled = _bundled_font_dir()
+    candidates.extend(
+        [
+            (
+                "NotoSansBundled",
+                bundled / "NotoSans-Regular.ttf",
+                bundled / "NotoSans-Bold.ttf",
+            ),
+        ]
+    )
     if sys.platform == "win32":
         fonts_dir = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
         candidates.extend(
             [
                 # Prefer Indic-capable system fonts before Latin-only DejaVu.
                 ("NirmalaUI", fonts_dir / "Nirmala.ttf", fonts_dir / "NirmalaB.ttf"),
+                ("NirmalaUIAlt", fonts_dir / "NirmalaUI.ttf", fonts_dir / "NirmalaUIB.ttf"),
                 ("NotoSans", fonts_dir / "NotoSans-Regular.ttf", fonts_dir / "NotoSans-Bold.ttf"),
                 ("NotoSansTelugu", fonts_dir / "NotoSansTelugu-Regular.ttf", fonts_dir / "NotoSansTelugu-Bold.ttf"),
                 ("SegoeUI", fonts_dir / "segoeui.ttf", fonts_dir / "segoeuib.ttf"),

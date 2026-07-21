@@ -9,6 +9,7 @@ from app.automation.browser import (
     BrowserConnectionError,
     BrowserManager,
     _log_browser_state,
+    ensure_edge_cdp_ready,
 )
 
 
@@ -61,7 +62,9 @@ def test_log_browser_state_logs_contexts_and_urls(caplog: pytest.LogCaptureFixtu
 async def test_connect_returns_browser():
     mock_starter, _mock_pw, mock_chromium, mock_browser = _mock_playwright_stack()
 
-    with patch("app.automation.browser.async_playwright", return_value=mock_starter):
+    with patch("app.automation.browser.async_playwright", return_value=mock_starter), patch(
+        "app.automation.browser.ensure_edge_cdp_ready", new_callable=AsyncMock
+    ):
         manager = BrowserManager()
         browser = await manager.connect()
 
@@ -74,7 +77,9 @@ async def test_connect_returns_browser():
 async def test_connect_raises_when_already_connected():
     mock_starter, _mock_pw, _mock_chromium, mock_browser = _mock_playwright_stack()
 
-    with patch("app.automation.browser.async_playwright", return_value=mock_starter):
+    with patch("app.automation.browser.async_playwright", return_value=mock_starter), patch(
+        "app.automation.browser.ensure_edge_cdp_ready", new_callable=AsyncMock
+    ):
         manager = BrowserManager()
         await manager.connect()
 
@@ -90,9 +95,11 @@ async def test_connect_raises_on_cdp_failure():
         connect_side_effect=Exception("Connection refused"),
     )
 
-    with patch("app.automation.browser.async_playwright", return_value=mock_starter):
+    with patch("app.automation.browser.async_playwright", return_value=mock_starter), patch(
+        "app.automation.browser.ensure_edge_cdp_ready", new_callable=AsyncMock
+    ):
         manager = BrowserManager()
-        with pytest.raises(BrowserConnectionError, match="Cannot connect to Chromium"):
+        with pytest.raises(BrowserConnectionError, match="Cannot connect to browser CDP"):
             await manager.connect()
 
     mock_playwright.stop.assert_awaited_once()
@@ -114,11 +121,43 @@ async def test_close_is_idempotent():
 async def test_close_cleans_up():
     mock_starter, mock_playwright, _mock_chromium, mock_browser = _mock_playwright_stack()
 
-    with patch("app.automation.browser.async_playwright", return_value=mock_starter):
+    with patch("app.automation.browser.async_playwright", return_value=mock_starter), patch(
+        "app.automation.browser.ensure_edge_cdp_ready", new_callable=AsyncMock
+    ):
         manager = BrowserManager()
         await manager.connect()
         await manager.close()
 
-    mock_browser.close.assert_awaited_once()
+    mock_browser.close.assert_not_awaited()
     mock_playwright.stop.assert_awaited_once()
     assert manager.browser is None
+
+
+@pytest.mark.asyncio
+async def test_ensure_edge_cdp_ready_launches_edge_when_probe_fails(monkeypatch: pytest.MonkeyPatch):
+    probe_calls = {"count": 0}
+
+    async def fake_probe(_cdp_url: str, *, timeout: float = 2.0) -> None:
+        probe_calls["count"] += 1
+        if probe_calls["count"] == 1:
+            raise BrowserConnectionError("down")
+
+    launched: list[list[str]] = []
+
+    def fake_popen(args, **_kwargs):
+        launched.append(list(args))
+        return MagicMock()
+
+    monkeypatch.setattr("app.automation.browser.probe_cdp_reachable", fake_probe)
+    monkeypatch.setattr("app.automation.browser._close_stale_edge_debug_processes", lambda _profile: None)
+    monkeypatch.setattr("app.automation.browser.subprocess.Popen", fake_popen)
+    monkeypatch.setattr("app.automation.browser.asyncio.sleep", AsyncMock())
+
+    await ensure_edge_cdp_ready(DEFAULT_CDP_URL, auto_launch=True)
+
+    assert probe_calls["count"] >= 2
+    assert launched
+    assert any(str(arg[0]).endswith("msedge.exe") for arg in launched)
+    edge_args = next(arg for arg in launched if str(arg[0]).endswith("msedge.exe"))
+    assert "--remote-debugging-port=9222" in edge_args
+    assert "--user-data-dir=C:\\EdgeDebug" in edge_args

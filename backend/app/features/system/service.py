@@ -68,7 +68,7 @@ class SystemService:
             return SystemComponentStatus(ok=False, detail="Connection failed")
 
     async def _check_cdp(self) -> SystemComponentStatus:
-        url = automation_config.chrome_debug_url.rstrip("/") + "/json/version"
+        url = automation_config.browser_cdp_url.rstrip("/") + "/json/version"
         try:
             async with httpx.AsyncClient(timeout=CDP_PROBE_TIMEOUT_SECONDS) as client:
                 response = await client.get(url)

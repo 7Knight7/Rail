@@ -1,0 +1,35 @@
+{
+  "run_id": "test-run-id",
+  "started_at": "2026-07-21T04:21:45.881732+00:00",
+  "completed_at": "2026-07-21T04:21:45.893954+00:00",
+  "total_duration_seconds": 0.012,
+  "portal_wait_seconds": 0.004,
+  "application_seconds": 0.0,
+  "fixed_sleep_seconds": 0.0,
+  "fixed_sleep_events": [],
+  "retry_count": 0,
+  "spans": {
+    "browser_connect": 0.0,
+    "report:report1": 0.004
+  },
+  "per_report": {
+    "report1": {
+      "duration_seconds": 0.004,
+      "extraction_seconds": null,
+      "processing_seconds": null,
+      "spans": {}
+    }
+  },
+  "critical_path_report": "report1",
+  "critical_path_seconds": 0.004,
+  "top_bottlenecks": [
+    [
+      "report:report1",
+      0.004
+    ],
+    [
+      "browser_connect",
+      0.0
+    ]
+  ]
+}

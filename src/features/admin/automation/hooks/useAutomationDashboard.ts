@@ -6,6 +6,7 @@ import {
   type AutomationStartResult,
   type AutomationStatus,
 } from "@/api/automation";
+import { checkServicesBeforeAutomation } from "@/api/connectivity";
 import { ApiError } from "@/api/client";
 import { useToast } from "@/components/ui/Toast";
 
@@ -60,6 +61,18 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     }): Promise<AutomationStartResult | null> => {
       setActing(true);
       try {
+        const serviceCheck = await checkServicesBeforeAutomation();
+        if (!serviceCheck.ok) {
+          showToast("error", "Service unavailable", serviceCheck.message);
+          return {
+            success: false,
+            connected: false,
+            tab_found: false,
+            error: serviceCheck.message,
+            error_code: "SERVICE_UNAVAILABLE",
+          };
+        }
+
         const result = await automationApi.start(options);
 
         if (result.error_code === "RAILMADAD_NOT_LOGGED_IN") {
@@ -76,7 +89,7 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
           showToast(
             "error",
             "Cannot start automation",
-            result.error ?? "Chrome is not connected for report generation",
+            result.error ?? "Microsoft Edge is not connected for report generation",
           );
           await refresh();
           return result;
@@ -103,7 +116,7 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
           showToast(
             "error",
             "Automation timed out",
-            "Report generation is still running in Chrome. Check backend logs.",
+            "Report generation is still running in Microsoft Edge. Check backend logs.",
           );
         } else {
           showToast(

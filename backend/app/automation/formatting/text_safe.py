@@ -55,6 +55,7 @@ ID_HEADERS = frozenset(
         "User ID",
         "Train No.",
         "Train/Station",
+        "PNR/UTS No.",
     }
 )
 

@@ -12,8 +12,7 @@
     "scr-train.train_name_for_report",
     "scr-train.feedback_remark",
     "scr-train.complaint_desc",
-    "scr-train.remarks",
-    "scr-train.pnr_uts_no"
+    "scr-train.remarks"
   ],
   "column_order": [
     "scr-train.sno",
@@ -28,8 +27,7 @@
     "scr-train.train_name_for_report",
     "scr-train.feedback_remark",
     "scr-train.complaint_desc",
-    "scr-train.remarks",
-    "scr-train.pnr_uts_no"
+    "scr-train.remarks"
   ],
   "export_format": "xlsx",
   "config_overrides": {

@@ -11,7 +11,7 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import LongTable, Paragraph, Table, TableStyle
 
 from app.automation.formatting.pdf_fonts import ensure_pdf_unicode_fonts, pdf_font_bold, pdf_font_regular
-from app.automation.formatting.text_safe import normalize_report_text
+from app.automation.formatting.text_safe import field_kind_for_header, normalize_report_text
 
 # Safe margins so first/last columns are not clipped by the page edge.
 SAFE_MARGIN_PT = 18.0
@@ -21,7 +21,15 @@ REPORT5_MIN_FONT_SIZE = 8.5
 REPORT5_MAX_FONT_SIZE = 8.5
 
 COMPACT_HEADERS = frozenset(
-    {"S.No.", "Zone Code", "Div Code", "User ID", "Avg. Diff", "Final Status"}
+    {
+        "S.No.",
+        "Zone Code",
+        "Div Code",
+        "User ID",
+        "PNR/UTS No.",
+        "Avg. Diff",
+        "Final Status",
+    }
 )
 MODERATE_HEADERS = frozenset(
     {
@@ -80,9 +88,11 @@ def _header_tier(header: str) -> str:
     return "moderate"
 
 
-def _escape_paragraph_text(text: str) -> str:
-    normalized = normalize_report_text(text, field_kind="text")
-    # Insert soft break opportunities in very long unbroken tokens.
+def _escape_paragraph_text(text: str, *, field_kind: str = "text") -> str:
+    normalized = normalize_report_text(text, field_kind=field_kind)  # type: ignore[arg-type]
+    if field_kind in {"id", "numeric"}:
+        return escape(normalized).replace("\n", "<br/>")
+    # Soft break opportunities in very long unbroken tokens (text columns only).
     normalized = re.sub(
         r"(\S{41,})",
         lambda match: " ".join(
@@ -362,15 +372,19 @@ def prepare_wrapped_table_data(
         wordWrap="CJK",
     )
     wrapped: list[list[object]] = []
+    header_kinds = [field_kind_for_header(header) for header in headers]
     for row_idx, row in enumerate(table_data):
         new_row: list[object] = []
         for col_idx, cell in enumerate(row):
             header = headers[col_idx] if col_idx < len(headers) else ""
+            kind = header_kinds[col_idx] if col_idx < len(header_kinds) else "text"
             text = _cell_text(cell)
             should_wrap = wrap_all or header in wrap_headers
             if should_wrap:
                 style = header_style if row_idx == 0 else body_style
-                new_row.append(Paragraph(_escape_paragraph_text(text), style))
+                new_row.append(
+                    Paragraph(_escape_paragraph_text(text, field_kind=kind), style)
+                )
             else:
                 new_row.append(text)
         wrapped.append(new_row)

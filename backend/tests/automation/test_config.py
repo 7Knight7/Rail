@@ -8,7 +8,11 @@ from app.automation.config import AutomationConfig
 
 def test_defaults(monkeypatch: pytest.MonkeyPatch):
     for key in (
+        "AUTOMATION_BROWSER",
+        "BROWSER_CDP_URL",
         "CHROME_DEBUG_URL",
+        "EDGE_EXECUTABLE_PATH",
+        "EDGE_USER_DATA_DIR",
         "DOWNLOAD_FOLDER",
         "DOWNLOAD_DIR",
         "DOWNLOADS_DIR",
@@ -20,7 +24,11 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch):
         monkeypatch.delenv(key, raising=False)
 
     cfg = AutomationConfig(_env_file=None)
+    assert cfg.automation_browser == "edge"
+    assert cfg.browser_cdp_url == "http://127.0.0.1:9222"
     assert cfg.chrome_debug_url == "http://127.0.0.1:9222"
+    assert cfg.edge_user_data_dir == r"C:\EdgeDebug"
+    assert cfg.edge_executable_path == r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
     assert cfg.download_folder == "downloads"
     assert cfg.downloads_dir == "storage/downloads/report1"
     assert cfg.timeout == 300
@@ -46,11 +54,21 @@ def test_reads_from_environment(monkeypatch: pytest.MonkeyPatch):
 
     cfg = AutomationConfig(_env_file=None)
 
+    assert cfg.browser_cdp_url == "http://127.0.0.1:9333"
     assert cfg.chrome_debug_url == "http://127.0.0.1:9333"
     assert cfg.download_folder == "/tmp/reports"
     assert cfg.timeout == 120
     assert cfg.retry_count == 5
     assert cfg.railmadad_url == "https://example.test/portal"
+
+
+def test_reads_browser_cdp_url_from_environment(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("BROWSER_CDP_URL", "http://127.0.0.1:9444")
+    monkeypatch.delenv("CHROME_DEBUG_URL", raising=False)
+
+    cfg = AutomationConfig(_env_file=None)
+
+    assert cfg.browser_cdp_url == "http://127.0.0.1:9444"
 
 
 def test_timeout_must_be_positive():

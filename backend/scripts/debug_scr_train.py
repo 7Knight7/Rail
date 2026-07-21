@@ -22,7 +22,7 @@ from app.automation.table_sort import ReceivedColumnService
 
 
 async def main() -> None:
-    manager = BrowserManager(cdp_url=config.chrome_debug_url)
+    manager = BrowserManager(cdp_url=config.browser_cdp_url)
     session = SessionManager(railmadad_url=config.railmadad_url)
     handler = Report5Handler()
     try:

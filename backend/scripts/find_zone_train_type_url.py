@@ -16,7 +16,7 @@ from app.automation.session import SessionManager
 
 
 async def main() -> None:
-    manager = BrowserManager(cdp_url=config.chrome_debug_url)
+    manager = BrowserManager(cdp_url=config.browser_cdp_url)
     session = SessionManager(railmadad_url=config.railmadad_url)
     try:
         browser = await manager.connect()

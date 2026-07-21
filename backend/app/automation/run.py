@@ -380,8 +380,8 @@ async def attach_to_railmadad(
     run_id: str | None = None,
     manual_config: dict | None = None,
 ) -> MultiReportResult:
-    """Connect to Chrome over CDP and execute catalog reports sequentially."""
-    manager = BrowserManager(cdp_url=config.chrome_debug_url)
+    """Connect to Microsoft Edge over CDP and execute catalog reports sequentially."""
+    manager = BrowserManager(cdp_url=config.browser_cdp_url)
     session = SessionManager(railmadad_url=config.railmadad_url)
     tabs: list[TabInfo] = []
     connected = False
@@ -435,7 +435,7 @@ async def attach_to_railmadad(
             log_automation_event(
                 logger,
                 "cdp_connect_attempt",
-                cdp_url=config.chrome_debug_url,
+                cdp_url=config.browser_cdp_url,
                 run_id=run_id,
             )
             browser = await manager.connect()
@@ -443,12 +443,12 @@ async def attach_to_railmadad(
             log_automation_event(
                 logger,
                 "cdp_connected",
-                cdp_url=config.chrome_debug_url,
+                cdp_url=config.browser_cdp_url,
                 context_count=len(browser.contexts),
                 run_id=run_id,
             )
 
-        tabs = await session.discover_tabs(browser)
+        tabs = await session.discover_tabs(browser, cdp_url=config.browser_cdp_url)
         for tab in tabs:
             _log_tab(tab)
 
@@ -829,7 +829,7 @@ async def attach_to_railmadad(
     except BrowserConnectionError as exc:
         logger.error(
             "CDP connection failed at %s",
-            config.chrome_debug_url,
+            config.browser_cdp_url,
             exc_info=True,
         )
         result = MultiReportResult(
@@ -891,7 +891,7 @@ async def attach_to_railmadad(
             logger,
             "cdp_disconnect_start",
             browser_connected=manager.browser is not None,
-            cdp_url=config.chrome_debug_url,
+            cdp_url=config.browser_cdp_url,
             run_id=run_id,
         )
         await manager.close()

@@ -8,13 +8,26 @@ from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Alignment, Border, Font, Side
-from reportlab.lib import colors
-from app.automation.formatting.pdf_fonts import pdf_title_style
+
+from app.automation.formatting.report5_styles import (
+    REPORT5_THIN_BORDER,
+    apply_report5_body_cell,
+    apply_report5_header_cell,
+    apply_report5_title_cell,
+    build_report5_pdf_table_styles,
+    clear_report5_data_row_formatting,
+    pdf_title_style,
+)
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
 from app.automation.formatting.excel_print import apply_column_formatting, apply_report_print_setup
+from app.automation.formatting.report5_validate import (
+    validate_report5_excel_styles,
+    validate_report5_layout,
+    validate_report5_pdf_styles,
+    validate_report5_unicode_content,
+)
 from app.automation.formatting.pdf_table import (
     REPORT5_MAX_FONT_SIZE,
     REPORT5_MIN_FONT_SIZE,
@@ -27,8 +40,6 @@ from app.automation.formatting.text_pipeline import (
 )
 from app.automation.formatting.pdf_verify import verify_report_output
 from app.automation.formatting.scr import (
-    NO_FILL,
-    clear_complaint_data_row_formatting,
     mode_matches,
 )
 from app.automation.processing.base import ProcessingResult
@@ -54,16 +65,6 @@ PROCESSOR_NAME = "report5_scr_train_processor"
 
 TEMPLATE_FILENAME = "scr_train_original.xlsx"
 TEMPLATE_MISSING_ERROR = "REPORT5_TEMPLATE_OR_FORMULA_MISSING"
-
-INTERNAL_COLUMNS = REPORT5_REQUIRED_CANONICAL
-
-THIN_BORDER = Border(
-    left=Side(style="thin"),
-    right=Side(style="thin"),
-    top=Side(style="thin"),
-    bottom=Side(style="thin"),
-)
-
 
 class Report5Processor:
     """Process SCR Train Mode Unsatisfactory Feedback dataset."""
@@ -242,6 +243,7 @@ class Report5Processor:
                 expected_headers=output_headers,
                 expected_row_count=len(output_rows),
             )
+            validate_report5_excel_styles(excel_path)
         except Exception as exc:
             return ProcessingResult(
                 input_row_count=len(source_rows),
@@ -254,6 +256,13 @@ class Report5Processor:
 
         try:
             self._write_pdf(pdf_path, output_headers, output_rows, report_date=report_date)
+            validate_report5_unicode_content(output_headers, output_rows)
+            validate_report5_layout(
+                headers=output_headers,
+                rows=output_rows,
+                pdf_path=pdf_path,
+            )
+            validate_report5_pdf_styles(pdf_path)
             verify_report_output(
                 report_slug=report_slug,
                 headers=output_headers,
@@ -346,8 +355,7 @@ class Report5Processor:
             end_column=max(len(headers), 1),
         )
         title_cell = worksheet.cell(row=1, column=1, value=title)
-        title_cell.font = Font(bold=True, size=12)
-        title_cell.alignment = Alignment(horizontal="center")
+        apply_report5_title_cell(title_cell)
 
         header_row = 2
         data_start_row = 3
@@ -357,19 +365,16 @@ class Report5Processor:
                     worksheet.cell(row=row_idx, column=col_idx, value=None)
 
         for col_idx, header in enumerate(headers, start=1):
-            cell = worksheet.cell(row=header_row, column=col_idx, value=header)
-            cell.font = Font(bold=True)
-            cell.border = THIN_BORDER
+            apply_report5_header_cell(worksheet.cell(row=header_row, column=col_idx, value=header))
         trim_worksheet_columns(worksheet, keep_columns=len(headers))
 
         for row_offset, row_values in enumerate(rows):
             row_idx = data_start_row + row_offset
             for col_idx, value in enumerate(row_values, start=1):
                 cell = worksheet.cell(row=row_idx, column=col_idx, value=value)
-                cell.border = THIN_BORDER
-                cell.fill = NO_FILL
+                apply_report5_body_cell(cell)
 
-        clear_complaint_data_row_formatting(
+        clear_report5_data_row_formatting(
             worksheet,
             start_row=data_start_row,
             end_row=worksheet.max_row,
@@ -409,24 +414,19 @@ class Report5Processor:
         )
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
         title_cell = worksheet.cell(row=1, column=1, value=title)
-        title_cell.font = Font(bold=True, size=12)
-        title_cell.alignment = Alignment(horizontal="center")
+        apply_report5_title_cell(title_cell)
 
         header_row = 2
         for col_idx, header in enumerate(headers, start=1):
-            cell = worksheet.cell(row=header_row, column=col_idx, value=header)
-            cell.font = Font(bold=True)
-            cell.border = THIN_BORDER
+            apply_report5_header_cell(worksheet.cell(row=header_row, column=col_idx, value=header))
 
         data_start = 3
         for row_offset, row_values in enumerate(rows):
             row_idx = data_start + row_offset
             for col_idx, value in enumerate(row_values, start=1):
-                cell = worksheet.cell(row=row_idx, column=col_idx, value=value)
-                cell.border = THIN_BORDER
-                cell.fill = NO_FILL
+                apply_report5_body_cell(worksheet.cell(row=row_idx, column=col_idx, value=value))
 
-        clear_complaint_data_row_formatting(
+        clear_report5_data_row_formatting(
             worksheet,
             start_row=data_start,
             end_row=worksheet.max_row,
@@ -497,11 +497,7 @@ class Report5Processor:
 
         table_data: list[list[str]] = [headers, *rows]
 
-        style_commands: list[tuple] = [
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ]
+        style_commands = build_report5_pdf_table_styles(data_row_count=len(rows))
 
         table, pagesize, margin = build_wrapped_fitted_table(
             table_data,

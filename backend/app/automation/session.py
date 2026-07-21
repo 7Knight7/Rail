@@ -16,6 +16,17 @@ from app.core.exceptions import AppException
 
 logger = logging.getLogger(__name__)
 
+_BLANK_TAB_URLS = frozenset(
+    {
+        "about:blank",
+        "chrome://newtab/",
+        "edge://newtab/",
+        "edge://new-tab-page/",
+        "edge://tabs/",
+        "",
+    }
+)
+
 # URL patterns that indicate the login page
 LOGIN_URL_PATTERNS = (
     "/login",
@@ -132,6 +143,8 @@ class SessionManager:
     def bind_browser(self, browser: Browser) -> None:
         """Associate a connected browser with this session."""
         self._browser = browser
+        self._page = None
+        self._tabs = []
 
     def bind_page(self, page: Page) -> None:
         """Set the active RailMadad page."""
@@ -140,7 +153,7 @@ class SessionManager:
     @staticmethod
     def is_railmadad_url(page_url: str, base_url: str) -> bool:
         """Return True if page_url belongs to the RailMadad portal."""
-        if not page_url or page_url in ("about:blank", "chrome://newtab/"):
+        if not page_url or page_url in _BLANK_TAB_URLS:
             return False
 
         normalized_page = normalize_url(page_url)
@@ -152,7 +165,35 @@ class SessionManager:
         host = urlparse(page_url).netloc.lower()
         return "railmadad" in host
 
-    async def discover_tabs(self, browser: Browser) -> list[TabInfo]:
+    @staticmethod
+    def _is_blank_tab_url(url: str) -> bool:
+        return not url or url in _BLANK_TAB_URLS
+
+    async def _resolve_page_url(self, page: Page) -> str:
+        """Resolve a tab URL, including background tabs that report empty page.url."""
+        url = page.url or ""
+        if url and not SessionManager._is_blank_tab_url(url):
+            return url
+        try:
+            resolved = await asyncio.wait_for(
+                page.evaluate("() => window.location.href"),
+                timeout=3.0,
+            )
+            if isinstance(resolved, str) and resolved and not self._is_blank_tab_url(resolved):
+                return resolved
+        except asyncio.TimeoutError:
+            logger.debug("Timeout resolving page URL via evaluate")
+        except Exception as exc:
+            logger.debug("Could not resolve page URL via evaluate: %s", exc)
+        return url
+
+    async def discover_tabs(
+        self,
+        browser: Browser,
+        *,
+        cdp_url: str | None = None,
+        _retry: bool = True,
+    ) -> list[TabInfo]:
         """Enumerate all browser contexts and open tabs."""
         self.bind_browser(browser)
         tabs: list[TabInfo] = []
@@ -163,10 +204,9 @@ class SessionManager:
         for context_index, context in enumerate(contexts):
             pages = context.pages
             for tab_index, page in enumerate(pages):
-                url = page.url
+                url = await self._resolve_page_url(page)
 
-                # Skip pages with empty or problematic URLs to avoid hangs
-                if not url or url in ("about:blank", "chrome://newtab/", ""):
+                if self._is_blank_tab_url(url):
                     logger.debug(
                         "Skipping page with empty/blank URL: ctx=%d tab=%d",
                         context_index,
@@ -174,7 +214,6 @@ class SessionManager:
                     )
                     continue
 
-                # Use timeout to prevent hanging on unresponsive pages
                 title = ""
                 try:
                     title = await asyncio.wait_for(page.title(), timeout=5.0)
@@ -199,8 +238,37 @@ class SessionManager:
                 )
                 tabs.append(tab)
 
+        if cdp_url and _retry:
+            try:
+                from app.automation.browser import fetch_cdp_targets
+
+                targets = await fetch_cdp_targets(cdp_url)
+                cdp_railmadad_urls = [
+                    target.get("url", "")
+                    for target in targets
+                    if target.get("type") == "page"
+                    and "railmadad" in str(target.get("url", "")).lower()
+                ]
+                if cdp_railmadad_urls and not any(tab.is_railmadad for tab in tabs):
+                    logger.warning(
+                        "CDP /json/list shows %d RailMadad tab(s) but Playwright missed them; retrying discovery",
+                        len(cdp_railmadad_urls),
+                    )
+                    for context in contexts:
+                        for page in context.pages:
+                            try:
+                                await page.bring_to_front()
+                            except Exception:
+                                pass
+                    await asyncio.sleep(1.0)
+                    return await self.discover_tabs(browser, cdp_url=cdp_url, _retry=False)
+            except Exception as exc:
+                logger.debug("CDP target cross-check failed: %s", exc)
+
         self._tabs = tabs
         logger.info("Discovered %d open tab(s) across %d context(s)", len(tabs), len(contexts))
+        for tab in tabs:
+            logger.info("Discovered tab: %s", tab.format_line())
         return tabs
 
     @staticmethod

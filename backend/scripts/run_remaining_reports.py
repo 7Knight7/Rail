@@ -40,7 +40,7 @@ SCR_ONLY = [
 
 
 async def probe() -> dict:
-    manager = BrowserManager(cdp_url=config.chrome_debug_url)
+    manager = BrowserManager(cdp_url=config.browser_cdp_url)
     session = SessionManager(railmadad_url=config.railmadad_url)
     try:
         browser = await manager.connect()
@@ -80,7 +80,7 @@ async def run_remaining(reports=None) -> MultiReportResult:
     from app.automation.report_keys import canonicalize_report_key
 
     selected = list(reports or REMAINING)
-    manager = BrowserManager(cdp_url=config.chrome_debug_url)
+    manager = BrowserManager(cdp_url=config.browser_cdp_url)
     session = SessionManager(railmadad_url=config.railmadad_url)
     report_results: list[ReportResult] = []
 
