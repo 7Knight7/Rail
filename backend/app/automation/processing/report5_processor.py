@@ -10,7 +10,6 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 
 from app.automation.formatting.report5_styles import (
-    REPORT5_THIN_BORDER,
     apply_report5_body_cell,
     apply_report5_header_cell,
     apply_report5_title_cell,
@@ -36,25 +35,20 @@ from app.automation.formatting.pdf_table import (
 from app.automation.formatting.text_pipeline import (
     normalize_report_title,
     prepare_output_for_rendering,
-    verify_text_rendering,
 )
 from app.automation.formatting.pdf_verify import verify_report_output
 from app.automation.formatting.scr import (
     mode_matches,
 )
 from app.automation.processing.base import ProcessingResult
-from app.automation.processing.column_config import (
-    project_scr_for_output,
-    resolve_projection_column_keys,
-    validate_projection_selection,
-)
+from app.automation.processing.column_config import project_scr_for_output
 from app.automation.processing.scr_output_columns import scr_catalog_for_slug
 from app.automation.processing.output_columns import REMOVED_OUTPUT_LABELS, trim_worksheet_columns
 from app.automation.scr_field_map import REPORT5_REQUIRED_CANONICAL, canonicalize_scr_rows
+from app.automation.date_range import date_range_for_processing
 from app.automation.utils import (
     ensure_directory,
     log_automation_event,
-    previous_day_report_date,
     resolve_report_dir,
     resolve_run_scoped_dir,
 )
@@ -177,7 +171,13 @@ class Report5Processor:
                 source_a_path=str(source_a_path),
             )
 
-        report_date = previous_day_report_date()
+        date_range = date_range_for_processing(column_selection)
+
+
+        report_date = date_range.title_suffix()
+
+
+        filename_suffix = date_range.filename_suffix()
         run_timestamp = datetime.now().strftime("%H%M%S")
         run_id = (column_selection or {}).get("run_id") if column_selection else None
         if run_id:
@@ -191,7 +191,7 @@ class Report5Processor:
             excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
             pdf_dir = ensure_directory(resolve_report_dir(config.output_pdf_dir, report_slug))
         base_name = (
-            f"Rail_Madad_Report_5_SCR_Train_Unsatisfactory_{report_date}_{run_timestamp}"
+            f"Rail_Madad_Report_5_SCR_Train_Unsatisfactory_{filename_suffix}_{run_timestamp}"
         )
         excel_path = excel_dir / f"{base_name}.xlsx"
         pdf_path = pdf_dir / f"{base_name}.pdf"
@@ -342,7 +342,7 @@ class Report5Processor:
 
         title = normalize_report_title(
             f"Rail Madad Report No 5 - SCR {self.expected_mode} Mode Unsatisfactory Feedback "
-            f"on date {report_date}",
+            f"{report_date}",
             report_slug="scr-train",
         )
         for merged in list(worksheet.merged_cells.ranges):
@@ -409,7 +409,7 @@ class Report5Processor:
 
         title = normalize_report_title(
             f"Rail Madad Report No 5 - SCR {self.expected_mode} Mode Unsatisfactory Feedback "
-            f"on date {report_date}",
+            f"{report_date}",
             report_slug="scr-train",
         )
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
@@ -517,7 +517,7 @@ class Report5Processor:
         story = [
             Paragraph(
                 normalize_report_title(
-                    f"Rail Madad Report No 5 - SCR {self.expected_mode} Mode Unsatisfactory Feedback on date {report_date}",
+                    f"Rail Madad Report No 5 - SCR {self.expected_mode} Mode Unsatisfactory Feedback {report_date}",
                     report_slug="scr-train",
                 ),
                 pdf_title_style("Report5Title"),

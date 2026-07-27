@@ -103,6 +103,8 @@ async def test_generate_invokes_manual_automation(api_client: AsyncClient):
         response = await api_client.post(
             "/api/v1/reports/report1/generate",
             json={
+                "date_from": "2026-07-25",
+                "date_to": "2026-07-26",
                 "selected_column_ids": [
                     "report1.source_a.organisation",
                     "report1.source_a.received",
@@ -132,12 +134,20 @@ async def test_generate_invokes_manual_automation(api_client: AsyncClient):
         "report1.source_a.received",
     ]
     assert "report_date" in call_kwargs["manual_config"]
+    assert call_kwargs["manual_config"]["date_from"] == "2026-07-25"
+    assert call_kwargs["manual_config"]["date_to"] == "2026-07-26"
 
 
 @pytest.mark.asyncio
 async def test_generate_rejects_unknown_slug(api_client: AsyncClient):
     response = await api_client.post(
         "/api/v1/reports/unknown-report/generate",
-        json={"selected_column_ids": [], "column_order": [], "export_format": "pdf"},
+        json={
+            "date_from": "2026-07-25",
+            "date_to": "2026-07-26",
+            "selected_column_ids": [],
+            "column_order": [],
+            "export_format": "pdf",
+        },
     )
     assert response.status_code == 404

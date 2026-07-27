@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from datetime import UTC, datetime
@@ -27,7 +26,7 @@ from app.automation.schemas import ReportResult
 from app.automation.table_extractor import TableExtractor
 from app.automation.table_sort import ReceivedSortError
 from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir
-from app.automation.wait_utils import poll_until, tracked_sleep
+from app.automation.wait_utils import poll_until
 from app.automation.workflow import (
     extract_with_retry,
     ingest_downloaded_file,
@@ -43,7 +42,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 EXPECTED_FILTER_IDS = {
-    "dateRange",
+    "fromInput",
     "refundInput",
     "inquiryInput",
     "viewType",

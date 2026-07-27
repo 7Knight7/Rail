@@ -10,6 +10,12 @@ import { useManualReportGeneration } from "./useManualReportGeneration";
 import { cn } from "@/utils/cn";
 import { formatFileSize, reportsApi } from "@/api/reports";
 import {
+  defaultReportDateFrom,
+  defaultReportDateTo,
+  formatReportDateLabel,
+  validateReportDateRange,
+} from "@/utils/reportDateRange";
+import {
   FilterBuilder,
   VisibleColumnsSection,
   GroupedOutputColumnsSection,
@@ -46,13 +52,18 @@ interface WorkflowPageLayoutProps {
   settingsFields: SettingField[];
   advancedFields?: SettingField[];
   previewColumns?: Column[];
-  mockPreviewData?: Record<string, string | number>[];
 }
 
-function previousDayIsoDate(): string {
-  const date = new Date();
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().split("T")[0];
+function applyDefaultDateRange(fields: SettingField[]): SettingField[] {
+  return fields.map((field) => {
+    if (field.id === "dateFrom") {
+      return { ...field, value: defaultReportDateFrom() };
+    }
+    if (field.id === "dateTo") {
+      return { ...field, value: defaultReportDateTo() };
+    }
+    return field;
+  });
 }
 
 export function WorkflowPageLayout({
@@ -76,11 +87,7 @@ export function WorkflowPageLayout({
   const columnPickerColumns = outputCatalogMode ? outputColumns : metadata?.columns ?? [];
   const columnPickerLoading = outputCatalogMode ? outputLoading : metadataLoading;
   const columnPickerError = outputCatalogMode ? outputError : metadataError;
-  const [settings, setSettings] = useState(() =>
-    initialSettings.map((field) =>
-      field.id === "reportDate" ? { ...field, value: previousDayIsoDate() } : field,
-    ),
-  );
+  const [settings, setSettings] = useState(() => applyDefaultDateRange(initialSettings));
   const [advancedSettings, setAdvancedSettings] = useState(initialAdvanced);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([]);
@@ -181,7 +188,7 @@ export function WorkflowPageLayout({
         );
       }
       if (saved.filter_conditions?.length) {
-        setFilterConditions(saved.filter_conditions as FilterCondition[]);
+        setFilterConditions(saved.filter_conditions as unknown as FilterCondition[]);
       }
     });
     return () => {
@@ -213,11 +220,7 @@ export function WorkflowPageLayout({
 
   const handleReset = useCallback(() => {
     resetGeneration();
-    setSettings(
-      initialSettings.map((field) =>
-        field.id === "reportDate" ? { ...field, value: previousDayIsoDate() } : field,
-      ),
-    );
+    setSettings(applyDefaultDateRange(initialSettings));
     setAdvancedSettings(initialAdvanced);
     setFilterConditions([]);
     if (outputCatalogMode) {
@@ -294,7 +297,22 @@ export function WorkflowPageLayout({
     ? reactivePreview.emptyMessage ||
       "No generated report data is available for preview."
     : "No preview available. Generate the report to preview processed output.";
-  const reportDateLabel = runState?.report_date ?? previousDayIsoDate().split("-").reverse().join("-");
+  const dateFromValue = String(settings.find((field) => field.id === "dateFrom")?.value ?? "");
+  const dateToValue = String(settings.find((field) => field.id === "dateTo")?.value ?? "");
+  const reportDateLabel =
+    runState?.report_date ??
+    (dateFromValue && dateToValue
+      ? formatReportDateLabel(dateFromValue, dateToValue)
+      : formatReportDateLabel(defaultReportDateFrom(), defaultReportDateTo()));
+
+  const onGenerate = useCallback(() => {
+    const validationError = validateReportDateRange(dateFromValue, dateToValue);
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+    void handleGenerate();
+  }, [dateFromValue, dateToValue, handleGenerate]);
 
   return (
     <div className="space-y-8">
@@ -404,7 +422,7 @@ export function WorkflowPageLayout({
       )}
 
       <ActionBar
-        onGenerate={() => void handleGenerate()}
+        onGenerate={onGenerate}
         onReset={handleReset}
         onDownload={() => void onDownload()}
         onSave={() => void handleSave()}

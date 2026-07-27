@@ -11,64 +11,24 @@
     "options": []
   },
   {
-    "tag": "select",
-    "field_id": "dateRange",
-    "field_name": "",
-    "field_type": "select-one",
-    "field_label": "",
-    "selector": "#dateRange",
-    "current_value": "Previous Day",
-    "required": false,
-    "options": [
-      {
-        "value": "PREV_DAY",
-        "label": "Previous Day"
-      },
-      {
-        "value": "WEEKLY",
-        "label": "Last 7 Days"
-      },
-      {
-        "value": "CURR_MONTH",
-        "label": "Current Month"
-      },
-      {
-        "value": "PREV_MONTH",
-        "label": "Previous Month"
-      },
-      {
-        "value": "CURR_YEAR",
-        "label": "Current Financial Year"
-      },
-      {
-        "value": "PREV_YEAR",
-        "label": "Previous Financial Year"
-      },
-      {
-        "value": "CURR_DAY",
-        "label": "Current Day"
-      }
-    ]
-  },
-  {
     "tag": "input",
-    "field_id": "fromDate",
+    "field_id": "fromInput",
     "field_name": "",
     "field_type": "text",
     "field_label": "",
-    "selector": "#fromDate",
+    "selector": "#fromInput",
     "current_value": "",
     "required": true,
     "options": []
   },
   {
     "tag": "input",
-    "field_id": "toDate",
+    "field_id": "toInput",
     "field_name": "",
     "field_type": "text",
     "field_label": "",
-    "selector": "#toDate",
-    "current_value": "2026-07-21",
+    "selector": "#toInput",
+    "current_value": "2026-07-26",
     "required": true,
     "options": []
   },

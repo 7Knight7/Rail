@@ -33,6 +33,8 @@ async def main() -> int:
     from openpyxl import load_workbook
 
     body = ManualGenerateRequest(
+        date_from="2026-07-25",
+        date_to="2026-07-26",
         selected_column_ids=ACCEPTANCE_FILTER,
         column_order=ACCEPTANCE_FILTER,
         requested_formats=["xlsx", "pdf"],

@@ -1,5 +1,23 @@
 /** Shared advanced settings fields for report configuration pages */
 
+import { defaultReportDateFrom, defaultReportDateTo } from "@/utils/reportDateRange";
+
+export const DATE_FROM_FIELD = {
+  id: "dateFrom",
+  label: "From Date",
+  type: "date" as const,
+  value: defaultReportDateFrom(),
+};
+
+export const DATE_TO_FIELD = {
+  id: "dateTo",
+  label: "To Date",
+  type: "date" as const,
+  value: defaultReportDateTo(),
+};
+
+export const REPORT_DATE_RANGE_FIELDS = [DATE_FROM_FIELD, DATE_TO_FIELD];
+
 export const HIGHLIGHT_RULES_FIELD = {
   id: "highlightRules",
   label: "Highlight Rules",

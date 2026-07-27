@@ -29,35 +29,38 @@ def _configs(*names: str) -> list[TypeConfig]:
 @pytest.mark.asyncio
 async def test_stale_old_table_not_accepted(handler: Report4Handler):
     """Same fingerprint after submit must not count as refresh success."""
+    from app.automation import table_refresh
+
     report_root = MagicMock()
     page = MagicMock()
 
-    handler._wait_for_loaders = AsyncMock()
-    handler._table_fingerprint = AsyncMock(return_value="OLD##5##row1")
-
-    ok = await handler._wait_for_table_refresh(
-        report_root,
-        page,
-        "OLD##5##row1",
-        type_name="Security",
-        timeout_ms=400,
-    )
+    with patch.object(table_refresh, "wait_for_loaders", new=AsyncMock()), patch.object(
+        table_refresh, "table_fingerprint", new=AsyncMock(return_value="OLD##5##row1")
+    ):
+        ok = await table_refresh.wait_for_table_refresh(
+            report_root,
+            page,
+            "OLD##5##row1",
+            report_slug="types",
+            timeout_seconds=0.4,
+        )
     assert ok is False
 
 
 @pytest.mark.asyncio
 async def test_refresh_wait_succeeds_after_delayed_replacement(handler: Report4Handler):
     """Fingerprint change after a brief stale period succeeds."""
+    from app.automation import table_refresh
+
     report_root = MagicMock()
     page = MagicMock()
-    handler._wait_for_loaders = AsyncMock()
 
     fingerprints = [
-        "OLD##5##row1",  # still stale
         "OLD##5##row1",
-        "",  # cleared
+        "OLD##5##row1",
+        "",
         "NEW##5##row2",
-        "NEW##5##row2",  # confirm
+        "NEW##5##row2",
     ]
 
     async def fp_side_effect(*_a, **_k):
@@ -65,15 +68,16 @@ async def test_refresh_wait_succeeds_after_delayed_replacement(handler: Report4H
             return fingerprints.pop(0)
         return "NEW##5##row2"
 
-    handler._table_fingerprint = AsyncMock(side_effect=fp_side_effect)
-
-    ok = await handler._wait_for_table_refresh(
-        report_root,
-        page,
-        "OLD##5##row1",
-        type_name="Security",
-        timeout_ms=5_000,
-    )
+    with patch.object(table_refresh, "wait_for_loaders", new=AsyncMock()), patch.object(
+        table_refresh, "table_fingerprint", new=AsyncMock(side_effect=fp_side_effect)
+    ):
+        ok = await table_refresh.wait_for_table_refresh(
+            report_root,
+            page,
+            "OLD##5##row1",
+            report_slug="types",
+            timeout_seconds=5.0,
+        )
     assert ok is True
 
 
@@ -84,7 +88,7 @@ async def test_failed_first_attempt_retries_with_full_filters(
 ):
     handler.navigation = MagicMock()
     handler.navigation.navigate_to_report = AsyncMock()
-    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="": page)
+    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="", **kwargs: page)
     handler._wait_for_received_header = AsyncMock()
     handler._sort_received = AsyncMock()
     handler._save_type_failure_artifacts = AsyncMock()
@@ -108,7 +112,7 @@ async def test_failed_first_attempt_retries_with_full_filters(
     session = MagicMock()
     cfg = _configs("Security")[0]
 
-    with patch("app.automation.handlers.report4_handler.asyncio.sleep", new=AsyncMock()):
+    with patch("app.automation.handlers.report4_handler.tracked_sleep", new=AsyncMock()):
         outcome = await handler._run_type_with_retry(
             page, session, REPORT_4_TYPES, cfg, tmp_path
         )
@@ -125,7 +129,7 @@ async def test_one_failed_type_does_not_abort_remaining(
 ):
     handler.navigation = MagicMock()
     handler.navigation.navigate_to_report = AsyncMock()
-    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="": page)
+    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="", **kwargs: page)
     handler._wait_for_received_header = AsyncMock()
     handler._sort_received = AsyncMock()
     handler._save_type_failure_artifacts = AsyncMock()
@@ -170,7 +174,7 @@ async def test_one_failed_type_does_not_abort_remaining(
             "app.automation.handlers.report4_handler.get_type_configs",
             return_value=configs,
         ),
-        patch("app.automation.handlers.report4_handler.asyncio.sleep", new=AsyncMock()),
+        patch("app.automation.handlers.report4_handler.tracked_sleep", new=AsyncMock()),
         patch(
             "app.automation.handlers.report4_handler.get_run_context",
             return_value=None,
@@ -201,7 +205,7 @@ async def test_all_seven_success_status_success(
 ):
     handler.navigation = MagicMock()
     handler.navigation.navigate_to_report = AsyncMock()
-    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="": page)
+    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="", **kwargs: page)
     handler._wait_for_received_header = AsyncMock()
     handler._sort_received = AsyncMock()
     handler._submit_type_once = AsyncMock(return_value=MagicMock())
@@ -253,7 +257,7 @@ async def test_all_seven_success_status_success(
 async def test_no_success_status_failed(handler: Report4Handler, tmp_path: Path):
     handler.navigation = MagicMock()
     handler.navigation.navigate_to_report = AsyncMock()
-    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="": page)
+    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="", **kwargs: page)
     handler._save_type_failure_artifacts = AsyncMock()
     handler._submit_type_once = AsyncMock(
         side_effect=ReportGenerationError("Report types did not display after generate")
@@ -270,7 +274,7 @@ async def test_no_success_status_failed(handler: Report4Handler, tmp_path: Path)
             "app.automation.handlers.report4_handler.get_type_configs",
             return_value=configs,
         ),
-        patch("app.automation.handlers.report4_handler.asyncio.sleep", new=AsyncMock()),
+        patch("app.automation.handlers.report4_handler.tracked_sleep", new=AsyncMock()),
         patch(
             "app.automation.handlers.report4_handler.get_run_context",
             return_value=None,
@@ -301,7 +305,7 @@ async def test_current_run_index_excludes_stale_and_no_nested_path(
 
     handler.navigation = MagicMock()
     handler.navigation.navigate_to_report = AsyncMock()
-    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="": page)
+    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="", **kwargs: page)
     handler._wait_for_received_header = AsyncMock()
     handler._sort_received = AsyncMock()
     handler._submit_type_once = AsyncMock(return_value=MagicMock())
@@ -387,7 +391,7 @@ async def test_ingestion_processor_and_artifact_urls(
 ):
     handler.navigation = MagicMock()
     handler.navigation.navigate_to_report = AsyncMock()
-    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="": page)
+    handler.ensure_mis_page = AsyncMock(side_effect=lambda page, session, ctx="", **kwargs: page)
     handler._wait_for_received_header = AsyncMock()
     handler._sort_received = AsyncMock()
     handler._submit_type_once = AsyncMock(return_value=MagicMock())

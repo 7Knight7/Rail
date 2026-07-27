@@ -203,7 +203,7 @@ class FeedbackModalExtractor:
                     ".modal table, [role='dialog'] table, #complaintListModal table"
                 ).first.wait_for(state="visible", timeout=2000)
             except Exception:
-                self.page.wait_for_timeout(150)
+                self.page.wait_for_timeout(50)
 
             modal_table = self.page.locator(
                 ".modal table, [role='dialog'] table, #complaintListModal table"
@@ -300,7 +300,7 @@ class FeedbackModalExtractor:
                     state="hidden", timeout=2000
                 )
             except Exception:
-                self.page.wait_for_timeout(150)
+                self.page.wait_for_timeout(50)
 
     def extract_scr_complaints(
         self,

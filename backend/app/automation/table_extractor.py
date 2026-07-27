@@ -107,6 +107,10 @@ class TableExtractor:
         if dt_rows:
             return dt_rows
 
+        batch_rows = await self._extract_table_data_batch(table)
+        if batch_rows:
+            return batch_rows
+
         rows: list[list[str]] = []
 
         try:
@@ -220,6 +224,46 @@ class TableExtractor:
             return rows
         except Exception as exc:
             logger.debug("DataTables fast path unavailable: %s", exc)
+            return None
+
+    async def _extract_table_data_batch(self, table: Locator) -> list[list[str]] | None:
+        """Single evaluate to read all visible table rows (fallback before cell-by-cell)."""
+        try:
+            payload = await table.evaluate(
+                """(el) => {
+                    const clean = (t) => (t || '').replace(/\\s+/g, ' ').trim();
+                    const rows = [];
+                    const headerCells = el.querySelectorAll('thead tr th, thead tr td');
+                    if (headerCells.length) {
+                        const hdr = Array.from(headerCells).map((c) => clean(c.textContent));
+                        if (hdr.some(Boolean)) rows.push(hdr);
+                    }
+                    const bodyRows = el.querySelectorAll('tbody tr');
+                    const trList = bodyRows.length ? bodyRows : el.querySelectorAll('tr');
+                    const start = bodyRows.length ? 0 : (rows.length ? 1 : 0);
+                    for (let i = start; i < trList.length; i++) {
+                        const tr = trList[i];
+                        const cells = tr.querySelectorAll('td, th');
+                        if (!cells.length) continue;
+                        const row = Array.from(cells).map((c) => clean(c.textContent));
+                        const joined = row.join(' ').toLowerCase();
+                        if (joined.includes('total') && row.length <= 3) continue;
+                        if (row.some((c) => c.length > 0)) rows.push(row);
+                    }
+                    return rows.length ? rows : null;
+                }"""
+            )
+            if not payload or len(payload) < 1:
+                return None
+            log_automation_event(
+                logger,
+                "table_data_extracted_batch",
+                row_count=len(payload),
+                column_count=len(payload[0]) if payload else 0,
+            )
+            return payload
+        except Exception as exc:
+            logger.debug("Batch table extract unavailable: %s", exc)
             return None
 
     async def _extract_row_cells(self, row: Locator, cell_tag: str) -> list[str]:

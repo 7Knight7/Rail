@@ -92,6 +92,8 @@ async def test_other_slugs_still_use_cdp_manual_async(api_client: AsyncClient):
         response = await api_client.post(
             "/api/v1/reports/merging/generate",
             json={
+                "date_from": "2026-07-25",
+                "date_to": "2026-07-26",
                 "selected_column_ids": ["report1.source_a.sno", "report1.source_a.organisation"],
                 "column_order": ["report1.source_a.sno", "report1.source_a.organisation"],
                 "export_format": "xlsx",
@@ -106,6 +108,8 @@ async def test_other_slugs_still_use_cdp_manual_async(api_client: AsyncClient):
 
 def test_build_config_snapshot_preserves_selected_ids_and_requested_formats():
     body = ManualGenerateRequest(
+        date_from="2026-07-25",
+        date_to="2026-07-26",
         selected_column_ids=ACCEPTANCE_FILTER,
         column_order=ACCEPTANCE_FILTER,
         requested_formats=["xlsx", "pdf"],

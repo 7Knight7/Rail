@@ -5,17 +5,16 @@ from app.automation.report1_filters import (
     REPORT_6_FILTERS,
     build_filters_from_discovery,
     filters_for_report,
-    resolve_filter_value,
 )
 
 
-def test_report1_date_range_is_previous_day():
-    values_by_label = {f.label: f.value for f in REPORT_1_FILTERS}
-    assert values_by_label["Date Range"] == "Previous Day"
-    assert resolve_filter_value(REPORT_1_FILTERS[0].value) == "Previous Day"
+def test_report1_filters_exclude_portal_date_fields():
+    assert not any(f.name == "dateRange" for f in REPORT_1_FILTERS)
+    assert any(f.label == "View" and f.value == "Zone Wise" for f in REPORT_1_FILTERS)
+    assert not any(f.name == "dateRange" for f in REPORT_6_FILTERS)
 
 
-def test_report1_discovery_date_range_is_previous_day():
+def test_report1_discovery_skips_date_range_and_portal_date_fields():
     filters = build_filters_from_discovery(
         [
             {
@@ -28,17 +27,28 @@ def test_report1_discovery_date_range_is_previous_day():
                 "current_value": "Current Day",
                 "required": False,
                 "options": [],
-            }
+            },
+            {
+                "tag": "input",
+                "field_id": "fromInput",
+                "field_name": "fromInput",
+                "field_type": "text",
+                "field_label": "From Date",
+                "selector": "#fromInput",
+                "current_value": "",
+                "required": True,
+                "options": [],
+            },
         ],
         slug="report1",
     )
-    assert filters[0].value == "Previous Day"
-    assert resolve_filter_value(filters[0].value) == "Previous Day"
+    assert not any(f.name == "dateRange" for f in filters)
+    assert any(f.label == "View" and f.value == "Zone Wise" for f in filters)
 
 
 def test_report6_filters_defined():
     values_by_label = {f.label: f.value for f in REPORT_6_FILTERS}
-    assert values_by_label["Date Range"] == "Previous Day"
+    assert "Date Range" not in values_by_label
     assert values_by_label["View"] == "Zone Wise / Dept. Wise"
     assert values_by_label["Zone"] == "ALL"
     assert values_by_label["Division"] == "ALL"

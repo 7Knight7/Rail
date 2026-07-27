@@ -68,6 +68,11 @@ htmlcov/
 
 # Backend specific
 backend/uploads/
+backend/storage/extracted/
+backend/storage/output/
+backend/storage/downloads/
+backend/storage/debug/
+backend/storage/automation-screenshots/
 backend/*.db
 backend/railway.db
 *.sqlite3

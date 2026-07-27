@@ -14,7 +14,7 @@ from app.automation.report1_filters import (
     build_filters_from_discovery,
 )
 from app.automation.reports import REPORT_1, REPORT_6_FEEDBACK
-from app.automation.session import MisSessionError, MisSessionStatus, SessionManager
+from app.automation.session import MisSessionError, SessionManager
 from app.automation.table_extractor import (
     FEEDBACK_ZONE_REQUIRED_HEADERS,
     ExtractionResult,
@@ -26,6 +26,13 @@ from app.automation.table_validator import (
     validate_extracted_data,
 )
 from app.automation.utils import ensure_directory, log_automation_event
+from app.automation.portal_from_date import (
+    apply_previous_from_date,
+    log_phase1_submit_clicked,
+    log_phase2_submit_clicked,
+)
+from app.automation.report_keys import canonicalize_report_key
+from app.automation.run_context import get_run_context
 
 logger = logging.getLogger(__name__)
 
@@ -294,6 +301,37 @@ async def extract_with_retry(
                 report_root, report_filters, page=page
             )
             await filter_service.validate_mandatory(report_root, report_filters, applied_values)
+            slug_key = canonicalize_report_key(report.slug)
+            if slug_key in {"report1", "division"}:
+                ctx_retry = get_run_context()
+                run_id = ctx_retry.run_id if ctx_retry is not None else ""
+                await apply_previous_from_date(
+                    page,
+                    run_id,
+                    report.slug,
+                    "comprehensive_retry",
+                    filter_service=filter_service,
+                )
+                log_phase1_submit_clicked(
+                    run_id,
+                    report.slug,
+                    "comprehensive_retry",
+                )
+            elif slug_key == "train-no":
+                ctx_retry = get_run_context()
+                run_id = ctx_retry.run_id if ctx_retry is not None else ""
+                await apply_previous_from_date(
+                    page,
+                    run_id,
+                    report.slug,
+                    "train_no_wise_retry",
+                    filter_service=filter_service,
+                )
+                log_phase2_submit_clicked(
+                    run_id,
+                    report.slug,
+                    "train_no_wise_retry",
+                )
             await generator.generate_report(report_root, page)
 
             if not await generator.verify_report_displayed(report_root):
@@ -380,6 +418,17 @@ async def attempt_feedback_extract(
         "feedback_filters_verified",
         filters=applied_filter_records(report_filters, applied_values),
     )
+
+    ctx = get_run_context()
+    run_id = ctx.run_id if ctx is not None else ""
+    await apply_previous_from_date(
+        page,
+        run_id,
+        "report1",
+        "feedback",
+        filter_service=filter_service,
+    )
+    log_phase1_submit_clicked(run_id, "report1", "feedback")
 
     await generator.generate_report(report_root, page)
     if not await generator.verify_report_displayed(report_root):
@@ -574,6 +623,19 @@ async def regenerate_comprehensive_for_pdf(
             report_root, report_filters, page=page
         )
         await filter_service.validate_mandatory(report_root, report_filters, applied_values)
+        run_id = ctx.run_id if ctx is not None else ""
+        await apply_previous_from_date(
+            page,
+            run_id,
+            REPORT_1.slug,
+            "comprehensive_pdf_regen",
+            filter_service=filter_service,
+        )
+        log_phase1_submit_clicked(
+            run_id,
+            REPORT_1.slug,
+            "comprehensive_pdf_regen",
+        )
         await generator.generate_report(report_root, page)
         if not await generator.verify_report_displayed(report_root):
             raise ReportGenerationError(

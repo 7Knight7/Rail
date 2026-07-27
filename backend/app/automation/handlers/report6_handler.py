@@ -16,6 +16,7 @@ from app.automation.reports import ReportDefinition
 from app.automation.schemas import ReportResult
 from app.automation.scr_field_map import REPORT6_CANONICAL_CSV_HEADERS
 from app.automation.utils import ensure_directory, log_automation_event
+from app.automation.run_context import get_run_context
 
 from .report5_handler import Report5Handler
 
@@ -60,7 +61,9 @@ class Report6Handler(Report5Handler):
     ) -> ReportResult:
         started_at = datetime.now(UTC).isoformat()
         t0 = time.perf_counter()
-        page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
+        ctx = get_run_context()
+        if ctx is not None:
+            ctx.freeze_report_from_date(report.slug)
 
         report_root = await self._apply_station_filters(page, session, report)
 
@@ -93,6 +96,15 @@ class Report6Handler(Report5Handler):
             )
             if error == SCR_STATION_UNSATISFACTORY_NOT_FOUND:
                 await self._save_not_found_artifacts(page, session, report.slug)
+                log_automation_event(
+                    logger,
+                    "phase3_terminal_status",
+                    run_id=ctx.run_id if ctx is not None else "",
+                    report_slug=report.slug,
+                    status="failed",
+                    failure_stage="extraction",
+                    error=SCR_STATION_UNSATISFACTORY_NOT_FOUND,
+                )
                 return self.build_failed_result(report.slug, SCR_STATION_UNSATISFACTORY_NOT_FOUND)
 
         page = await self.ensure_mis_page(
@@ -100,6 +112,15 @@ class Report6Handler(Report5Handler):
         )
 
         if error:
+            log_automation_event(
+                logger,
+                "phase3_terminal_status",
+                run_id=ctx.run_id if ctx is not None else "",
+                report_slug=report.slug,
+                status="failed",
+                failure_stage="extraction",
+                error=error,
+            )
             return self.build_failed_result(report.slug, error)
 
         if expected_count == 0:
@@ -151,7 +172,16 @@ class Report6Handler(Report5Handler):
             unsatisfactory_percent=self._last_unsatisfactory_percent,
             duration_seconds=round(extraction_seconds, 3),
         )
-        return await self.finalize_after_extract(
+        log_automation_event(
+            logger,
+            "phase3_rows_extracted",
+            run_id=ctx.run_id if ctx is not None else "",
+            report_slug=report.slug,
+            extracted_count=len(complaints),
+            expected_count=expected_count,
+            mode=self.expected_mode,
+        )
+        result = await self.finalize_after_extract(
             slug=report.slug,
             csv_path=csv_path,
             source_paths=source_paths,
@@ -161,6 +191,15 @@ class Report6Handler(Report5Handler):
             started_at=started_at,
             extraction_seconds=round(extraction_seconds, 3),
         )
+        log_automation_event(
+            logger,
+            "phase3_terminal_status",
+            run_id=ctx.run_id if ctx is not None else "",
+            report_slug=report.slug,
+            status=result.status,
+            failure_stage=None if result.status == "success" else "finalize",
+        )
+        return result
 
     async def _apply_station_filters(
         self,
@@ -191,7 +230,19 @@ class Report6Handler(Report5Handler):
             )
 
         report_root, _, _ = await self.apply_filters_and_submit(
-            page, report, filters=REPORT_6_SCR_FILTERS, session=session
+            page,
+            report,
+            filters=REPORT_6_SCR_FILTERS,
+            session=session,
+            source_name="scr_station_feedback",
+        )
+        log_automation_event(
+            logger,
+            "phase3_table_refreshed",
+            run_id=get_run_context().run_id if get_run_context() is not None else "",
+            report_slug=report.slug,
+            source_name="scr_station_feedback",
+            mode="Station",
         )
         return report_root
 

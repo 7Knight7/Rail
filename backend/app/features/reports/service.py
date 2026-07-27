@@ -27,6 +27,7 @@ from app.automation.service import AutomationService
 from app.automation.run_registry import get_artifact, list_run_artifacts
 from app.automation.schemas import MultiReportResult, ReportResult
 from app.automation.utils import previous_day_report_date
+from app.automation.date_range import DateRangeValidationError, ReportDateRange
 from app.features.reports.config_store import (
     default_projection_keys,
     load_report_config,
@@ -83,16 +84,21 @@ def build_config_snapshot(
     if body.selected_column_ids:
         selected = sanitize_projection_keys(body.selected_column_ids, report_slug, user_id=user_id)
         validate_column_order(report_slug, selected, keys)
+    try:
+        date_range = ReportDateRange.from_iso(str(body.date_from), str(body.date_to))
+    except DateRangeValidationError as exc:
+        raise ValueError(str(exc)) from exc
     snapshot: dict[str, Any] = {
         "selected_column_ids": list(keys),
         "column_order": list(keys),
         "export_format": body.export_format,
         "config_overrides": dict(body.config_overrides),
         "filter_conditions": list(body.filter_conditions),
-        "report_date": previous_day_report_date(),
+        "report_date": date_range.legacy_report_date(),
         "configuration_source": configuration_source,
         "snapshot_created_at": datetime.now(UTC).isoformat(),
     }
+    snapshot.update(date_range.snapshot_fields())
     if body.requested_formats:
         snapshot["requested_formats"] = list(body.requested_formats)
     if body.force_fresh_extraction:

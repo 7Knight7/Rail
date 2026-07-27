@@ -29,7 +29,7 @@ async def test_apply_filters_select_field():
     locator = MagicMock()
     locator.count = AsyncMock(return_value=1)
     locator.select_option = AsyncMock()
-    locator.evaluate = AsyncMock(return_value="Previous Day")
+    locator.evaluate = AsyncMock(return_value="Today")
     root.locator.return_value.first = locator
 
     fields = [
@@ -55,7 +55,7 @@ async def test_apply_filters_previous_day_literal():
     locator = MagicMock()
     locator.count = AsyncMock(return_value=1)
     locator.select_option = AsyncMock()
-    locator.evaluate = AsyncMock(return_value="Previous Day")
+    locator.evaluate = AsyncMock(return_value="Today")
     root.locator.return_value.first = locator
 
     fields = [

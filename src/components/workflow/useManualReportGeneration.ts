@@ -120,10 +120,26 @@ export function useManualReportGeneration({
     return "xlsx";
   }, [settings]);
 
+  const buildDateRange = useCallback(() => {
+    const dateFrom = settings.find((field) => field.id === "dateFrom")?.value;
+    const dateTo = settings.find((field) => field.id === "dateTo")?.value;
+    return {
+      date_from: dateFrom != null ? String(dateFrom) : undefined,
+      date_to: dateTo != null ? String(dateTo) : undefined,
+    };
+  }, [settings]);
+
   const buildConfigOverrides = useCallback(() => {
     const overrides: Record<string, string | number> = {};
     for (const field of settings) {
-      if (field.id === "exportFormat" || field.id === "reportDate") continue;
+      if (
+        field.id === "exportFormat" ||
+        field.id === "reportDate" ||
+        field.id === "dateFrom" ||
+        field.id === "dateTo"
+      ) {
+        continue;
+      }
       overrides[field.id] = field.value;
     }
     return overrides;
@@ -164,6 +180,7 @@ export function useManualReportGeneration({
     try {
       const response = await reportsApi.generate(reportId, {
         report_slug: reportSlug,
+        ...buildDateRange(),
         selected_column_ids: columnOrder,
         column_order: columnOrder,
         configuration_source: "manual_snapshot",
@@ -202,6 +219,7 @@ export function useManualReportGeneration({
     columnLabels,
     filterConditions,
     buildExportFormat,
+    buildDateRange,
     buildConfigOverrides,
     startPolling,
     status,

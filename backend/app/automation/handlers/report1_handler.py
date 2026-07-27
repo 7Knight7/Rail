@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING
 from app.automation.config import config
 from app.automation.downloader import ReportDownloader
 from app.automation.pdf_archiver import PdfArchiver
-from app.automation.report1_filters import REPORT_1_FILTERS
 from app.automation.reports import ReportDefinition
+from app.automation.report1_filters import REPORT_1_FILTERS
 from app.automation.run_context import get_run_context
 from app.automation.schemas import ReportResult
 from app.automation.table_extractor import TableExtractor
@@ -99,7 +99,7 @@ class Report1Handler(BaseReportHandler):
             page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
 
             report_root, _, row_count = await self.apply_filters_and_submit(
-                page, report, session=session
+                page, report, filters=REPORT_1_FILTERS, session=session
             )
             await self.click_received_twice(report_root, page, report_slug=report.slug)
 
@@ -268,7 +268,7 @@ class Report1Handler(BaseReportHandler):
                 self.generator,
                 extractor,
                 session,
-                known_filters=list(REPORT_1_FILTERS),
+                known_filters=REPORT_1_FILTERS,
             )
 
             archive_path: str | None = None

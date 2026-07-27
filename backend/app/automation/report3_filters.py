@@ -5,15 +5,8 @@ from __future__ import annotations
 from app.automation.report1_filters import FilterFieldDefinition, _label_select
 
 
+# From Date is set by portal_from_date.apply_previous_from_date (Phase 2).
 REPORT_3_FILTERS: list[FilterFieldDefinition] = [
-    FilterFieldDefinition(
-        name="dateRange",
-        selector="#dateRange, select[name*='dateRange'], select[id*='dateRange']",
-        field_type="select",
-        value="Previous Day",
-        required=True,
-        label="Date Range",
-    ),
     FilterFieldDefinition(
         name="zone",
         selector="#complaintZoneInput",

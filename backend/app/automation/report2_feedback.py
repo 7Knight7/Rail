@@ -27,6 +27,11 @@ from app.automation.table_validator import (
     validate_extracted_data,
 )
 from app.automation.utils import log_automation_event
+from app.automation.portal_from_date import (
+    apply_previous_from_date,
+    log_phase1_submit_clicked,
+)
+from app.automation.run_context import get_run_context
 from app.automation.workflow import save_failure_artifacts, verify_mis_session_or_raise
 
 logger = logging.getLogger(__name__)
@@ -95,6 +100,17 @@ async def attempt_feedback_division_extract(
             actual=view_applied,
             warning="View filter may not have been applied correctly",
         )
+
+    ctx = get_run_context()
+    run_id = ctx.run_id if ctx is not None else ""
+    await apply_previous_from_date(
+        page,
+        run_id,
+        DIVISION_REPORT_SLUG,
+        "feedback",
+        filter_service=filter_service,
+    )
+    log_phase1_submit_clicked(run_id, DIVISION_REPORT_SLUG, "feedback")
 
     log_automation_event(logger, "report2_feedback_submit_clicked")
     await generator.generate_report(report_root, page)

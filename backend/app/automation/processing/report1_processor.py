@@ -21,7 +21,6 @@ from app.automation.formatting.pdf_table import build_fitted_table
 from app.automation.formatting.text_pipeline import (
     normalize_report_title,
     prepare_output_for_rendering,
-    verify_text_rendering,
 )
 from app.automation.formatting.pdf_verify import verify_report_output
 from app.automation.formatting.scr import SCR_FILL, SCR_FONT, row_contains_scr
@@ -47,7 +46,6 @@ logger = logging.getLogger(__name__)
 
 PROCESSOR_NAME = "report1_zone_wise_processor"
 
-FEEDBACK_FILENAME = "report1_feedback_zone_raw.csv"
 THIN_BORDER = Border(
     left=Side(style="thin"),
     right=Side(style="thin"),
@@ -259,14 +257,6 @@ class Report1Processor:
         merged_rows.append(total_row)
         scr_flags.append(False)
         return merged_headers, merged_rows, scr_flags
-
-    def _find_feedback_csv(self, report_slug: str) -> Path | None:
-        extracted_dir = resolve_report_dir(config.extracted_data_dir, report_slug)
-        preferred = extracted_dir / FEEDBACK_FILENAME
-        if preferred.exists():
-            return preferred
-        matches = sorted(extracted_dir.glob("*feedback*.csv"))
-        return matches[0] if matches else None
 
     @staticmethod
     def _read_csv(path: Path) -> tuple[list[dict[str, str]], list[str]]:

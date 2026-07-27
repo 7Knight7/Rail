@@ -246,6 +246,31 @@ export const automationApi = {
     return `${API_BASE}/automation/reports/${encodeURIComponent(reportKey)}/pdf`;
   },
 
+  resolveApiUrl(url: string): string {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    if (url.startsWith("/api/v1/")) {
+      return `${API_BASE}${url.slice("/api/v1".length)}`;
+    }
+    if (url.startsWith("/")) {
+      return `${API_BASE}${url}`;
+    }
+    return `${API_BASE}/${url}`;
+  },
+
+  async fetchPreviewBlobUrl(url: string): Promise<string> {
+    const response = await fetch(this.resolveApiUrl(url), {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error(`Preview failed: ${response.status}`);
+    }
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  },
+
   parseFilenameFromDisposition(header: string | null, fallback: string): string {
     if (!header) return fallback;
     const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
@@ -265,17 +290,7 @@ export const automationApi = {
     url: string,
     fallbackFilename = "download.bin",
   ): Promise<{ blob: Blob; filename: string }> {
-    let fetchUrl = url;
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      if (url.startsWith("/api/v1/")) {
-        fetchUrl = `${API_BASE}${url.slice("/api/v1".length)}`;
-      } else if (url.startsWith("/")) {
-        fetchUrl = `${API_BASE}${url}`;
-      } else {
-        fetchUrl = `${API_BASE}/${url}`;
-      }
-    }
-    const response = await fetch(fetchUrl, {
+    const response = await fetch(this.resolveApiUrl(url), {
       method: "GET",
       credentials: "include",
     });

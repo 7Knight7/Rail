@@ -133,20 +133,17 @@ def build_filters_from_discovery(
         current_value = str(field.get("current_value") or "")
 
         if field_id == "dateRange" or (field_type == "select" and "date range" in label_lower):
-            value = "Previous Day"
-            required = True
+            continue
         elif field_type in ("text", "date") and any(
             token in label_lower or token in name_lower
             for token in ("from date", "fromdate", "frmdate", "from_date")
         ):
-            value = "today_iso" if _looks_like_iso_date(current_value) else "today"
-            required = True
+            continue
         elif field_type in ("text", "date") and any(
             token in label_lower or token in name_lower
             for token in ("to date", "todate", "to_date")
         ):
-            value = "today_iso" if _looks_like_iso_date(current_value) else "today"
-            required = True
+            continue
         elif field.get("required"):
             value = current_value
             required = True
@@ -176,20 +173,52 @@ def _looks_like_iso_date(value: str) -> bool:
     return value[4] == "-" and value[7] == "-"
 
 
-# Report 1 renders filters on the main admin page (not an iframe).
-REPORT_1_FILTERS: list[FilterFieldDefinition] = [
-    FilterFieldDefinition(
-        name="dateRange",
+def _id_select(
+    element_id: str,
+    label: str,
+    value: str,
+    *,
+    required: bool = True,
+) -> FilterFieldDefinition:
+    """Build a select filter with ID-based selector as primary, label fallback."""
+    name = label.lower().replace(" ", "_").replace("/", "_").replace(".", "")
+    label_no_spaces = label.replace(" ", "")
+    return FilterFieldDefinition(
+        name=name,
         selector=(
-            "select[name*='dateRange'], select[id*='dateRange'], "
-            "select[name*='DateRange'], select[id*='DateRange'], "
-            "select[name*='date'], select[id*='date']"
+            f"#{element_id}, "
+            f"select[id='{element_id}'], "
+            f"select[name='{element_id}'], "
+            f"select[id*='{element_id.replace('Input', '')}'], "
+            f"tr:has(td:has-text('{label}')) select, "
+            f"tr:has(th:has-text('{label}')) select, "
+            f"td:has-text('{label}') + td select, "
+            f"label:has-text('{label}') + select, "
+            f"select[name*='{label_no_spaces}'], "
+            f"select[id*='{label_no_spaces}']"
         ),
         field_type="select",
-        value="Previous Day",
-        required=True,
-        label="Date Range",
-    ),
+        value=value,
+        required=required,
+        label=label,
+    )
+
+
+# Report 1 renders filters on the main admin page (not an iframe).
+# From/To Date are handled by portal_from_date.apply_previous_from_date (Phase 1).
+REPORT_1_FILTERS: list[FilterFieldDefinition] = [
+    _id_select("refundInput", "Excluding Refund Cases", "YES"),
+    _id_select("inquiryInput", "Excluding Inquiry Cases", "YES"),
+    _id_select("complaintZoneInput", "Zone", "ALL"),
+    _id_select("complaintDivInput", "Division", "ALL"),
+    _id_select("complaintDeptInput", "Department", "ALL"),
+    _id_select("complaintModeInput", "Mode", "ALL"),
+    _id_select("complaintTypeInput", "Type", "ALL"),
+    _id_select("complaintSubTypeInput", "Sub Type", "ALL"),
+    _id_select("viewType", "View", "Zone Wise"),
+    _id_select("assistanceInput", "Excluding Assistance Cases", "Yes"),
+    _id_select("channelTypeInput", "Channel Type", "ALL", required=False),
+    _id_select("trainTypeInput", "Train Type", "ALL", required=False),
 ]
 
 
@@ -217,18 +246,8 @@ def _label_select(label: str, value: str, *, required: bool = True) -> FilterFie
 
 
 # Feedback (Report 6) filters per automation spec.
+# From Date is set by portal_from_date.apply_previous_from_date before Submit.
 REPORT_6_FILTERS: list[FilterFieldDefinition] = [
-    FilterFieldDefinition(
-        name="dateRange",
-        selector=(
-            "select[name*='dateRange'], select[id*='dateRange'], "
-            "select[name*='DateRange'], select[id*='DateRange']"
-        ),
-        field_type="select",
-        value="Previous Day",
-        required=True,
-        label="Date Range",
-    ),
     _label_select("Excluding Refund Cases", "YES"),
     _label_select("Excluding Inquiry Cases", "YES"),
     _label_select("Zone", "ALL"),

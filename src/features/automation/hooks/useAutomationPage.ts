@@ -265,7 +265,7 @@ export function useAutomationPage(): UseAutomationPageReturn {
     stopping ||
     state.runStatus === "running" ||
     state.runStatus === "paused" ||
-    Boolean(activeRunIdRef.current && state.runStatus === "running");
+    Boolean(activeRunIdRef.current);
   const hasPartialSteps = state.steps.some((s) => s.status === "partial");
   const isComplete =
     state.completionSummary != null &&

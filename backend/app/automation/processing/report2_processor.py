@@ -21,7 +21,6 @@ from app.automation.formatting.pdf_table import build_fitted_table
 from app.automation.formatting.text_pipeline import (
     normalize_report_title,
     prepare_output_for_rendering,
-    verify_text_rendering,
 )
 from app.automation.formatting.pdf_verify import verify_report_output
 from app.automation.formatting.scr import SCR_FILL, SCR_FONT, row_contains_scr
@@ -35,10 +34,10 @@ from app.automation.processing.output_columns import (
 )
 
 HIDDEN_COLUMNS = REPORT2_HIDDEN_COLUMNS
+from app.automation.date_range import date_range_for_processing
 from app.automation.utils import (
     ensure_directory,
     log_automation_event,
-    previous_day_report_date,
     resolve_report_dir,
 )
 
@@ -47,8 +46,6 @@ logger = logging.getLogger(__name__)
 PROCESSOR_NAME = "report2_division_wise_processor"
 
 TOP_N = 25
-
-FEEDBACK_FILENAME = "report2_division_feedback_raw.csv"
 
 THIN_BORDER = Border(
     left=Side(style="thin"),
@@ -248,11 +245,17 @@ class Report2Processor:
             output_rows,
         )
 
-        report_date = previous_day_report_date()
+        date_range = date_range_for_processing(column_selection)
+
+
+        report_date = date_range.title_suffix()
+
+
+        filename_suffix = date_range.filename_suffix()
         run_timestamp = datetime.now().strftime("%H%M%S")
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
         pdf_dir = ensure_directory(resolve_report_dir(config.output_pdf_dir, report_slug))
-        base_name = f"Rail_Madad_Report_2_Division_Wise_Bottom_25_{report_date}_{run_timestamp}"
+        base_name = f"Rail_Madad_Report_2_Division_Wise_Bottom_25_{filename_suffix}_{run_timestamp}"
         excel_path = excel_dir / f"{base_name}.xlsx"
         pdf_path = pdf_dir / f"{base_name}.pdf"
 
@@ -379,32 +382,6 @@ class Report2Processor:
         )
         scr_flags.append(False)
         return merged_headers, merged_rows, scr_flags
-
-    def _find_feedback_csv(self, report_slug: str) -> Path | None:
-        """DEPRECATED: Filesystem fallback search for feedback CSV.
-
-        This method is no longer used by Report 2 processing. The processor now
-        requires explicit source_b_path to prevent stale data usage. This method
-        is retained only for backward compatibility with tests.
-        """
-        import warnings
-        warnings.warn(
-            "_find_feedback_csv is deprecated - Report 2 requires explicit source_b_path",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        log_automation_event(
-            logger,
-            "report2_deprecated_fallback_called",
-            report_slug=report_slug,
-            warning="This fallback should not be used in production",
-        )
-        extracted_dir = resolve_report_dir(config.extracted_data_dir, report_slug)
-        preferred = extracted_dir / FEEDBACK_FILENAME
-        if preferred.exists():
-            return preferred
-        matches = sorted(extracted_dir.glob("*feedback*.csv"))
-        return matches[0] if matches else None
 
     @staticmethod
     def _read_csv(path: Path) -> tuple[list[dict[str, str]], list[str]]:
@@ -669,7 +646,7 @@ class Report2Processor:
 
         title = normalize_report_title(
             f"Rail Madad Report No 2 - Division Wise Complaints & Feedback Report "
-            f"- Bottom 25 Divisions on date {report_date}",
+            f"- Bottom 25 Divisions {report_date}",
             report_slug="division",
         )
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
@@ -785,7 +762,7 @@ class Report2Processor:
             Paragraph(
                 normalize_report_title(
                     f"Rail Madad Report No 2 - Division Wise Complaints & Feedback Report "
-                    f"- Bottom 25 Divisions on date {report_date}",
+                    f"- Bottom 25 Divisions {report_date}",
                     report_slug="division",
                 ),
                 pdf_title_style("Report2Title"),

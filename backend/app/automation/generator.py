@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from pathlib import Path
 
-from playwright.async_api import FrameLocator, Page, TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import FrameLocator, Page
 
 from app.automation.config import config
 from app.automation.filters import ReportRoot
 from app.automation.selectors import selectors
+from app.automation.table_refresh import (
+    table_fingerprint,
+    wait_for_loaders,
+    wait_for_table_refresh,
+)
 from app.automation.utils import ensure_directory, log_automation_event
+from app.automation.wait_utils import poll_until
 from app.core.exceptions import AppException
 
 logger = logging.getLogger(__name__)
@@ -28,16 +33,6 @@ GENERATE_BUTTON_TEXTS = (
     "Show Report",
     "Search",
     "View",
-)
-LOADING_SELECTORS = (
-    ".loading",
-    ".loader",
-    "[class*='loading']",
-    "[class*='spinner']",
-    "[class*='Loader']",
-    "#loading",
-    "#loader",
-    "text=/Loading\\.?\\.?/i",
 )
 
 
@@ -73,55 +68,50 @@ class ReportGeneratorService:
         if button is None:
             raise ReportGenerationError("Generate/View Report button not found")
 
+        old_fp = await table_fingerprint(root)
         button_text = await self._button_label(button)
-        log_automation_event(logger, "report_generate_click", button_text=button_text)
+        log_automation_event(
+            logger,
+            "report_generate_click",
+            button_text=button_text,
+            table_fingerprint_before=(old_fp or "")[:120],
+        )
         await button.click()
 
-        await self._wait_for_report_loaded(root, page)
+        refreshed = await wait_for_table_refresh(
+            root,
+            page,
+            old_fp,
+            timeout_seconds=min(float(config.timeout), 60.0),
+        )
+        if not refreshed:
+            if not await self._wait_until_report_surface_exists(root, page, config.timeout * 1000):
+                raise ReportGenerationError(
+                    "Report table/grid did not refresh after generate"
+                )
 
     async def _wait_for_report_loaded(self, root: ReportRoot, page: Page) -> None:
-        timeout_ms = config.timeout * 1000
+        """Legacy hook — refresh is handled in generate_report."""
+        await wait_for_loaders(root, page)
 
-        try:
-            await page.wait_for_load_state("domcontentloaded", timeout=min(timeout_ms, 15_000))
-        except PlaywrightTimeoutError:
-            logger.debug("domcontentloaded timeout after generate click; continuing")
-        try:
-            await page.wait_for_load_state("networkidle", timeout=5_000)
-        except PlaywrightTimeoutError:
-            logger.warning("networkidle timeout after generate click; continuing")
+    async def _wait_until_report_surface_exists(
+        self, root: ReportRoot, page: Page, timeout_ms: int
+    ) -> bool:
+        deadline_seconds = timeout_ms / 1000
 
-        if not await self._wait_until_report_surface_exists(root, timeout_ms):
-            raise ReportGenerationError(
-                "Report table/grid did not become visible after generate"
-            )
+        async def _visible() -> bool:
+            await wait_for_loaders(root, page, timeout_ms=2_000)
+            return await self.verify_report_displayed(root)
 
-    async def _wait_until_report_surface_exists(self, root: ReportRoot, timeout_ms: int) -> bool:
-        deadline = asyncio.get_running_loop().time() + (timeout_ms / 1000)
-        while asyncio.get_running_loop().time() < deadline:
-            await self._wait_for_loading_indicators(root, min(timeout_ms, 30_000))
-            if await self.verify_report_displayed(root):
-                return True
-            try:
-                await root.locator(
-                    "table tbody tr, .dataTables_wrapper, #example, .ui-jqgrid"
-                ).first.wait_for(state="attached", timeout=400)
-            except PlaywrightTimeoutError:
-                try:
-                    await root.locator("table").first.wait_for(state="visible", timeout=250)
-                except PlaywrightTimeoutError:
-                    pass
-        return False
+        return await poll_until(
+            _visible,
+            interval_seconds=0.1,
+            timeout_seconds=min(deadline_seconds, 30.0),
+            reason="report_surface_poll",
+        )
 
-    async def _wait_for_loading_indicators(self, root: ReportRoot, timeout_ms: int) -> None:
-        for selector in LOADING_SELECTORS:
-            loader = root.locator(selector)
-            if await loader.count() == 0:
-                continue
-            try:
-                await loader.first.wait_for(state="hidden", timeout=min(timeout_ms, 30_000))
-            except PlaywrightTimeoutError:
-                logger.debug("Loader still visible for selector %s", selector)
+    async def _wait_for_loading_indicators(self, root: ReportRoot, page: Page, timeout_ms: int) -> None:
+        await wait_for_loaders(root, page, timeout_ms=min(timeout_ms, 8_000))
 
     async def _find_generate_button(self, root: ReportRoot):
         candidates = [

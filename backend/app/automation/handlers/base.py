@@ -17,6 +17,13 @@ from app.automation.report1_filters import build_filters_from_discovery
 from app.automation.report_keys import canonicalize_report_key
 from app.automation.reports import ReportDefinition
 from app.automation.run_context import get_run_context
+from app.automation.portal_from_date import (
+    PHASE3_REPORT_KEYS,
+    apply_previous_from_date,
+    log_phase1_submit_clicked,
+    log_phase2_submit_clicked,
+    log_phase3_submit_clicked,
+)
 from app.automation.schemas import ReportResult
 from app.automation.session import MisSessionError, SessionManager
 from app.automation.table_extractor import ExtractionResult, TableExtractor
@@ -148,6 +155,8 @@ class BaseReportHandler(ABC):
         report: ReportDefinition,
         filters: list | None = None,
         session: SessionManager | None = None,
+        *,
+        source_name: str = "comprehensive",
     ) -> tuple:
         """Apply filters, submit, and verify report is displayed.
 
@@ -210,6 +219,49 @@ class BaseReportHandler(ABC):
                 )
                 raise ReportGenerationError(
                     f"Date Range must be Previous Day before Submit, got: {date_applied}"
+                )
+
+            if key in {"report1", "division"}:
+                run_id = ctx_inner.run_id if ctx_inner is not None else ""
+                await apply_previous_from_date(
+                    page,
+                    run_id,
+                    report.slug,
+                    source_name,
+                    filter_service=self.filter_service,
+                )
+                log_phase1_submit_clicked(
+                    run_id,
+                    report.slug,
+                    source_name,
+                )
+            elif key == "train-no":
+                run_id = ctx_inner.run_id if ctx_inner is not None else ""
+                await apply_previous_from_date(
+                    page,
+                    run_id,
+                    report.slug,
+                    source_name,
+                    filter_service=self.filter_service,
+                )
+                log_phase2_submit_clicked(
+                    run_id,
+                    report.slug,
+                    source_name,
+                )
+            elif key in PHASE3_REPORT_KEYS:
+                run_id = ctx_inner.run_id if ctx_inner is not None else ""
+                await apply_previous_from_date(
+                    page,
+                    run_id,
+                    report.slug,
+                    source_name,
+                    filter_service=self.filter_service,
+                )
+                log_phase3_submit_clicked(
+                    run_id,
+                    report.slug,
+                    source_name,
                 )
 
             await self.generator.generate_report(report_root, page)

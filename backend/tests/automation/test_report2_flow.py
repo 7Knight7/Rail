@@ -21,9 +21,9 @@ def handler() -> Report2Handler:
     return Report2Handler()
 
 
-def test_source_a_filter_discovery_includes_previous_day_and_division_view():
+def test_source_a_filter_discovery_includes_division_view():
     filters = filters_for_report2()
-    assert any(f.name == "dateRange" and f.value == "Previous Day" for f in filters)
+    assert not any(f.name == "dateRange" for f in filters)
     assert any(f.label == "View" and "Division" in f.value for f in filters)
     assert len(REPORT_2_FILTERS) >= 5
 

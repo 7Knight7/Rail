@@ -2,7 +2,14 @@
 
 export type AutomationStepStatus = "waiting" | "running" | "completed" | "partial" | "failed";
 
-export type AutomationRunStatus = "idle" | "running" | "paused" | "completed" | "failed";
+export type AutomationRunStatus =
+  | "idle"
+  | "running"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "stopped"
+  | "cancelled";
 
 export type ActivityLogLevel = "info" | "success" | "warning" | "error";
 

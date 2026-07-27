@@ -32,10 +32,10 @@ from app.automation.processing.column_config import project_topn_for_output, res
 from app.automation.processing.report3_processor import Report3Processor
 from app.automation.processing.topn_output_columns import topn_default_ids, topn_labels
 from app.automation.report4_filters import COMPLAINT_TYPES_ORDERED, get_type_configs, TypeConfig
+from app.automation.date_range import date_range_for_processing
 from app.automation.utils import (
     ensure_directory,
     log_automation_event,
-    previous_day_report_date,
     resolve_report_dir,
 )
 
@@ -139,10 +139,16 @@ class Report4Processor:
             )
         sections = normalized_sections
 
-        report_date = previous_day_report_date()
+        date_range = date_range_for_processing(column_selection)
+
+
+        report_date = date_range.title_suffix()
+
+
+        filename_suffix = date_range.filename_suffix()
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
         pdf_dir = ensure_directory(resolve_report_dir(config.output_pdf_dir, report_slug))
-        base_name = f"Rail_Madad_Report_4_Cause_Wise_Top_10_Trains_{report_date}"
+        base_name = f"Rail_Madad_Report_4_Cause_Wise_Top_10_Trains_{filename_suffix}"
         excel_path = excel_dir / f"{base_name}.xlsx"
         pdf_path = pdf_dir / f"{base_name}.pdf"
 
@@ -414,7 +420,7 @@ class Report4Processor:
         col_count = self._section_width(sections)
         main_title = normalize_report_title(
             f"Rail Madad Report No 4 - Cause wise Top 10 Trains "
-            f"on date {report_date}",
+            f"{report_date}",
             report_slug="types",
         )
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=col_count)
@@ -491,7 +497,7 @@ class Report4Processor:
         section_style = topn_section_style("Report4Section")
 
         main_title = normalize_report_title(
-            f"Rail Madad Report No 4 - Cause wise Top 10 Trains on date {report_date}",
+            f"Rail Madad Report No 4 - Cause wise Top 10 Trains {report_date}",
             report_slug="types",
         )
         story: list = [build_topn_title_block(main_title, table_width), Spacer(1, 8)]

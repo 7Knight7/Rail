@@ -300,7 +300,6 @@ def resolve_namespaced_output_label(
     column: NamespacedOutputColumn,
     selected_ids: Iterable[str],
 ) -> str:
-    selected = set(selected_ids)
     if column.group == "source_a" and column.field == "sno":
         return "S.No."
     if column.group == "source_b" and column.field == "sno":

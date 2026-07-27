@@ -17,6 +17,7 @@ import {
 } from "@/api/automation";
 import { dailySummaryApi, type DailySummary } from "@/api/dailySummary";
 import { PageHeader } from "@/components/PageHeader";
+import { PdfPreviewModal } from "@/components/PdfPreviewModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { cn } from "@/utils/cn";
@@ -43,7 +44,7 @@ export function GeneratedReportsPage() {
   const [artifacts, setArtifacts] = useState<AutomationArtifact[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewApiUrl, setPreviewApiUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
 
@@ -319,7 +320,7 @@ export function GeneratedReportsPage() {
                             size="sm"
                             variant="secondary"
                             disabled={!pdfReady || !preview || !hasCurrentPdfUrl}
-                            onClick={() => setPreviewUrl(preview)}
+                            onClick={() => setPreviewApiUrl(preview)}
                           >
                             <Eye className="mr-1 h-3.5 w-3.5" />
                             Preview PDF
@@ -409,19 +410,10 @@ export function GeneratedReportsPage() {
         </div>
       </div>
 
-      {previewUrl ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-900">PDF Review</h2>
-              <Button type="button" variant="secondary" size="sm" onClick={() => setPreviewUrl(null)}>
-                Close
-              </Button>
-            </div>
-            <iframe title="PDF preview" src={previewUrl} className="h-full w-full flex-1" />
-          </div>
-        </div>
-      ) : null}
+      <PdfPreviewModal
+        apiUrl={previewApiUrl}
+        onClose={() => setPreviewApiUrl(null)}
+      />
     </div>
   );
 }

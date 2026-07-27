@@ -56,15 +56,8 @@ def get_type_configs() -> list[TypeConfig]:
 
 def get_report4_base_filters() -> list[FilterFieldDefinition]:
     """Return the base filter list for Report 4 (without Type set)."""
+    # From Date is set by portal_from_date.apply_previous_from_date (Phase 2).
     return [
-        FilterFieldDefinition(
-            name="dateRange",
-            selector="#dateRange",
-            field_type="select",
-            value="Previous Day",
-            required=True,
-            label="Date Range",
-        ),
         FilterFieldDefinition(
             name="zone",
             selector="#complaintZoneInput",

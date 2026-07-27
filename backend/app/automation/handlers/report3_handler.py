@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from app.automation.config import config
 from app.automation.report3_filters import REPORT_3_FILTERS
 from app.automation.reports import ReportDefinition
+from app.automation.run_context import get_run_context
 from app.automation.schemas import ReportResult
 from app.automation.table_extractor import TableExtractor
 from app.automation.utils import log_automation_event
@@ -37,6 +38,9 @@ class Report3Handler(BaseReportHandler):
     ) -> ReportResult:
         started_at = datetime.now(UTC).isoformat()
         t0 = time.perf_counter()
+        ctx = get_run_context()
+        if ctx is not None:
+            ctx.freeze_report_from_date(report.slug)
         page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
         await self.navigation.navigate_to_report(page, report)
         page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
@@ -46,7 +50,11 @@ class Report3Handler(BaseReportHandler):
             pass
 
         report_root, _, row_count = await self.apply_filters_and_submit(
-            page, report, filters=REPORT_3_FILTERS, session=session
+            page,
+            report,
+            filters=REPORT_3_FILTERS,
+            session=session,
+            source_name="train_no_wise",
         )
         await self.click_received_twice(report_root, page, report_slug=report.slug)
 

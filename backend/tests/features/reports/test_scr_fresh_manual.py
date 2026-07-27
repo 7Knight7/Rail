@@ -89,6 +89,8 @@ async def test_scr_manual_generate_uses_fresh_cdp_not_process_only(
         response = await api_client.post(
             f"/api/v1/reports/{slug}/generate",
             json={
+                "date_from": "2026-07-25",
+                "date_to": "2026-07-26",
                 "selected_column_ids": columns,
                 "column_order": columns,
                 "export_format": "xlsx",
@@ -121,6 +123,8 @@ async def test_scr_manual_generate_runs_single_report_only(api_client: AsyncClie
         await api_client.post(
             "/api/v1/reports/scr-train/generate",
             json={
+                "date_from": "2026-07-25",
+                "date_to": "2026-07-26",
                 "selected_column_ids": ACCEPTANCE_R5,
                 "column_order": ACCEPTANCE_R5,
                 "force_fresh_extraction": True,
@@ -132,6 +136,8 @@ async def test_scr_manual_generate_runs_single_report_only(api_client: AsyncClie
 
 def test_build_config_snapshot_includes_force_fresh_extraction():
     body = ManualGenerateRequest(
+        date_from="2026-07-25",
+        date_to="2026-07-26",
         selected_column_ids=ACCEPTANCE_R5,
         column_order=ACCEPTANCE_R5,
         force_fresh_extraction=True,

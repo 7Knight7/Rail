@@ -1,5 +1,5 @@
 {
-  "missing_field": "Required filter field not found: excluding_refund_cases (#refundInput, select[id='refundInput'], select[name='refundInput'], select[id*='refund'], tr:has(td:has-text('Excluding Refund Cases')) select, tr:has(th:has-text('Excluding Refund Cases')) select, td:has-text('Excluding Refund Cases') + td select, label:has-text('Excluding Refund Cases') + select, select[name*='ExcludingRefundCases'], select[id*='ExcludingRefundCases'])",
+  "missing_field": "Required filter field not found: dateRange (#dateRange, select[id='dateRange'], select[name='dateRange'], select[id*='dateRange'], select[name*='dateRange'], select[id*='DateRange'], select[name*='DateRange'])",
   "discovered_fields": [
     {
       "tag": "button",
@@ -13,66 +13,70 @@
       "options": []
     },
     {
+      "tag": "input",
+      "field_id": "fromInput",
+      "field_name": "",
+      "field_type": "text",
+      "field_label": "",
+      "selector": "#fromInput",
+      "current_value": "",
+      "required": true,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "toInput",
+      "field_name": "",
+      "field_type": "text",
+      "field_label": "",
+      "selector": "#toInput",
+      "current_value": "2026-07-26",
+      "required": true,
+      "options": []
+    },
+    {
       "tag": "select",
-      "field_id": "dateRange",
+      "field_id": "refundInput",
       "field_name": "",
       "field_type": "select-one",
       "field_label": "",
-      "selector": "#dateRange",
-      "current_value": "Previous Day",
+      "selector": "#refundInput",
+      "current_value": "YES",
       "required": false,
       "options": [
         {
-          "value": "PREV_DAY",
-          "label": "Previous Day"
+          "value": "Y",
+          "label": "YES"
         },
         {
-          "value": "WEEKLY",
-          "label": "Last 7 Days"
-        },
-        {
-          "value": "CURR_MONTH",
-          "label": "Current Month"
-        },
-        {
-          "value": "PREV_MONTH",
-          "label": "Previous Month"
-        },
-        {
-          "value": "CURR_YEAR",
-          "label": "Current Financial Year"
-        },
-        {
-          "value": "PREV_YEAR",
-          "label": "Previous Financial Year"
-        },
-        {
-          "value": "CURR_DAY",
-          "label": "Current Day"
+          "value": "N",
+          "label": "NO"
         }
       ]
     },
     {
-      "tag": "input",
-      "field_id": "fromDate",
+      "tag": "select",
+      "field_id": "inquiryInput",
       "field_name": "",
-      "field_type": "text",
+      "field_type": "select-one",
       "field_label": "",
-      "selector": "#fromDate",
-      "current_value": "2026-07-20",
-      "required": true,
-      "options": []
-    },
-    {
-      "tag": "input",
-      "field_id": "toDate",
-      "field_name": "",
-      "field_type": "text",
-      "field_label": "",
-      "selector": "#toDate",
-      "current_value": "2026-07-20",
-      "required": true,
-      "options": []
+      "selector": "#inquiryInput",
+      "current_value": "Yes",
+      "required": false,
+      "options": [
+        {
+          "value": "Y",
+          "label": "Yes"
+        },
+        {
+          "value": "N",
+          "label": "No"
+        },
+        {
+          "value": "O",
+          "label": "Only Inquiry"
+        }
+      ]
     },
     {
       "tag": "select",
@@ -188,94 +192,6 @@
     },
     {
       "tag": "select",
-      "field_id": "complaintTypeInput",
-      "field_name": "",
-      "field_type": "select-one",
-      "field_label": "",
-      "selector": "#complaintTypeInput",
-      "current_value": "ALL",
-      "required": false,
-      "options": [
-        {
-          "value": "",
-          "label": "ALL"
-        },
-        {
-          "value": "132",
-          "label": "Medical Assistance- Train"
-        },
-        {
-          "value": "87",
-          "label": "Security- Train"
-        },
-        {
-          "value": "152",
-          "label": "Divyangjan Facilities- Train"
-        },
-        {
-          "value": "173",
-          "label": "Facilities for Women with Special needs- Train"
-        },
-        {
-          "value": "85",
-          "label": "Electrical Equipment- Train"
-        },
-        {
-          "value": "82",
-          "label": "Coach - Cleanliness- Train"
-        },
-        {
-          "value": "81",
-          "label": "Punctuality- Train"
-        },
-        {
-          "value": "83",
-          "label": "Water Availability- Train"
-        },
-        {
-          "value": "136",
-          "label": "Coach - Maintenance- Train"
-        },
-        {
-          "value": "86",
-          "label": "Catering & Vending Services- Train"
-        },
-        {
-          "value": "88",
-          "label": "Staff Behaviour- Train"
-        },
-        {
-          "value": "89",
-          "label": "Corruption / Bribery- Train"
-        },
-        {
-          "value": "84",
-          "label": "Bed Roll- Train"
-        },
-        {
-          "value": "90",
-          "label": "Miscellaneous- Train"
-        }
-      ]
-    },
-    {
-      "tag": "select",
-      "field_id": "complaintSubTypeInput",
-      "field_name": "",
-      "field_type": "select-one",
-      "field_label": "",
-      "selector": "#complaintSubTypeInput",
-      "current_value": "ALL",
-      "required": false,
-      "options": [
-        {
-          "value": "",
-          "label": "ALL"
-        }
-      ]
-    },
-    {
-      "tag": "select",
       "field_id": "complaintDeptInput",
       "field_name": "",
       "field_type": "select-one",
@@ -336,33 +252,489 @@
     },
     {
       "tag": "select",
+      "field_id": "complaintModeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintModeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "S",
+          "label": "Station"
+        },
+        {
+          "value": "T",
+          "label": "Train"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintTypeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintTypeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "134",
+          "label": "Medical Assistance- Station"
+        },
+        {
+          "value": "132",
+          "label": "Medical Assistance- Train"
+        },
+        {
+          "value": "5",
+          "label": "Security- Station"
+        },
+        {
+          "value": "87",
+          "label": "Security- Train"
+        },
+        {
+          "value": "153",
+          "label": "Divyangjan Facilities- Station"
+        },
+        {
+          "value": "152",
+          "label": "Divyangjan Facilities- Train"
+        },
+        {
+          "value": "173",
+          "label": "Facilities for Women with Special needs- Train"
+        },
+        {
+          "value": "172",
+          "label": "Facilities for Women with Special needs- Station"
+        },
+        {
+          "value": "7",
+          "label": "Unreserved Ticketing- Station"
+        },
+        {
+          "value": "85",
+          "label": "Electrical Equipment- Train"
+        },
+        {
+          "value": "82",
+          "label": "Coach - Cleanliness- Train"
+        },
+        {
+          "value": "10",
+          "label": "Luggage / Parcels - Station"
+        },
+        {
+          "value": "81",
+          "label": "Punctuality- Train"
+        },
+        {
+          "value": "6",
+          "label": "Reserved Ticketing- Station"
+        },
+        {
+          "value": "83",
+          "label": "Water Availability- Train"
+        },
+        {
+          "value": "8",
+          "label": "Refund of Tickets- Station"
+        },
+        {
+          "value": "9",
+          "label": "Passenger Amenities- Station"
+        },
+        {
+          "value": "136",
+          "label": "Coach - Maintenance- Train"
+        },
+        {
+          "value": "3",
+          "label": "Electrical Equipment- Station"
+        },
+        {
+          "value": "86",
+          "label": "Catering & Vending Services- Train"
+        },
+        {
+          "value": "12",
+          "label": "Staff Behaviour- Station"
+        },
+        {
+          "value": "88",
+          "label": "Staff Behaviour- Train"
+        },
+        {
+          "value": "1",
+          "label": "Cleanliness- Station"
+        },
+        {
+          "value": "89",
+          "label": "Corruption / Bribery- Train"
+        },
+        {
+          "value": "84",
+          "label": "Bed Roll- Train"
+        },
+        {
+          "value": "4",
+          "label": "Catering & Vending Services- Station"
+        },
+        {
+          "value": "2",
+          "label": "Water Availability- Station"
+        },
+        {
+          "value": "90",
+          "label": "Miscellaneous- Train"
+        },
+        {
+          "value": "11",
+          "label": "Goods- Station"
+        },
+        {
+          "value": "13",
+          "label": "Corruption / Bribery- Station"
+        },
+        {
+          "value": "14",
+          "label": "Miscellaneous - Station"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintSubTypeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintSubTypeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        }
+      ]
+    },
+    {
+      "tag": "select",
       "field_id": "viewType",
       "field_name": "",
       "field_type": "select-one",
       "field_label": "",
       "selector": "#viewType",
-      "current_value": "Train Type Wise",
+      "current_value": "Zone Wise",
       "required": false,
       "options": [
         {
-          "value": "traintype",
-          "label": "Train Type Wise"
-        },
-        {
-          "value": "trainnotype",
-          "label": "Train No Wise"
-        },
-        {
-          "value": "zonetype",
+          "value": "zoneview",
           "label": "Zone Wise"
         },
         {
-          "value": "divisiontype",
-          "label": "Division Wise"
+          "value": "compview",
+          "label": "Complaint Type Wise"
         },
         {
-          "value": "depottype",
-          "label": "Depot Wise"
+          "value": "divview",
+          "label": "Division Wise"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "assistanceInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#assistanceInput",
+      "current_value": "Yes",
+      "required": false,
+      "options": [
+        {
+          "value": "N",
+          "label": "No"
+        },
+        {
+          "value": "Y",
+          "label": "Yes"
+        },
+        {
+          "value": "O",
+          "label": "Only Assistance"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "channelInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#channelInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "ALL",
+          "label": "ALL"
+        },
+        {
+          "value": "M",
+          "label": "Social Media"
+        },
+        {
+          "value": "D",
+          "label": "Manual Dak"
+        },
+        {
+          "value": "H",
+          "label": "Helpline-139"
+        },
+        {
+          "value": "E",
+          "label": "Email"
+        },
+        {
+          "value": "A",
+          "label": "Mobile App"
+        },
+        {
+          "value": "W",
+          "label": "Web"
+        },
+        {
+          "value": "S",
+          "label": "SMS"
+        },
+        {
+          "value": "G",
+          "label": "CPGRAMS"
+        },
+        {
+          "value": "B",
+          "label": "Helpline-112"
+        },
+        {
+          "value": "U",
+          "label": "Umang"
+        },
+        {
+          "value": "R",
+          "label": "Superapp"
+        },
+        {
+          "value": "V",
+          "label": "IRSurvey"
+        },
+        {
+          "value": "F",
+          "label": "PSGN Complaints by Surveyer"
+        },
+        {
+          "value": "O",
+          "label": "WhatsApp"
+        },
+        {
+          "value": "Q",
+          "label": "QR Code"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "trainInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#trainInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "ALL",
+          "label": "ALL"
+        },
+        {
+          "value": "ELEC",
+          "label": "Election Special"
+        },
+        {
+          "value": "TRST",
+          "label": "Tourist Train"
+        },
+        {
+          "value": "MSPC",
+          "label": "Mail/Express Special"
+        },
+        {
+          "value": "SMSP",
+          "label": "Summer Special"
+        },
+        {
+          "value": "TOD",
+          "label": "Train On Demand"
+        },
+        {
+          "value": "HSP",
+          "label": "Holiday Special"
+        },
+        {
+          "value": "PSPC",
+          "label": "Passenger Special"
+        },
+        {
+          "value": "EYRK",
+          "label": "Empty Rake"
+        },
+        {
+          "value": "SRKS",
+          "label": "Shramik Special"
+        },
+        {
+          "value": "MEX",
+          "label": "Mail/Express"
+        },
+        {
+          "value": "SUF",
+          "label": "SuperFast"
+        },
+        {
+          "value": "SHT",
+          "label": "Shatabdi"
+        },
+        {
+          "value": "JSH",
+          "label": "Jan Shatabdi"
+        },
+        {
+          "value": "GBR",
+          "label": "Garib Rath"
+        },
+        {
+          "value": "DRNT",
+          "label": "Duronto"
+        },
+        {
+          "value": "RAJ",
+          "label": "Rajdhani"
+        },
+        {
+          "value": "TEJ",
+          "label": "Tejas"
+        },
+        {
+          "value": "SUB",
+          "label": "Suburban"
+        },
+        {
+          "value": "PAS",
+          "label": "Passenger"
+        },
+        {
+          "value": "DMU",
+          "label": "DEMU"
+        },
+        {
+          "value": "MEMU",
+          "label": "MEMU"
+        },
+        {
+          "value": "EMU",
+          "label": "EMU"
+        },
+        {
+          "value": "RBUS",
+          "label": "Rail Bus"
+        },
+        {
+          "value": "SUVD",
+          "label": "Suvidha"
+        },
+        {
+          "value": "T18",
+          "label": "Train18"
+        },
+        {
+          "value": "PEXP",
+          "label": "Parcel Express"
+        },
+        {
+          "value": "SSPC",
+          "label": "Suburban Special"
+        },
+        {
+          "value": "MILT",
+          "label": "Military Special"
+        },
+        {
+          "value": "DEPT",
+          "label": "Empty Special"
+        },
+        {
+          "value": "PBEN",
+          "label": "Parcel For Bangladesh"
+        },
+        {
+          "value": "PPSP",
+          "label": "Unschedule Parcel Special"
+        },
+        {
+          "value": "PILT",
+          "label": "Pilot Train"
+        },
+        {
+          "value": "VNDB",
+          "label": "Vande Bharat"
+        },
+        {
+          "value": "INGL",
+          "label": "INAUGURAL SPECIAL"
+        },
+        {
+          "value": "AMTB",
+          "label": "AMRIT BHARAT"
+        },
+        {
+          "value": "TRSF",
+          "label": "TRAIN FOR RAILWAY STAFFF"
+        },
+        {
+          "value": "ASTH",
+          "label": "Aastha Special"
+        },
+        {
+          "value": "VNDM",
+          "label": "NAMO BHARAT RAPID RAIL"
+        },
+        {
+          "value": "VNDS",
+          "label": "VANDE BHARAT SLEEPER"
+        },
+        {
+          "value": "KUMB",
+          "label": "KUMBH MELA SPECIAL"
+        },
+        {
+          "value": "MAGH",
+          "label": "MAGH MELA SPECIAL"
+        },
+        {
+          "value": "FEST",
+          "label": "Festival Special"
         }
       ]
     },
@@ -454,85 +826,6 @@
       "options": []
     },
     {
-      "tag": "select",
-      "field_id": "assistanceInput",
-      "field_name": "",
-      "field_type": "select-one",
-      "field_label": "",
-      "selector": "#assistanceInput",
-      "current_value": "Yes",
-      "required": false,
-      "options": [
-        {
-          "value": "N",
-          "label": "No"
-        },
-        {
-          "value": "Y",
-          "label": "Yes"
-        },
-        {
-          "value": "O",
-          "label": "Only Assistance"
-        }
-      ]
-    },
-    {
-      "tag": "input",
-      "field_id": "trainTypeInput",
-      "field_name": "",
-      "field_type": "hidden",
-      "field_label": "",
-      "selector": "#trainTypeInput",
-      "current_value": "",
-      "required": false,
-      "options": []
-    },
-    {
-      "tag": "input",
-      "field_id": "viewWiseHeading",
-      "field_name": "",
-      "field_type": "hidden",
-      "field_label": "",
-      "selector": "#viewWiseHeading",
-      "current_value": "",
-      "required": false,
-      "options": []
-    },
-    {
-      "tag": "input",
-      "field_id": "drillFlagForTrainType",
-      "field_name": "",
-      "field_type": "hidden",
-      "field_label": "",
-      "selector": "#drillFlagForTrainType",
-      "current_value": "false",
-      "required": false,
-      "options": []
-    },
-    {
-      "tag": "input",
-      "field_id": "tempfrom",
-      "field_name": "",
-      "field_type": "hidden",
-      "field_label": "",
-      "selector": "#tempfrom",
-      "current_value": "2026-07-19",
-      "required": false,
-      "options": []
-    },
-    {
-      "tag": "input",
-      "field_id": "tempto",
-      "field_name": "",
-      "field_type": "hidden",
-      "field_label": "",
-      "selector": "#tempto",
-      "current_value": "2026-07-19",
-      "required": false,
-      "options": []
-    },
-    {
       "tag": "button",
       "field_id": "submitbtn",
       "field_name": "",
@@ -544,35 +837,46 @@
       "options": []
     },
     {
-      "tag": "button",
-      "field_id": "myback",
+      "tag": "input",
+      "field_id": "flag",
       "field_name": "",
-      "field_type": "button",
+      "field_type": "hidden",
       "field_label": "",
-      "selector": "#myback",
+      "selector": "#flag",
       "current_value": "",
       "required": false,
       "options": []
     },
     {
       "tag": "input",
-      "field_id": "query",
+      "field_id": "flag1",
       "field_name": "",
       "field_type": "hidden",
       "field_label": "",
-      "selector": "#query",
+      "selector": "#flag1",
+      "current_value": "N",
+      "required": false,
+      "options": []
+    },
+    {
+      "tag": "input",
+      "field_id": "tempfrom",
+      "field_name": "",
+      "field_type": "hidden",
+      "field_label": "",
+      "selector": "#tempfrom",
       "current_value": "",
       "required": false,
       "options": []
     },
     {
       "tag": "input",
-      "field_id": "complaintModeInput",
+      "field_id": "tempto",
       "field_name": "",
       "field_type": "hidden",
       "field_label": "",
-      "selector": "#complaintModeInput",
-      "current_value": "t",
+      "selector": "#tempto",
+      "current_value": "",
       "required": false,
       "options": []
     }
@@ -581,41 +885,45 @@
   "select_fields": [
     {
       "tag": "select",
-      "field_id": "dateRange",
+      "field_id": "refundInput",
       "field_name": "",
       "field_type": "select-one",
       "field_label": "",
-      "selector": "#dateRange",
-      "current_value": "Previous Day",
+      "selector": "#refundInput",
+      "current_value": "YES",
       "required": false,
       "options": [
         {
-          "value": "PREV_DAY",
-          "label": "Previous Day"
+          "value": "Y",
+          "label": "YES"
         },
         {
-          "value": "WEEKLY",
-          "label": "Last 7 Days"
+          "value": "N",
+          "label": "NO"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "inquiryInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#inquiryInput",
+      "current_value": "Yes",
+      "required": false,
+      "options": [
+        {
+          "value": "Y",
+          "label": "Yes"
         },
         {
-          "value": "CURR_MONTH",
-          "label": "Current Month"
+          "value": "N",
+          "label": "No"
         },
         {
-          "value": "PREV_MONTH",
-          "label": "Previous Month"
-        },
-        {
-          "value": "CURR_YEAR",
-          "label": "Current Financial Year"
-        },
-        {
-          "value": "PREV_YEAR",
-          "label": "Previous Financial Year"
-        },
-        {
-          "value": "CURR_DAY",
-          "label": "Current Day"
+          "value": "O",
+          "label": "Only Inquiry"
         }
       ]
     },
@@ -733,94 +1041,6 @@
     },
     {
       "tag": "select",
-      "field_id": "complaintTypeInput",
-      "field_name": "",
-      "field_type": "select-one",
-      "field_label": "",
-      "selector": "#complaintTypeInput",
-      "current_value": "ALL",
-      "required": false,
-      "options": [
-        {
-          "value": "",
-          "label": "ALL"
-        },
-        {
-          "value": "132",
-          "label": "Medical Assistance- Train"
-        },
-        {
-          "value": "87",
-          "label": "Security- Train"
-        },
-        {
-          "value": "152",
-          "label": "Divyangjan Facilities- Train"
-        },
-        {
-          "value": "173",
-          "label": "Facilities for Women with Special needs- Train"
-        },
-        {
-          "value": "85",
-          "label": "Electrical Equipment- Train"
-        },
-        {
-          "value": "82",
-          "label": "Coach - Cleanliness- Train"
-        },
-        {
-          "value": "81",
-          "label": "Punctuality- Train"
-        },
-        {
-          "value": "83",
-          "label": "Water Availability- Train"
-        },
-        {
-          "value": "136",
-          "label": "Coach - Maintenance- Train"
-        },
-        {
-          "value": "86",
-          "label": "Catering & Vending Services- Train"
-        },
-        {
-          "value": "88",
-          "label": "Staff Behaviour- Train"
-        },
-        {
-          "value": "89",
-          "label": "Corruption / Bribery- Train"
-        },
-        {
-          "value": "84",
-          "label": "Bed Roll- Train"
-        },
-        {
-          "value": "90",
-          "label": "Miscellaneous- Train"
-        }
-      ]
-    },
-    {
-      "tag": "select",
-      "field_id": "complaintSubTypeInput",
-      "field_name": "",
-      "field_type": "select-one",
-      "field_label": "",
-      "selector": "#complaintSubTypeInput",
-      "current_value": "ALL",
-      "required": false,
-      "options": [
-        {
-          "value": "",
-          "label": "ALL"
-        }
-      ]
-    },
-    {
-      "tag": "select",
       "field_id": "complaintDeptInput",
       "field_name": "",
       "field_type": "select-one",
@@ -881,33 +1101,489 @@
     },
     {
       "tag": "select",
+      "field_id": "complaintModeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintModeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "S",
+          "label": "Station"
+        },
+        {
+          "value": "T",
+          "label": "Train"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintTypeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintTypeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        },
+        {
+          "value": "134",
+          "label": "Medical Assistance- Station"
+        },
+        {
+          "value": "132",
+          "label": "Medical Assistance- Train"
+        },
+        {
+          "value": "5",
+          "label": "Security- Station"
+        },
+        {
+          "value": "87",
+          "label": "Security- Train"
+        },
+        {
+          "value": "153",
+          "label": "Divyangjan Facilities- Station"
+        },
+        {
+          "value": "152",
+          "label": "Divyangjan Facilities- Train"
+        },
+        {
+          "value": "173",
+          "label": "Facilities for Women with Special needs- Train"
+        },
+        {
+          "value": "172",
+          "label": "Facilities for Women with Special needs- Station"
+        },
+        {
+          "value": "7",
+          "label": "Unreserved Ticketing- Station"
+        },
+        {
+          "value": "85",
+          "label": "Electrical Equipment- Train"
+        },
+        {
+          "value": "82",
+          "label": "Coach - Cleanliness- Train"
+        },
+        {
+          "value": "10",
+          "label": "Luggage / Parcels - Station"
+        },
+        {
+          "value": "81",
+          "label": "Punctuality- Train"
+        },
+        {
+          "value": "6",
+          "label": "Reserved Ticketing- Station"
+        },
+        {
+          "value": "83",
+          "label": "Water Availability- Train"
+        },
+        {
+          "value": "8",
+          "label": "Refund of Tickets- Station"
+        },
+        {
+          "value": "9",
+          "label": "Passenger Amenities- Station"
+        },
+        {
+          "value": "136",
+          "label": "Coach - Maintenance- Train"
+        },
+        {
+          "value": "3",
+          "label": "Electrical Equipment- Station"
+        },
+        {
+          "value": "86",
+          "label": "Catering & Vending Services- Train"
+        },
+        {
+          "value": "12",
+          "label": "Staff Behaviour- Station"
+        },
+        {
+          "value": "88",
+          "label": "Staff Behaviour- Train"
+        },
+        {
+          "value": "1",
+          "label": "Cleanliness- Station"
+        },
+        {
+          "value": "89",
+          "label": "Corruption / Bribery- Train"
+        },
+        {
+          "value": "84",
+          "label": "Bed Roll- Train"
+        },
+        {
+          "value": "4",
+          "label": "Catering & Vending Services- Station"
+        },
+        {
+          "value": "2",
+          "label": "Water Availability- Station"
+        },
+        {
+          "value": "90",
+          "label": "Miscellaneous- Train"
+        },
+        {
+          "value": "11",
+          "label": "Goods- Station"
+        },
+        {
+          "value": "13",
+          "label": "Corruption / Bribery- Station"
+        },
+        {
+          "value": "14",
+          "label": "Miscellaneous - Station"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "complaintSubTypeInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#complaintSubTypeInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "",
+          "label": "ALL"
+        }
+      ]
+    },
+    {
+      "tag": "select",
       "field_id": "viewType",
       "field_name": "",
       "field_type": "select-one",
       "field_label": "",
       "selector": "#viewType",
-      "current_value": "Train Type Wise",
+      "current_value": "Zone Wise",
       "required": false,
       "options": [
         {
-          "value": "traintype",
-          "label": "Train Type Wise"
-        },
-        {
-          "value": "trainnotype",
-          "label": "Train No Wise"
-        },
-        {
-          "value": "zonetype",
+          "value": "zoneview",
           "label": "Zone Wise"
         },
         {
-          "value": "divisiontype",
-          "label": "Division Wise"
+          "value": "compview",
+          "label": "Complaint Type Wise"
         },
         {
-          "value": "depottype",
-          "label": "Depot Wise"
+          "value": "divview",
+          "label": "Division Wise"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "assistanceInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#assistanceInput",
+      "current_value": "Yes",
+      "required": false,
+      "options": [
+        {
+          "value": "N",
+          "label": "No"
+        },
+        {
+          "value": "Y",
+          "label": "Yes"
+        },
+        {
+          "value": "O",
+          "label": "Only Assistance"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "channelInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#channelInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "ALL",
+          "label": "ALL"
+        },
+        {
+          "value": "M",
+          "label": "Social Media"
+        },
+        {
+          "value": "D",
+          "label": "Manual Dak"
+        },
+        {
+          "value": "H",
+          "label": "Helpline-139"
+        },
+        {
+          "value": "E",
+          "label": "Email"
+        },
+        {
+          "value": "A",
+          "label": "Mobile App"
+        },
+        {
+          "value": "W",
+          "label": "Web"
+        },
+        {
+          "value": "S",
+          "label": "SMS"
+        },
+        {
+          "value": "G",
+          "label": "CPGRAMS"
+        },
+        {
+          "value": "B",
+          "label": "Helpline-112"
+        },
+        {
+          "value": "U",
+          "label": "Umang"
+        },
+        {
+          "value": "R",
+          "label": "Superapp"
+        },
+        {
+          "value": "V",
+          "label": "IRSurvey"
+        },
+        {
+          "value": "F",
+          "label": "PSGN Complaints by Surveyer"
+        },
+        {
+          "value": "O",
+          "label": "WhatsApp"
+        },
+        {
+          "value": "Q",
+          "label": "QR Code"
+        }
+      ]
+    },
+    {
+      "tag": "select",
+      "field_id": "trainInput",
+      "field_name": "",
+      "field_type": "select-one",
+      "field_label": "",
+      "selector": "#trainInput",
+      "current_value": "ALL",
+      "required": false,
+      "options": [
+        {
+          "value": "ALL",
+          "label": "ALL"
+        },
+        {
+          "value": "ELEC",
+          "label": "Election Special"
+        },
+        {
+          "value": "TRST",
+          "label": "Tourist Train"
+        },
+        {
+          "value": "MSPC",
+          "label": "Mail/Express Special"
+        },
+        {
+          "value": "SMSP",
+          "label": "Summer Special"
+        },
+        {
+          "value": "TOD",
+          "label": "Train On Demand"
+        },
+        {
+          "value": "HSP",
+          "label": "Holiday Special"
+        },
+        {
+          "value": "PSPC",
+          "label": "Passenger Special"
+        },
+        {
+          "value": "EYRK",
+          "label": "Empty Rake"
+        },
+        {
+          "value": "SRKS",
+          "label": "Shramik Special"
+        },
+        {
+          "value": "MEX",
+          "label": "Mail/Express"
+        },
+        {
+          "value": "SUF",
+          "label": "SuperFast"
+        },
+        {
+          "value": "SHT",
+          "label": "Shatabdi"
+        },
+        {
+          "value": "JSH",
+          "label": "Jan Shatabdi"
+        },
+        {
+          "value": "GBR",
+          "label": "Garib Rath"
+        },
+        {
+          "value": "DRNT",
+          "label": "Duronto"
+        },
+        {
+          "value": "RAJ",
+          "label": "Rajdhani"
+        },
+        {
+          "value": "TEJ",
+          "label": "Tejas"
+        },
+        {
+          "value": "SUB",
+          "label": "Suburban"
+        },
+        {
+          "value": "PAS",
+          "label": "Passenger"
+        },
+        {
+          "value": "DMU",
+          "label": "DEMU"
+        },
+        {
+          "value": "MEMU",
+          "label": "MEMU"
+        },
+        {
+          "value": "EMU",
+          "label": "EMU"
+        },
+        {
+          "value": "RBUS",
+          "label": "Rail Bus"
+        },
+        {
+          "value": "SUVD",
+          "label": "Suvidha"
+        },
+        {
+          "value": "T18",
+          "label": "Train18"
+        },
+        {
+          "value": "PEXP",
+          "label": "Parcel Express"
+        },
+        {
+          "value": "SSPC",
+          "label": "Suburban Special"
+        },
+        {
+          "value": "MILT",
+          "label": "Military Special"
+        },
+        {
+          "value": "DEPT",
+          "label": "Empty Special"
+        },
+        {
+          "value": "PBEN",
+          "label": "Parcel For Bangladesh"
+        },
+        {
+          "value": "PPSP",
+          "label": "Unschedule Parcel Special"
+        },
+        {
+          "value": "PILT",
+          "label": "Pilot Train"
+        },
+        {
+          "value": "VNDB",
+          "label": "Vande Bharat"
+        },
+        {
+          "value": "INGL",
+          "label": "INAUGURAL SPECIAL"
+        },
+        {
+          "value": "AMTB",
+          "label": "AMRIT BHARAT"
+        },
+        {
+          "value": "TRSF",
+          "label": "TRAIN FOR RAILWAY STAFFF"
+        },
+        {
+          "value": "ASTH",
+          "label": "Aastha Special"
+        },
+        {
+          "value": "VNDM",
+          "label": "NAMO BHARAT RAPID RAIL"
+        },
+        {
+          "value": "VNDS",
+          "label": "VANDE BHARAT SLEEPER"
+        },
+        {
+          "value": "KUMB",
+          "label": "KUMBH MELA SPECIAL"
+        },
+        {
+          "value": "MAGH",
+          "label": "MAGH MELA SPECIAL"
+        },
+        {
+          "value": "FEST",
+          "label": "Festival Special"
         }
       ]
     },
@@ -984,30 +1660,6 @@
         {
           "value": "NA",
           "label": "N/A"
-        }
-      ]
-    },
-    {
-      "tag": "select",
-      "field_id": "assistanceInput",
-      "field_name": "",
-      "field_type": "select-one",
-      "field_label": "",
-      "selector": "#assistanceInput",
-      "current_value": "Yes",
-      "required": false,
-      "options": [
-        {
-          "value": "N",
-          "label": "No"
-        },
-        {
-          "value": "Y",
-          "label": "Yes"
-        },
-        {
-          "value": "O",
-          "label": "Only Assistance"
         }
       ]
     }

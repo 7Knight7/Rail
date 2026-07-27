@@ -16,6 +16,8 @@ export type ManualUiStatus =
 
 export interface ManualGenerateRequest {
   report_slug?: string;
+  date_from?: string;
+  date_to?: string;
   selected_column_ids: string[];
   column_order: string[];
   export_format: "xlsx" | "pdf" | "csv";

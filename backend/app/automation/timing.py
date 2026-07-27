@@ -154,9 +154,17 @@ class RunTiming:
             report_count=len(self.reports),
             portal_wait_seconds=perf.get("portal_wait_seconds"),
             application_seconds=perf.get("application_seconds"),
+            fixed_sleep_seconds=perf.get("fixed_sleep_seconds"),
         )
         self.write_json()
         self.write_performance_json(perf)
+        import os
+
+        perf_label = os.environ.get("AUTOMATION_PERF_LABEL", "").strip()
+        if perf_label:
+            self.write_labeled_performance_json(perf, perf_label)
+        else:
+            self.write_labeled_performance_json(perf, "after")
         return payload
 
     _PORTAL_SPAN_PREFIXES = (
@@ -226,6 +234,16 @@ class RunTiming:
     def write_performance_json(self, payload: dict[str, Any]) -> Path:
         debug_dir = ensure_directory(Path(config.extracted_data_dir).parent / "debug")
         path = debug_dir / f"performance_{self.run_id}.json"
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return path
+
+    def write_labeled_performance_json(
+        self, payload: dict[str, Any], label: str
+    ) -> Path:
+        """Write performance snapshot as performance_{label}_{run_id}.json."""
+        debug_dir = ensure_directory(Path(config.extracted_data_dir).parent / "debug")
+        safe = label.strip().replace(" ", "_")
+        path = debug_dir / f"performance_{safe}_{self.run_id}.json"
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return path
 

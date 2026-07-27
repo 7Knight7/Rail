@@ -24,6 +24,7 @@ from app.automation.scr_field_map import (
 )
 from app.automation.utils import ensure_directory, log_automation_event, resolve_report_dir, resolve_run_scoped_dir
 from app.automation.wait_utils import poll_until, tracked_sleep
+from app.automation.run_context import get_run_context
 
 from .base import BaseReportHandler
 
@@ -53,12 +54,27 @@ class Report5Handler(BaseReportHandler):
     ) -> ReportResult:
         started_at = datetime.now(UTC).isoformat()
         t0 = time.perf_counter()
+        ctx = get_run_context()
+        if ctx is not None:
+            ctx.freeze_report_from_date(report.slug)
         page = await self.ensure_mis_page(page, session, f"{report.slug}_start", report=report)
         await self.navigation.navigate_to_report(page, report)
         page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
 
         report_root, _, _ = await self.apply_filters_and_submit(
-            page, report, filters=REPORT_5_FILTERS, session=session
+            page,
+            report,
+            filters=REPORT_5_FILTERS,
+            session=session,
+            source_name="scr_train_feedback",
+        )
+        log_automation_event(
+            logger,
+            "phase3_table_refreshed",
+            run_id=ctx.run_id if ctx is not None else "",
+            report_slug=report.slug,
+            source_name="scr_train_feedback",
+            mode="Train",
         )
         await self.click_received_twice(
             report_root, page, feedback=True, report_slug=report.slug
@@ -73,10 +89,15 @@ class Report5Handler(BaseReportHandler):
         )
 
         if error:
-            prefix = (
-                "REPORT6_FRESH_EXTRACTION_FAILED"
-                if report.slug == "scr-station"
-                else "REPORT5_FRESH_EXTRACTION_FAILED"
+            prefix = "REPORT5_FRESH_EXTRACTION_FAILED"
+            log_automation_event(
+                logger,
+                "phase3_terminal_status",
+                run_id=ctx.run_id if ctx is not None else "",
+                report_slug=report.slug,
+                status="failed",
+                failure_stage="extraction",
+                error=f"{prefix}: {error}",
             )
             return self.build_failed_result(report.slug, f"{prefix}: {error}")
 
@@ -118,7 +139,16 @@ class Report5Handler(BaseReportHandler):
             unsatisfactory_percent=self._last_unsatisfactory_percent,
             duration_seconds=round(extraction_seconds, 3),
         )
-        return await self.finalize_after_extract(
+        log_automation_event(
+            logger,
+            "phase3_rows_extracted",
+            run_id=ctx.run_id if ctx is not None else "",
+            report_slug=report.slug,
+            extracted_count=len(complaints),
+            expected_count=expected_count,
+            mode=self.expected_mode,
+        )
+        result = await self.finalize_after_extract(
             slug=report.slug,
             csv_path=csv_path,
             source_paths=source_paths,
@@ -128,6 +158,15 @@ class Report5Handler(BaseReportHandler):
             started_at=started_at,
             extraction_seconds=round(extraction_seconds, 3),
         )
+        log_automation_event(
+            logger,
+            "phase3_terminal_status",
+            run_id=ctx.run_id if ctx is not None else "",
+            report_slug=report.slug,
+            status=result.status,
+            failure_stage=None if result.status == "success" else "finalize",
+        )
+        return result
 
     async def _extract_scr_complaints(
         self,
@@ -145,6 +184,14 @@ class Report5Handler(BaseReportHandler):
 
         if not await self._click_unsatisfactory_row(page, table, target_row_idx):
             return expected_count, [], "Failed to open complaints modal"
+
+        log_automation_event(
+            logger,
+            "phase3_details_opened",
+            report_slug=report_slug,
+            mode=self.expected_mode,
+            expected_count=expected_count,
+        )
 
         complaints = await self._extract_modal_pages(page)
         await self._close_modal(page)

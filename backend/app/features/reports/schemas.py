@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.automation.date_range import DateRangeValidationError, ReportDateRange
 
 
 ManualUiStatus = Literal[
@@ -34,12 +36,24 @@ class ColumnSelectionRequest(BaseModel):
 
 class ManualGenerateRequest(ColumnSelectionRequest):
     report_slug: str | None = None
+    date_from: str | None = None
+    date_to: str | None = None
     export_format: Literal["xlsx", "pdf", "csv"] = "xlsx"
     requested_formats: list[Literal["xlsx", "pdf"]] = Field(default_factory=lambda: ["xlsx", "pdf"])
     config_overrides: dict[str, Any] = Field(default_factory=dict)
     filter_conditions: list[dict[str, Any]] = Field(default_factory=list)
     configuration_source: Literal["manual_snapshot"] = "manual_snapshot"
     force_fresh_extraction: bool = False
+
+    @model_validator(mode="after")
+    def _validate_date_range(self) -> "ManualGenerateRequest":
+        if self.date_from is None or self.date_to is None:
+            raise ValueError("date_from and date_to are required")
+        try:
+            ReportDateRange.from_iso(self.date_from, self.date_to)
+        except DateRangeValidationError as exc:
+            raise ValueError(str(exc)) from exc
+        return self
 
 
 class OutputPreviewRequest(ColumnSelectionRequest):

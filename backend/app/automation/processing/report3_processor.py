@@ -30,10 +30,10 @@ from app.automation.processing.topn_output_columns import (
     topn_default_ids,
     topn_labels,
 )
+from app.automation.date_range import date_range_for_processing
 from app.automation.utils import (
     ensure_directory,
     log_automation_event,
-    previous_day_report_date,
     resolve_report_dir,
 )
 
@@ -116,10 +116,16 @@ class Report3Processor:
             output_rows,
         )
 
-        report_date = previous_day_report_date()
+        date_range = date_range_for_processing(column_selection)
+
+
+        report_date = date_range.title_suffix()
+
+
+        filename_suffix = date_range.filename_suffix()
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
         pdf_dir = ensure_directory(resolve_report_dir(config.output_pdf_dir, report_slug))
-        base_name = f"Rail_Madad_Report_3_Top_20_Trains_{report_date}"
+        base_name = f"Rail_Madad_Report_3_Top_20_Trains_{filename_suffix}"
         excel_path = excel_dir / f"{base_name}.xlsx"
         pdf_path = pdf_dir / f"{base_name}.pdf"
 
@@ -239,7 +245,7 @@ class Report3Processor:
 
         title = normalize_report_title(
             f"Rail Madad Report No 3 - 20 Trains having maximum grievances "
-            f"on date {report_date}",
+            f"{report_date}",
             report_slug="train-no",
         )
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
@@ -305,7 +311,7 @@ class Report3Processor:
         )
         title = normalize_report_title(
             f"Rail Madad Report No 3 - 20 Trains having maximum grievances "
-            f"on date {report_date}",
+            f"{report_date}",
             report_slug="train-no",
         )
         story = [

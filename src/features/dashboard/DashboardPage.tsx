@@ -9,6 +9,7 @@ import type {
   ReportCardInfo,
 } from "@/api/dashboard";
 import { PageHeader } from "@/components/PageHeader";
+import { PdfPreviewModal } from "@/components/PdfPreviewModal";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -466,7 +467,7 @@ export function DashboardPage() {
   const { isAdmin } = usePermissions();
   const { summary } = useDashboardSummary();
   const { analytics, loading, error } = useDashboardAnalytics();
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewApiUrl, setPreviewApiUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -556,31 +557,18 @@ export function DashboardPage() {
           <ReportCards
             cards={analytics.report_cards}
             isAdmin={isAdmin}
-            onPreview={setPreviewUrl}
+            onPreview={setPreviewApiUrl}
             onDownload={(url, filename, key) => void onDownload(url, filename, key)}
             busy={busy}
           />
         </Section>
       )}
 
-      {previewUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-900">PDF Preview</h2>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setPreviewUrl(null)}
-              >
-                Close
-              </Button>
-            </div>
-            <iframe title="PDF preview" src={previewUrl} className="h-full w-full flex-1" />
-          </div>
-        </div>
-      )}
+      <PdfPreviewModal
+        apiUrl={previewApiUrl}
+        onClose={() => setPreviewApiUrl(null)}
+        title="PDF Preview"
+      />
     </div>
   );
 }

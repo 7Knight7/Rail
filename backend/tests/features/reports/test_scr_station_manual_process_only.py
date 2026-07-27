@@ -116,6 +116,8 @@ async def _seed_scr_station_dataset(
 
 def test_build_config_snapshot_preserves_selected_ids_and_requested_formats():
     body = ManualGenerateRequest(
+        date_from="2026-07-25",
+        date_to="2026-07-26",
         selected_column_ids=ACCEPTANCE_FILTER,
         column_order=ACCEPTANCE_FILTER,
         requested_formats=["xlsx", "pdf"],

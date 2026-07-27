@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import csv
 import logging
 import time
@@ -12,11 +11,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from app.automation.config import config
-from app.automation.generator import LOADING_SELECTORS, ReportGenerationError
+from app.automation.generator import ReportGenerationError
+from app.automation.table_refresh import table_fingerprint
 from app.automation.report4_filters import (
     TypeConfig,
     get_report4_filters_for_type,
     get_type_configs,
+)
+from app.automation.portal_from_date import (
+    apply_previous_from_date,
+    log_phase2_submit_clicked,
 )
 from app.automation.reports import ReportDefinition
 from app.automation.run_context import get_run_context
@@ -37,7 +41,6 @@ logger = logging.getLogger(__name__)
 
 # First attempt + one retry
 TYPE_SUBMIT_MAX_ATTEMPTS = 2
-REFRESH_TIMEOUT_MS = 90_000
 
 
 def type_slug(type_name: str) -> str:
@@ -61,6 +64,8 @@ class Report4Handler(BaseReportHandler):
 
         ctx = get_run_context()
         run_id = ctx.run_id if ctx is not None else str(uuid.uuid4())
+        if ctx is not None:
+            ctx.freeze_report_from_date(report.slug)
         extracted_dir = ensure_directory(
             resolve_report_dir(config.extracted_data_dir, report.slug) / run_id
         )
@@ -293,7 +298,7 @@ class Report4Handler(BaseReportHandler):
                 await self._save_type_failure_artifacts(
                     page, type_config.name, attempt, last_error
                 )
-                await tracked_sleep(1.5 * attempt, reason="report4_type_retry")
+                await tracked_sleep(0.4 * attempt, reason="report4_type_retry")
 
         return {
             "type_name": type_config.name,
@@ -330,7 +335,22 @@ class Report4Handler(BaseReportHandler):
         )
         self._assert_core_filters(applied_values, type_config)
 
-        old_fp = await self._table_fingerprint(report_root)
+        ctx = get_run_context()
+        run_id = ctx.run_id if ctx is not None else ""
+        await apply_previous_from_date(
+            page,
+            run_id,
+            report.slug,
+            type_config.name,
+            filter_service=self.filter_service,
+        )
+        log_phase2_submit_clicked(
+            run_id,
+            report.slug,
+            type_config.name,
+        )
+
+        old_fp = await table_fingerprint(report_root)
         log_automation_event(
             logger,
             "report4_type_submit",
@@ -341,15 +361,10 @@ class Report4Handler(BaseReportHandler):
 
         await self.generator.generate_report(report_root, page)
 
-        refreshed = await self._wait_for_table_refresh(
-            report_root,
-            page,
-            old_fp,
-            type_name=type_config.name,
-        )
-        if not refreshed:
+        new_fp = await table_fingerprint(report_root)
+        if old_fp and new_fp == old_fp:
             raise ReportGenerationError(
-                f"Report {report.slug} did not display after generate"
+                f"Report {report.slug} table did not refresh after generate"
             )
 
         if not await self._verify_type_selected(report_root, type_config.portal_value):
@@ -397,105 +412,6 @@ class Report4Handler(BaseReportHandler):
                 raise ReportGenerationError(
                     f"Type not applied before Submit, got: {type_applied}, expected: {type_config.portal_value}"
                 )
-
-    async def _table_fingerprint(self, report_root: Any) -> str:
-        """Capture a stable fingerprint of the currently visible results table."""
-        for selector in (
-            "table.dataTable",
-            "table:has(tbody tr)",
-            ".dataTables_wrapper table",
-            "table",
-        ):
-            locator = report_root.locator(selector).first
-            try:
-                if await locator.count() == 0:
-                    continue
-                if not await locator.is_visible():
-                    continue
-                payload = await locator.evaluate(
-                    """(el) => {
-                        const caption = (el.querySelector('caption')?.innerText || '').trim();
-                        const rows = Array.from(el.querySelectorAll('tr'))
-                            .slice(0, 8)
-                            .map((r) => (r.innerText || '').replace(/\\s+/g, ' ').trim());
-                        return [
-                            caption,
-                            String(el.querySelectorAll('tr').length),
-                            rows.join('||'),
-                        ].join('##');
-                    }"""
-                )
-                text = str(payload or "").strip()
-                if text and text != "##0##":
-                    return text
-            except Exception:
-                continue
-        return ""
-
-    async def _wait_for_table_refresh(
-        self,
-        report_root: Any,
-        page: "Page",
-        old_fingerprint: str,
-        *,
-        type_name: str,
-        timeout_ms: int = REFRESH_TIMEOUT_MS,
-    ) -> bool:
-        """Wait until the results table genuinely refreshes after Submit.
-
-        Does not treat “table exists” alone as success when the old fingerprint
-        is still present.
-        """
-        log_automation_event(
-            logger,
-            "report4_waiting_for_refresh",
-            type_name=type_name,
-            old_fingerprint=(old_fingerprint or "")[:120],
-        )
-        deadline = asyncio.get_running_loop().time() + (timeout_ms / 1000)
-        saw_clear = not bool(old_fingerprint)
-
-        while asyncio.get_running_loop().time() < deadline:
-            await self._wait_for_loaders(report_root, page)
-            current = await self._table_fingerprint(report_root)
-
-            if old_fingerprint:
-                if not current:
-                    saw_clear = True
-                elif current != old_fingerprint:
-                    if saw_clear or current != old_fingerprint:
-                        await tracked_sleep(0.12, reason="report4_refresh_confirm")
-                        confirm = await self._table_fingerprint(report_root)
-                        if confirm and confirm != old_fingerprint:
-                            return True
-            else:
-                if current:
-                    await tracked_sleep(0.12, reason="report4_refresh_confirm")
-                    confirm = await self._table_fingerprint(report_root)
-                    if confirm:
-                        return True
-
-            await tracked_sleep(0.1, reason="report4_refresh_poll")
-
-        # Final check: reject stale identical fingerprint.
-        final_fp = await self._table_fingerprint(report_root)
-        if old_fingerprint and final_fp == old_fingerprint:
-            return False
-        if final_fp and final_fp != old_fingerprint:
-            return True
-        return False
-
-    async def _wait_for_loaders(self, report_root: Any, page: "Page") -> None:
-        for selector in LOADING_SELECTORS:
-            try:
-                loader = report_root.locator(selector)
-                if await loader.count() == 0:
-                    loader = page.locator(selector)
-                if await loader.count() == 0:
-                    continue
-                await loader.first.wait_for(state="hidden", timeout=8_000)
-            except Exception:
-                continue
 
     async def _verify_type_selected(self, report_root: Any, portal_value: str) -> bool:
         try:

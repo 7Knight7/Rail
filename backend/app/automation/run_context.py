@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Coroutine
 
+from app.automation.date_range import ReportDateRange
 from app.automation.schemas import ReportResult
 from app.automation.timing import RunTiming
 from app.automation.utils import log_automation_event
@@ -54,6 +55,35 @@ class RunContext:
     _artifact_ids: dict[str, dict[str, str]] = field(default_factory=dict)
     _ingested_keys: set[str] = field(default_factory=set)
     skip_portal_archive: bool = True
+    phase1_from_date: str = ""
+    date_range: ReportDateRange | None = None
+    report_from_dates: dict[str, str] = field(default_factory=dict)
+
+    def freeze_report_from_date(self, slug: str) -> str:
+        """Freeze From Date once per report run (Reports 3/4/5/6)."""
+        from app.automation.date_range import resolve_portal_from_date
+        from app.automation.report_keys import canonicalize_report_key
+
+        key = canonicalize_report_key(slug)
+        if key not in self.report_from_dates:
+            if self.date_range is not None:
+                frozen = self.date_range.iso_from()
+            else:
+                frozen = resolve_portal_from_date()
+            self.report_from_dates[key] = frozen
+            event = (
+                "phase3_from_date_frozen"
+                if key in {"scr-train", "scr-station"}
+                else "phase2_from_date_frozen"
+            )
+            log_automation_event(
+                logger,
+                event,
+                run_id=self.run_id,
+                report_slug=slug,
+                expected_from_date=frozen,
+            )
+        return self.report_from_dates[key]
 
     def already_ingested(self, dataset_key: str, file_path: str) -> bool:
         return f"{dataset_key}|{file_path}" in self._ingested_keys

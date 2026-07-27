@@ -126,6 +126,8 @@ async def test_generate_lock_race_returns_409_not_500(api_client: AsyncClient):
             response = await api_client.post(
                 "/api/v1/reports/scr-train/generate",
                 json={
+                    "date_from": "2026-07-25",
+                    "date_to": "2026-07-26",
                     "selected_column_ids": [
                         "scr-train.complaint_ref_no",
                         "scr-train.created_on",
@@ -194,6 +196,8 @@ async def test_generate_dispatches_single_report_only(api_client: AsyncClient):
         response = await api_client.post(
             "/api/v1/reports/report1/generate",
             json={
+                "date_from": "2026-07-25",
+                "date_to": "2026-07-26",
                 "selected_column_ids": [
                     "report1.source_a.organisation",
                     "report1.source_a.received",
@@ -275,6 +279,8 @@ async def test_generate_payload_preserves_selected_columns(
         response = await api_client.post(
             f"/api/v1/reports/{slug}/generate",
             json={
+                "date_from": "2026-07-25",
+                "date_to": "2026-07-26",
                 "report_slug": slug,
                 "selected_column_ids": defaults,
                 "column_order": defaults,

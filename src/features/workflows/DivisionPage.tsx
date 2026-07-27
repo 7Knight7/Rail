@@ -1,13 +1,12 @@
 import { WorkflowPageLayout } from "@/components/workflow/WorkflowPageLayout";
-import { COMMON_ADVANCED_FIELDS, EXPORT_FORMAT_FIELD } from "@/features/workflows/reportConfigFields";
+import {
+  COMMON_ADVANCED_FIELDS,
+  EXPORT_FORMAT_FIELD,
+  REPORT_DATE_RANGE_FIELDS,
+} from "@/features/workflows/reportConfigFields";
 
 const settingsFields = [
-  {
-    id: "reportDate",
-    label: "Report Date",
-    type: "date" as const,
-    value: new Date().toISOString().split("T")[0],
-  },
+  ...REPORT_DATE_RANGE_FIELDS,
   {
     id: "topCount",
     label: "Top Count",
@@ -37,12 +36,6 @@ const previewColumns = [
   { key: "change", header: "Change" },
 ];
 
-const mockPreviewData = [
-  { rank: 1, division: "Secunderabad", count: 1250, percentage: "18.5%", change: "+2.3%" },
-  { rank: 2, division: "Hyderabad", count: 1180, percentage: "17.4%", change: "+1.8%" },
-  { rank: 3, division: "Vijayawada", count: 1050, percentage: "15.5%", change: "-0.5%" },
-];
-
 export function DivisionPage() {
   return (
     <WorkflowPageLayout
@@ -52,7 +45,6 @@ export function DivisionPage() {
       settingsFields={settingsFields}
       advancedFields={COMMON_ADVANCED_FIELDS}
       previewColumns={previewColumns}
-      mockPreviewData={mockPreviewData}
     />
   );
 }

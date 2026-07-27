@@ -61,6 +61,8 @@ async def test_generate_returns_409_when_automation_lock_held(api_client: AsyncC
     response = await api_client.post(
         "/api/v1/reports/report1/generate",
         json={
+            "date_from": "2026-07-25",
+            "date_to": "2026-07-26",
             "selected_column_ids": ["report1.source_a.organisation"],
             "column_order": ["report1.source_a.organisation"],
             "configuration_source": "manual_snapshot",

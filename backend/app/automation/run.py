@@ -22,6 +22,7 @@ from app.automation.cancellation import (
     wait_if_paused_async,
 )
 from app.automation.config import config
+from app.automation.date_range import ReportDateRange
 from app.automation.handlers import get_handler
 from app.automation.report_keys import canonicalize_report_key
 from app.automation.reports import catalog
@@ -36,30 +37,10 @@ from app.automation.session import (
 )
 from app.automation.timing import RunTiming
 from app.automation.utils import log_automation_event
-from app.automation.workflow import (
-    FEEDBACK_DATASET_ID,
-    FEEDBACK_ZONE_FILENAME,
-    attempt_feedback_extract,
-    extract_feedback_zone_csv,
-    extract_with_retry,
-    ingest_downloaded_file,
-    regenerate_comprehensive_for_pdf,
-    save_failure_artifacts,
-    verify_mis_session_or_raise,
-)
 from app.infrastructure.database.models import AutomationRunModel
 from app.infrastructure.database.session import SessionLocal
 
 logger = logging.getLogger(__name__)
-
-# Backward-compatible aliases for tests importing from run.py
-_ingest_downloaded_file = ingest_downloaded_file
-_verify_mis_session_or_raise = verify_mis_session_or_raise
-_extract_with_retry = extract_with_retry
-_attempt_feedback_extract = attempt_feedback_extract
-_extract_feedback_zone_csv = extract_feedback_zone_csv
-_regenerate_comprehensive_for_pdf = regenerate_comprehensive_for_pdf
-_save_failure_artifacts = save_failure_artifacts
 
 
 async def _execute_report_handler(
@@ -380,8 +361,8 @@ async def attach_to_railmadad(
     run_id: str | None = None,
     manual_config: dict | None = None,
 ) -> MultiReportResult:
-    """Connect to Microsoft Edge over CDP and execute catalog reports sequentially."""
-    manager = BrowserManager(cdp_url=config.browser_cdp_url)
+    """Connect to Chrome over CDP and execute catalog reports sequentially."""
+    manager = BrowserManager(cdp_url=config.chrome_debug_url)
     session = SessionManager(railmadad_url=config.railmadad_url)
     tabs: list[TabInfo] = []
     connected = False
@@ -404,6 +385,11 @@ async def attach_to_railmadad(
         logger.warning("Could not persist CDP run row: %s", exc)
 
     timing = RunTiming(run_id=resolved_run_id)
+    if manual_config:
+        date_range = ReportDateRange.from_snapshot(manual_config)
+    else:
+        date_range = ReportDateRange.default_global_range()
+    frozen_from_date = date_range.iso_from()
     ctx = RunContext(
         run_id=resolved_run_id,
         timing=timing,
@@ -411,6 +397,14 @@ async def attach_to_railmadad(
         defer_processing=True,
         skip_portal_archive=True,
         manual_config=manual_config,
+        phase1_from_date=frozen_from_date,
+        date_range=date_range,
+    )
+    log_automation_event(
+        logger,
+        "phase1_from_date_frozen",
+        run_id=resolved_run_id,
+        expected_from_date=frozen_from_date,
     )
     token = set_run_context(ctx)
     run_id = resolved_run_id
@@ -435,7 +429,7 @@ async def attach_to_railmadad(
             log_automation_event(
                 logger,
                 "cdp_connect_attempt",
-                cdp_url=config.browser_cdp_url,
+                cdp_url=config.chrome_debug_url,
                 run_id=run_id,
             )
             browser = await manager.connect()
@@ -443,12 +437,12 @@ async def attach_to_railmadad(
             log_automation_event(
                 logger,
                 "cdp_connected",
-                cdp_url=config.browser_cdp_url,
+                cdp_url=config.chrome_debug_url,
                 context_count=len(browser.contexts),
                 run_id=run_id,
             )
 
-        tabs = await session.discover_tabs(browser, cdp_url=config.browser_cdp_url)
+        tabs = await session.discover_tabs(browser)
         for tab in tabs:
             _log_tab(tab)
 
@@ -829,7 +823,7 @@ async def attach_to_railmadad(
     except BrowserConnectionError as exc:
         logger.error(
             "CDP connection failed at %s",
-            config.browser_cdp_url,
+            config.chrome_debug_url,
             exc_info=True,
         )
         result = MultiReportResult(
@@ -891,7 +885,7 @@ async def attach_to_railmadad(
             logger,
             "cdp_disconnect_start",
             browser_connected=manager.browser is not None,
-            cdp_url=config.browser_cdp_url,
+            cdp_url=config.chrome_debug_url,
             run_id=run_id,
         )
         await manager.close()

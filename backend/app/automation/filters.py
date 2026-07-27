@@ -282,15 +282,6 @@ class FilterDiscoveryService:
                 field_value=field.get("current_value"),
             )
 
-        output_path = Path(config.debug_screenshots_dir) / "report1_fields.json"
-        ensure_directory(output_path.parent)
-        output_path.write_text(json.dumps(fields, indent=2), encoding="utf-8")
-        log_automation_event(
-            logger,
-            "filter_discovery_saved",
-            path=str(output_path),
-            count=len(fields),
-        )
         return fields
 
 
@@ -379,16 +370,24 @@ class FilterService:
                 continue
 
             value = resolve_field_value(field, date_format=date_format)
-            applied_value = await self._apply_field(locator, field, value)
+            applied_value, changed = await self._apply_field(locator, field, value)
             applied[field.name] = applied_value
-            log_automation_event(
-                logger,
-                "filter_field_set",
-                field_name=field.name,
-                field_value=applied_value,
-                field_label=field.label or field.name,
-            )
-            # Cascading portal selects need a short settle; others do not.
+            if changed:
+                log_automation_event(
+                    logger,
+                    "filter_field_set",
+                    field_name=field.name,
+                    field_value=applied_value,
+                    field_label=field.label or field.name,
+                )
+            else:
+                log_automation_event(
+                    logger,
+                    "filter_field_unchanged",
+                    field_name=field.name,
+                    field_value=applied_value,
+                )
+            # Cascading portal selects need a short settle only when value changed.
             cascading = field.name.lower() in {
                 "zone",
                 "division",
@@ -399,8 +398,8 @@ class FilterService:
                 "daterange",
                 "view",
             }
-            if cascading:
-                delay_ms = min(config.filter_interaction_delay_ms, 100)
+            if cascading and changed:
+                delay_ms = min(config.filter_interaction_delay_ms, 80)
                 if delay_ms > 0:
                     await tracked_sleep(delay_ms / 1000, reason="cascading_filter_settle")
                 if field.field_type == "select" and page is not None:
@@ -451,17 +450,18 @@ class FilterService:
         locator: Locator,
         field: FilterFieldDefinition,
         value: str,
-    ) -> str:
+    ) -> tuple[str, bool]:
         if field.field_type == "select":
-            return await self._apply_select(locator, value)
+            applied, changed = await self._apply_select(locator, value)
+            return applied, changed
         if field.field_type == "checkbox":
             await self._apply_checkbox(locator, value)
-            return value
+            return value, True
         if field.field_type == "radio":
             await self._apply_radio(locator, value)
-            return value
+            return value, True
         await self._apply_text_or_date(locator, value)
-        return value
+        return value, True
 
     async def _apply_text_or_date(self, locator: Locator, value: str) -> None:
         if not await locator.is_visible():
@@ -481,7 +481,19 @@ class FilterService:
             await locator.fill(value)
             await locator.press("Enter")
 
-    async def _apply_select(self, locator: Locator, value: str) -> str:
+    async def _apply_select(self, locator: Locator, value: str) -> tuple[str, bool]:
+        current = await locator.evaluate(
+            "el => (el.options[el.selectedIndex]?.text ?? el.value ?? '').trim()"
+        )
+        current_norm = str(current or "").strip().lower()
+        value_norm = value.strip().lower()
+        if current_norm and (
+            current_norm == value_norm
+            or value_norm in current_norm
+            or current_norm in value_norm
+        ):
+            return str(current), False
+
         candidates = [value]
         normalized = value.lower().strip()
         if normalized in {"previous day", "prev_day", "previous_day", "today_range", "previous_day_range"}:
@@ -498,18 +510,18 @@ class FilterService:
         for candidate in candidates:
             try:
                 await locator.select_option(label=candidate)
-                return candidate
+                return candidate, True
             except Exception:
                 try:
                     await locator.select_option(value=candidate)
-                    return candidate
+                    return candidate, True
                 except Exception:
                     continue
         selected = await locator.evaluate(
             "el => el.options[el.selectedIndex]?.text ?? ''"
         )
         if selected:
-            return str(selected)
+            return str(selected), True
         raise FilterError(f"Could not select option '{value}' for dropdown")
 
     async def _apply_checkbox(self, locator: Locator, value: str) -> None:

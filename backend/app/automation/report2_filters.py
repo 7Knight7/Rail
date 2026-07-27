@@ -47,20 +47,6 @@ def _id_select(
 
 
 REPORT_2_FILTERS: list[FilterFieldDefinition] = [
-    FilterFieldDefinition(
-        name="dateRange",
-        selector=(
-            "#dateRange, "
-            "select[id='dateRange'], "
-            "select[name='dateRange'], "
-            "select[id*='dateRange'], select[name*='dateRange'], "
-            "select[id*='DateRange'], select[name*='DateRange']"
-        ),
-        field_type="select",
-        value="Previous Day",
-        required=True,
-        label="Date Range",
-    ),
     _id_select("refundInput", "Excluding Refund Cases", "YES"),
     _id_select("inquiryInput", "Excluding Inquiry Cases", "YES"),
     _id_select("complaintZoneInput", "Zone", "ALL"),
@@ -77,20 +63,6 @@ REPORT_2_FILTERS: list[FilterFieldDefinition] = [
 
 
 REPORT_2_FEEDBACK_FILTERS: list[FilterFieldDefinition] = [
-    FilterFieldDefinition(
-        name="dateRange",
-        selector=(
-            "#dateRange, "
-            "select[id='dateRange'], "
-            "select[name='dateRange'], "
-            "select[id*='dateRange'], select[name*='dateRange'], "
-            "select[id*='DateRange'], select[name*='DateRange']"
-        ),
-        field_type="select",
-        value="Previous Day",
-        required=True,
-        label="Date Range",
-    ),
     _id_select("refundInput", "Excluding Refund Cases", "YES"),
     _id_select("inquiryInput", "Excluding Inquiry Cases", "YES"),
     _id_select("complaintZoneInput", "Zone", "ALL"),
