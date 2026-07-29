@@ -73,6 +73,14 @@ export const SCHEDULED_REPORTS: ScheduledReport[] = [
     path: "/workflows/scr-station",
   },
   {
+    id: "report9",
+    name: "All Zones Train/Station Cause Wise on Date",
+    icon: Layers,
+    duration: "~3 min",
+    status: "Ready",
+    path: "/workflows/report9",
+  },
+  {
     id: "comprehensive-10-13",
     name: "Comprehensive Reports 10-13",
     icon: Layers,

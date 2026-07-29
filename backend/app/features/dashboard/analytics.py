@@ -47,6 +47,7 @@ DISPLAY_NAMES = {
     "types": "Cause Wise Analysis",
     "scr-train": "SCR Train Report",
     "scr-station": "SCR Station Report",
+    "report9": "All Zones Train/Station Cause Wise on Date",
 }
 
 # Recomputed only when a newer completed run appears
@@ -461,8 +462,11 @@ class DashboardAnalyticsService:
         if completed_at is not None and completed_at.tzinfo is None:
             completed_at = completed_at.replace(tzinfo=UTC)
 
+        report_cards = await self._report_cards(run, reports_by_slug)
+        has_report_files = any(card.files for card in report_cards)
+
         response = DashboardAnalyticsResponse(
-            has_data=bool(zones or divisions or trains or complaint_types),
+            has_data=bool(zones or divisions or trains or complaint_types or has_report_files),
             run_id=run.id,
             generated_at=completed_at.isoformat() if completed_at else None,
             totals=totals,
@@ -478,7 +482,7 @@ class DashboardAnalyticsService:
                 for t in complaint_types[:10]
             ],
             complaints_by_report=[c for c in complaints_by_report if c is not None],
-            report_cards=await self._report_cards(run, reports_by_slug),
+            report_cards=report_cards,
         )
         _cache = (run.id, response)
         return response

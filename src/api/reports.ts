@@ -133,6 +133,7 @@ export const PAGE_ID_TO_SLUG: Record<string, string> = {
   report5: "scr-train",
   "scr-station": "scr-station",
   report6_station: "scr-station",
+  report9: "report9",
   "comprehensive-10-13": "comprehensive-10-13",
 };
 
@@ -281,6 +282,7 @@ export function usesDualManualArtifacts(reportSlug: string): boolean {
     reportSlug === "scr-station" ||
     reportSlug === "train-no" ||
     reportSlug === "types" ||
+    reportSlug === "report9" ||
     reportSlug === "comprehensive-10-13"
   );
 }

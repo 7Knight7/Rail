@@ -142,6 +142,8 @@ async def _run_scr_train_process_only_worker(
     user_id: str | None,
     manual_config: dict[str, object],
 ) -> None:
+    from app.infrastructure.database.session import dispose_current_loop_engine
+
     started = time.monotonic()
     source_path: Path | None = None
     report_result: ReportResult | None = None
@@ -445,3 +447,5 @@ async def _run_scr_train_process_only_worker(
         )
         async with SessionLocal() as db:
             await finalize_cdp_run(db, run_id, result, user_id=user_id)
+    finally:
+        await dispose_current_loop_engine()

@@ -135,6 +135,8 @@ async def _run_topn_process_only_worker(
     user_id: str | None,
     manual_config: dict[str, object],
 ) -> None:
+    from app.infrastructure.database.session import dispose_current_loop_engine
+
     try:
         source_path = await resolve_valid_topn_dataset(
             report_slug,
@@ -253,3 +255,5 @@ async def _run_topn_process_only_worker(
         )
         async with SessionLocal() as session:
             await finalize_cdp_run(session, run_id, multi, user_id=user_id)
+    finally:
+        await dispose_current_loop_engine()

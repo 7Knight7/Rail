@@ -6,7 +6,7 @@ import csv
 from pathlib import Path
 
 import pytest
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table
 
 from app.automation.comprehensive1013_filters import COMPREHENSIVE_1013_SECTION_IDS
@@ -107,6 +107,15 @@ def _write_combined_index(base_dir: Path) -> Path:
     return index_path
 
 
+def _is_section_heading_table(table: Table) -> bool:
+    """Heading tables are 1x3: spacer | centered title | right-aligned date."""
+    if len(table._cellvalues) != 1 or len(table._cellvalues[0]) != 3:
+        return False
+    title_para = _paragraph_from_table_cell(table._cellvalues[0][1])
+    date_para = _paragraph_from_table_cell(table._cellvalues[0][2])
+    return title_para is not None and date_para is not None
+
+
 def test_comprehensive1013_pdf_is_single_page_with_section_order(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -162,21 +171,21 @@ def test_comprehensive1013_pdf_is_single_page_with_section_order(
     assert flowables is not None
     assert not any(isinstance(item, PageBreak) for item in flowables)
 
-    paragraph_texts = [
-        _paragraph_text(item)
-        for item in flowables
-        if isinstance(item, Paragraph)
-    ]
+    paragraph_texts: list[str] = []
     for item in flowables:
-        if isinstance(item, Table) and len(item._cellvalues) == 1 and len(item._cellvalues[0]) == 1:
-            cell_paragraph = _paragraph_from_table_cell(item._cellvalues[0][0])
-            if cell_paragraph is not None:
-                paragraph_texts.append(_paragraph_text(cell_paragraph))
+        if isinstance(item, Paragraph):
+            paragraph_texts.append(_paragraph_text(item))
+        elif isinstance(item, Table) and item._cellvalues:
+            for cell in item._cellvalues[0]:
+                cell_paragraph = _paragraph_from_table_cell(cell)
+                if cell_paragraph is not None:
+                    paragraph_texts.append(_paragraph_text(cell_paragraph))
     # reportlab may store markup entities; normalize for assertions
     normalized = [text.replace("&amp;", "&") for text in paragraph_texts]
 
-    title_hits = [text for text in normalized if "Report 10-13 (Comprehensive Reports)" in text]
+    title_hits = [text for text in normalized if text.strip() == "Comprehensive Reports"]
     assert len(title_hits) == 1
+    assert not any("Report 10-13 (Comprehensive Reports)" in text for text in normalized)
 
     heading_positions: list[int] = []
     for marker in SECTION_HEADING_MARKERS:
@@ -185,7 +194,7 @@ def test_comprehensive1013_pdf_is_single_page_with_section_order(
         heading_positions.append(matches[0])
     assert heading_positions == sorted(heading_positions)
 
-    # Each section heading sits in a 1-row Table whose width matches the data table below it.
+    # Each section: heading table (title+date) → spacer → data table
     section_tables: list[tuple[Table, Table]] = []
     idx = 0
     while idx < len(flowables) - 2:
@@ -196,8 +205,7 @@ def test_comprehensive1013_pdf_is_single_page_with_section_order(
             isinstance(heading_candidate, Table)
             and isinstance(spacer_candidate, Spacer)
             and isinstance(data_candidate, Table)
-            and len(heading_candidate._cellvalues) == 1
-            and len(heading_candidate._cellvalues[0]) == 1
+            and _is_section_heading_table(heading_candidate)
             and len(data_candidate._cellvalues) > 1
         ):
             section_tables.append((heading_candidate, data_candidate))
@@ -206,14 +214,36 @@ def test_comprehensive1013_pdf_is_single_page_with_section_order(
         idx += 1
 
     assert len(section_tables) == 4
+
+    expected_date = "29-07-2026"
+    data_widths: list[list[float]] = []
     for heading_table, data_table in section_tables:
         heading_width = float(sum(heading_table._colWidths))
         data_width = float(sum(data_table._colWidths))
         assert abs(heading_width - data_width) < 0.5
-        heading_paragraph = _paragraph_from_table_cell(heading_table._cellvalues[0][0])
-        assert heading_paragraph is not None
-        assert heading_paragraph.style.alignment == TA_CENTER
-        assert float(getattr(heading_paragraph, "width", heading_width)) == pytest.approx(
-            heading_width,
-            abs=0.5,
-        )
+
+        title_paragraph = _paragraph_from_table_cell(heading_table._cellvalues[0][1])
+        date_paragraph = _paragraph_from_table_cell(heading_table._cellvalues[0][2])
+        assert title_paragraph is not None
+        assert date_paragraph is not None
+        assert title_paragraph.style.alignment == TA_CENTER
+        assert date_paragraph.style.alignment == TA_RIGHT
+        assert expected_date in _paragraph_text(date_paragraph)
+
+        # Total row (last) must be bold — inspect resolved cell styles after wrap
+        data_table.wrap(sum(float(w) for w in data_table._colWidths), 10000)
+        last_row_styles = data_table._cellStyles[-1]
+        assert all(
+            "Bold" in str(getattr(cell_style, "fontname", ""))
+            for cell_style in last_row_styles
+        ), "Total row must use a bold font"
+
+        data_widths.append([float(w) for w in data_table._colWidths])
+
+    # All four data tables share identical total width and per-column widths
+    reference = data_widths[0]
+    for widths in data_widths[1:]:
+        assert abs(sum(widths) - sum(reference)) < 0.5
+        assert len(widths) == len(reference)
+        for left, right in zip(widths, reference, strict=True):
+            assert abs(left - right) < 0.5

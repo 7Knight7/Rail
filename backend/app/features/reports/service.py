@@ -140,7 +140,16 @@ def _find_report(result: MultiReportResult | None, slug: str) -> ReportResult | 
 
 
 DUAL_ARTIFACT_SLUGS = frozenset(
-    {"report1", "division", "scr-train", "scr-station", "train-no", "types", "comprehensive-10-13"}
+    {
+        "report1",
+        "division",
+        "scr-train",
+        "scr-station",
+        "train-no",
+        "types",
+        "report9",
+        "comprehensive-10-13",
+    }
 )
 
 
@@ -456,6 +465,17 @@ class ManualReportService:
                 run_id=run_id,
                 report_slug=slug,
                 config_snapshot=config_snapshot,
+            )
+            return run_id
+
+        if slug == "report9":
+            config_snapshot["force_fresh_extraction"] = True
+            config_snapshot["generation_mode"] = "fresh_extraction"
+            automation_service = AutomationService()
+            run_id, _status = await automation_service.start_manual_async(
+                user_id=user_id,
+                report_slugs=["report9"],
+                manual_config=config_snapshot,
             )
             return run_id
 

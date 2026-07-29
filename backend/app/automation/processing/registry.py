@@ -14,6 +14,7 @@ from app.automation.processing.report4_processor import Report4Processor
 from app.automation.processing.report5_processor import Report5Processor
 from app.automation.processing.report6_processor import Report6Processor
 from app.automation.processing.comprehensive1013_processor import Comprehensive1013Processor
+from app.automation.processing.report9_processor import Report9Processor
 from app.automation.report_keys import canonicalize_report_key
 
 _PROCESSORS: dict[str, Any] = {
@@ -23,6 +24,7 @@ _PROCESSORS: dict[str, Any] = {
     "types": Report4Processor(),
     "scr-train": Report5Processor(),
     "scr-station": Report6Processor(),
+    "report9": Report9Processor(),
     "comprehensive-10-13": Comprehensive1013Processor(),
 }
 

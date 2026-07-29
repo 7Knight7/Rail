@@ -85,16 +85,23 @@ def _run_attach_in_thread(
     """Run Playwright in a dedicated loop (required on Windows + Uvicorn)."""
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-    return asyncio.run(
-        attach_to_railmadad(
-            user_id=user_id,
-            report_slugs=report_slugs,
-            run_id=run_id,
-            manual_config=manual_config,
-            date_from=date_from,
-            date_to=date_to,
-        )
-    )
+
+    async def _attach_with_loop_local_db() -> MultiReportResult:
+        from app.infrastructure.database.session import dispose_current_loop_engine
+
+        try:
+            return await attach_to_railmadad(
+                user_id=user_id,
+                report_slugs=report_slugs,
+                run_id=run_id,
+                manual_config=manual_config,
+                date_from=date_from,
+                date_to=date_to,
+            )
+        finally:
+            await dispose_current_loop_engine()
+
+    return asyncio.run(_attach_with_loop_local_db())
 
 
 class AutomationService:

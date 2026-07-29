@@ -27,9 +27,10 @@ from typing import Any
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import A3, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.automation.config import config
@@ -39,7 +40,13 @@ from app.automation.comprehensive1013_filters import (
     get_section_config_by_id,
 )
 from app.automation.date_range import date_range_for_processing
-from app.automation.formatting.pdf_table import SAFE_MARGIN_PT, build_fitted_table
+from app.automation.formatting.pdf_fonts import pdf_font_bold, pdf_font_regular
+from app.automation.formatting.pdf_table import (
+    MAX_FONT_SIZE,
+    SAFE_MARGIN_PT,
+    fit_column_widths,
+    preferred_column_widths,
+)
 from app.automation.formatting.text_pipeline import normalize_report_title
 from app.automation.processing.base import ProcessingResult
 from app.automation.processing.comprehensive_output_columns import (
@@ -63,6 +70,8 @@ _PDF_SECTION_GAP_PT = 8.0
 _PDF_AFTER_HEADING_PT = 4.0
 _PDF_TITLE_AFTER_PT = 6.0
 _PDF_HEIGHT_BUFFER_PT = 12.0
+_PDF_MAIN_TITLE = "Comprehensive Reports"
+_PDF_LEFT_ALIGNED_HEADERS = frozenset({"Division"})
 
 
 def _escape_paragraph_xml(text: str) -> str:
@@ -75,26 +84,56 @@ def _escape_paragraph_xml(text: str) -> str:
     )
 
 
-def _heading_table_centered_over_width(
-    heading: str,
+def _section_date_text(date_range: Any) -> str:
+    """Display date for PDF section heading rows (does not change date resolution)."""
+    if date_range.date_from == date_range.date_to:
+        return date_range.display_from()
+    return f"{date_range.display_from()} to {date_range.display_to()}"
+
+
+def _render_section_heading(
+    title: str,
+    date_text: str,
     table_width: float,
     style: ParagraphStyle,
 ) -> Table:
-    """Render a section heading centred above a table of the given width."""
+    """Centered section title with right-aligned date on the same row over table_width."""
     centered_style = ParagraphStyle(
         name=f"{style.name}Centered",
         parent=style,
         alignment=TA_CENTER,
+        fontName=pdf_font_bold(),
     )
+    date_style = ParagraphStyle(
+        name=f"{style.name}Date",
+        parent=style,
+        alignment=TA_RIGHT,
+        fontName=pdf_font_bold(),
+    )
+    side_width = max(
+        stringWidth(date_text, pdf_font_bold(), style.fontSize) + 8.0,
+        56.0,
+    )
+    side_width = min(side_width, table_width * 0.28)
+    middle_width = max(table_width - (2.0 * side_width), 1.0)
+
     heading_table = Table(
-        [[Paragraph(_escape_paragraph_xml(heading), centered_style)]],
-        colWidths=[table_width],
+        [
+            [
+                "",
+                Paragraph(_escape_paragraph_xml(title), centered_style),
+                Paragraph(_escape_paragraph_xml(date_text), date_style),
+            ]
+        ],
+        colWidths=[side_width, middle_width, side_width],
         hAlign="LEFT",
     )
     heading_table.setStyle(
         TableStyle(
             [
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("ALIGN", (0, 0), (0, 0), "LEFT"),
+                ("ALIGN", (1, 0), (1, 0), "CENTER"),
+                ("ALIGN", (2, 0), (2, 0), "RIGHT"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("LEFTPADDING", (0, 0), (-1, -1), 0),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 0),
@@ -104,6 +143,123 @@ def _heading_table_centered_over_width(
         )
     )
     return heading_table
+
+
+def _column_align_commands(headers: list[str]) -> list[tuple]:
+    """ALIGN commands: Division left; all other columns centered."""
+    commands: list[tuple] = []
+    for col_idx, header in enumerate(headers):
+        align = "LEFT" if header in _PDF_LEFT_ALIGNED_HEADERS else "CENTER"
+        commands.append(("ALIGN", (col_idx, 0), (col_idx, -1), align))
+    return commands
+
+
+def _build_section_table(
+    headers: list[str],
+    rows: list[list[str]],
+    total_row: list[str],
+    col_widths: list[float],
+    font_size: float,
+) -> Table:
+    """Build one section data table with shared widths and Excel-like styling."""
+    table_data: list[list[object]] = [list(headers)]
+    for row_values in rows:
+        table_data.append(list(row_values))
+    table_data.append(list(total_row))
+
+    style_commands: list[tuple] = [
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.85, 0.85, 0.85)),
+        ("FONTNAME", (0, 0), (-1, 0), pdf_font_bold()),
+        ("FONTNAME", (0, 1), (-1, -2), pdf_font_regular()),
+        ("FONTNAME", (0, -1), (-1, -1), pdf_font_bold()),
+        ("FONTSIZE", (0, 0), (-1, -1), font_size),
+        ("LEFTPADDING", (0, 0), (-1, -1), 2),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 2),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        *_column_align_commands(headers),
+    ]
+    table = Table(table_data, colWidths=list(col_widths), repeatRows=1)
+    table.setStyle(TableStyle(style_commands))
+    table.hAlign = "LEFT"
+    return table
+
+
+def _render_pdf_section(
+    section: SectionDataset,
+    *,
+    section_date: str,
+    col_widths: list[float],
+    font_size: float,
+    heading_style: ParagraphStyle,
+) -> list:
+    """Render heading + date, spacer, and table for one comprehensive section."""
+    table = _build_section_table(
+        section.headers,
+        section.rows,
+        section.total_row,
+        col_widths,
+        font_size,
+    )
+    table_width = float(sum(col_widths))
+    heading = _render_section_heading(
+        section.section_config.section_title,
+        section_date,
+        table_width,
+        heading_style,
+    )
+    return [heading, Spacer(1, _PDF_AFTER_HEADING_PT), table]
+
+
+def _shared_pdf_column_layout(
+    sections: list[SectionDataset],
+    *,
+    margin: float,
+) -> tuple[tuple[float, float], list[float], float]:
+    """
+    Compute one pagesize + identical col_widths + font_size for all sections.
+
+    Uses the max preferred width per column across sections that share the same
+    header set (typical case). Tables always span the same usable page width.
+    """
+    base_pagesize = landscape(A3)
+    page_width = base_pagesize[0]
+    usable = page_width - (2 * margin)
+    font_size = MAX_FONT_SIZE
+
+    # Prefer the widest common header layout; fall back to first section headers.
+    header_key_counts: dict[tuple[str, ...], int] = {}
+    for section in sections:
+        key = tuple(section.headers)
+        header_key_counts[key] = header_key_counts.get(key, 0) + 1
+    shared_headers = list(
+        max(header_key_counts.keys(), key=lambda key: (header_key_counts[key], len(key)))
+    )
+
+    combined_rows: list[list[object]] = [list(shared_headers)]
+    for section in sections:
+        if list(section.headers) != shared_headers:
+            continue
+        combined_rows.extend(list(row) for row in section.rows)
+        combined_rows.append(list(section.total_row))
+
+    preferred = preferred_column_widths(
+        combined_rows,
+        font_size=font_size,
+        headers=shared_headers,
+    )
+    col_widths = fit_column_widths(preferred, usable)
+    # If content is narrower than usable, stretch to full usable width so all
+    # tables share identical left/right edges.
+    total = sum(col_widths)
+    if total > 0 and total < usable - 0.5:
+        scale = usable / total
+        col_widths = [width * scale for width in col_widths]
+
+    return base_pagesize, col_widths, font_size
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +321,7 @@ class Comprehensive1013Processor:
 
         date_range = date_range_for_processing(column_selection)
         report_date = date_range.title_suffix()
+        section_date = _section_date_text(date_range)
         filename_suffix = date_range.filename_suffix()
 
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
@@ -176,7 +333,7 @@ class Comprehensive1013Processor:
         try:
             self._write_excel(excel_path, sections, report_date=report_date)
             log_automation_event(logger, "comprehensive1013_excel_generated", excel_path=str(excel_path))
-            self._write_pdf(pdf_path, sections, report_date=report_date)
+            self._write_pdf(pdf_path, sections, section_date=section_date)
             log_automation_event(logger, "comprehensive1013_pdf_generated", pdf_path=str(pdf_path))
         except Exception as exc:
             return ProcessingResult(
@@ -524,13 +681,11 @@ class Comprehensive1013Processor:
         target_path: Path,
         sections: list[SectionDataset],
         *,
-        report_date: str,
+        section_date: str,
     ) -> None:
         """Write all four sections stacked continuously on a single PDF page."""
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
         margin = _PDF_MARGIN_PT
-        base_pagesize = landscape(A3)
-        page_width = base_pagesize[0]
 
         styles = getSampleStyleSheet()
         section_style = ParagraphStyle(
@@ -541,6 +696,7 @@ class Comprehensive1013Processor:
             spaceBefore=0,
             spaceAfter=0,
             textColor=colors.black,
+            fontName=pdf_font_bold(),
         )
         empty_style = ParagraphStyle(
             "ComprehensiveEmpty",
@@ -550,19 +706,38 @@ class Comprehensive1013Processor:
             spaceBefore=0,
             spaceAfter=0,
         )
-
-        main_title = normalize_report_title(
-            f"Report 10-13 (Comprehensive Reports) {report_date}",
-            report_slug="comprehensive-10-13",
-        )
         title_style = ParagraphStyle(
             "ComprehensiveTitle",
             parent=styles["Heading1"],
             fontSize=12,
             leading=14,
-            alignment=1,
+            alignment=TA_CENTER,
             spaceBefore=0,
             spaceAfter=0,
+            fontName=pdf_font_bold(),
+        )
+
+        main_title = normalize_report_title(
+            _PDF_MAIN_TITLE,
+            report_slug="comprehensive-10-13",
+        )
+
+        data_sections = [section for section in sections if section.rows]
+        base_pagesize, shared_col_widths, font_size = _shared_pdf_column_layout(
+            data_sections if data_sections else sections,
+            margin=margin,
+        )
+        page_width = base_pagesize[0]
+        usable_width = page_width - (2 * margin)
+
+        header_counts: dict[tuple[str, ...], int] = {}
+        for section in data_sections:
+            key = tuple(section.headers)
+            header_counts[key] = header_counts.get(key, 0) + 1
+        shared_headers = (
+            list(max(header_counts.keys(), key=lambda key: (header_counts[key], len(key))))
+            if header_counts
+            else []
         )
 
         # One title only; no PageBreak / repeated titles between sections.
@@ -575,42 +750,37 @@ class Comprehensive1013Processor:
             if section_idx > 0:
                 story.append(Spacer(1, _PDF_SECTION_GAP_PT))
 
-            if section.rows:
-                table_data: list[list[object]] = [list(section.headers)]
-                for row_values in section.rows:
-                    table_data.append(list(row_values))
-                table_data.append(list(section.total_row))
-
-                style_commands: list[tuple] = [
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                    ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.85, 0.85, 0.85)),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
-                ]
-
-                table, section_pagesize, _section_margin = build_fitted_table(
-                    table_data,
-                    style_commands,
-                    margin=margin,
-                )
-                if section_pagesize[0] > page_width:
-                    page_width = section_pagesize[0]
-
-                table_width = float(sum(table._colWidths))
-                story.append(
-                    _heading_table_centered_over_width(
-                        section.section_config.section_title,
-                        table_width,
-                        section_style,
-                    )
-                )
-                story.append(Spacer(1, _PDF_AFTER_HEADING_PT))
-                story.append(table)
-            else:
+            if not section.rows:
                 story.append(Paragraph("No data available for this section.", empty_style))
+                continue
 
-        usable_width = page_width - (2 * margin)
+            if list(section.headers) == shared_headers:
+                col_widths = list(shared_col_widths)
+            else:
+                table_data: list[list[object]] = [list(section.headers)]
+                table_data.extend(list(row) for row in section.rows)
+                table_data.append(list(section.total_row))
+                preferred = preferred_column_widths(
+                    table_data,
+                    font_size=font_size,
+                    headers=section.headers,
+                )
+                col_widths = fit_column_widths(preferred, usable_width)
+                total = sum(col_widths)
+                if total > 0 and abs(total - usable_width) > 0.5 and total < usable_width:
+                    scale = usable_width / total
+                    col_widths = [width * scale for width in col_widths]
+
+            story.extend(
+                _render_pdf_section(
+                    section,
+                    section_date=section_date,
+                    col_widths=col_widths,
+                    font_size=font_size,
+                    heading_style=section_style,
+                )
+            )
+
         content_height = 0.0
         for flowable in story:
             _width, height = flowable.wrap(usable_width, 100000)

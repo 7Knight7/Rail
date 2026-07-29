@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { SettingsCard } from "./SettingsCard";
@@ -52,6 +52,10 @@ interface WorkflowPageLayoutProps {
   settingsFields: SettingField[];
   advancedFields?: SettingField[];
   previewColumns?: Column[];
+  /** Optional content rendered above Report Settings (page-specific only). */
+  beforeSettings?: ReactNode;
+  /** When false, hides the Advanced Settings accordion (column picker / filters UI). */
+  showAdvancedSettings?: boolean;
 }
 
 function applyDefaultDateRange(fields: SettingField[]): SettingField[] {
@@ -74,6 +78,8 @@ export function WorkflowPageLayout({
   settingsFields: initialSettings,
   advancedFields: initialAdvanced = [],
   previewColumns: defaultPreviewColumns = [],
+  beforeSettings,
+  showAdvancedSettings = true,
 }: WorkflowPageLayoutProps) {
   const outputCatalogMode = usesOutputColumnCatalog(reportId);
   const reactivePreviewMode = usesReactiveOutputPreview(reportId);
@@ -318,6 +324,8 @@ export function WorkflowPageLayout({
     <div className="space-y-8">
       <PageHeader title={title} description={description} breadcrumbs={breadcrumbs} />
 
+      {beforeSettings}
+
       <SettingsCard
         title="Report Settings"
         description="Configure how this report should be generated"
@@ -326,94 +334,96 @@ export function WorkflowPageLayout({
         disabled={status === "processing"}
       />
 
-      <div className="overflow-hidden rounded-2xl border border-rail-line bg-white shadow-card transition-all duration-200 hover:shadow-premium">
-        <button
-          type="button"
-          onClick={() => setAdvancedOpen((open) => !open)}
-          className="flex w-full items-center justify-between px-6 py-5 text-left transition-colors hover:bg-surface/50"
-        >
-          <div>
-            <span className="text-sm font-semibold text-slate-900">Advanced Settings</span>
-            <p className="mt-0.5 text-xs text-slate-500">
-              Dynamic filters, visible columns, highlights and export options
-            </p>
-          </div>
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200",
-              advancedOpen && "rotate-180",
-            )}
-          />
-        </button>
-
-        {advancedOpen && (
-          <div className="space-y-6 border-t border-rail-line px-6 py-6">
-            <div className="rounded-xl border border-rail-line bg-white p-4">
-              <p className="text-xs text-slate-500">
-                {outputCatalogMode ? (
-                  <>
-                    Output columns:{" "}
-                    <span className="font-medium text-slate-700">
-                      {columnPickerColumns.length} selectable fields
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    Source dataset:{" "}
-                    <span className="font-medium text-slate-700">{datasetSourceLabel}</span>
-                    {metadata ? ` · ${metadata.columns.length} original columns` : ""}
-                  </>
-                )}
+      {showAdvancedSettings ? (
+        <div className="overflow-hidden rounded-2xl border border-rail-line bg-white shadow-card transition-all duration-200 hover:shadow-premium">
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((open) => !open)}
+            className="flex w-full items-center justify-between px-6 py-5 text-left transition-colors hover:bg-surface/50"
+          >
+            <div>
+              <span className="text-sm font-semibold text-slate-900">Advanced Settings</span>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Dynamic filters, visible columns, highlights and export options
               </p>
             </div>
-
-            {!outputCatalogMode && (
-              <FilterBuilder
-                columns={metadata?.columns ?? []}
-                conditions={filterConditions}
-                onChange={setFilterConditions}
-                loading={metadataLoading}
-                error={metadataError}
-                disabled={status === "processing"}
-              />
-            )}
-
-            <div className={outputCatalogMode ? "" : "border-t border-rail-line pt-6"}>
-              {reactivePreviewMode ? (
-                <GroupedOutputColumnsSection
-                  columns={columnPickerColumns}
-                  selectedColumnIds={visibleColumnIds}
-                  defaultColumnIds={defaultColumnIds}
-                  onChange={handleVisibleColumnIdsChange}
-                  disabled={status === "processing" || columnPickerLoading}
-                />
-              ) : (
-                <VisibleColumnsSection
-                  columns={columnPickerColumns}
-                  selectedColumnIds={visibleColumnIds}
-                  onChange={handleVisibleColumnIdsChange}
-                  disabled={status === "processing" || columnPickerLoading}
-                />
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200",
+                advancedOpen && "rotate-180",
               )}
-              {columnPickerError ? (
-                <p className="mt-2 text-xs text-danger">{columnPickerError}</p>
-              ) : null}
-            </div>
+            />
+          </button>
 
-            {advancedSettings.length > 0 && (
-              <div className="border-t border-rail-line pt-2">
-                <SettingsCard
-                  title=""
-                  description="Highlight rules and export options"
-                  fields={advancedSettings}
-                  onChange={handleAdvancedChange}
+          {advancedOpen && (
+            <div className="space-y-6 border-t border-rail-line px-6 py-6">
+              <div className="rounded-xl border border-rail-line bg-white p-4">
+                <p className="text-xs text-slate-500">
+                  {outputCatalogMode ? (
+                    <>
+                      Output columns:{" "}
+                      <span className="font-medium text-slate-700">
+                        {columnPickerColumns.length} selectable fields
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Source dataset:{" "}
+                      <span className="font-medium text-slate-700">{datasetSourceLabel}</span>
+                      {metadata ? ` · ${metadata.columns.length} original columns` : ""}
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {!outputCatalogMode && (
+                <FilterBuilder
+                  columns={metadata?.columns ?? []}
+                  conditions={filterConditions}
+                  onChange={setFilterConditions}
+                  loading={metadataLoading}
+                  error={metadataError}
                   disabled={status === "processing"}
                 />
+              )}
+
+              <div className={outputCatalogMode ? "" : "border-t border-rail-line pt-6"}>
+                {reactivePreviewMode ? (
+                  <GroupedOutputColumnsSection
+                    columns={columnPickerColumns}
+                    selectedColumnIds={visibleColumnIds}
+                    defaultColumnIds={defaultColumnIds}
+                    onChange={handleVisibleColumnIdsChange}
+                    disabled={status === "processing" || columnPickerLoading}
+                  />
+                ) : (
+                  <VisibleColumnsSection
+                    columns={columnPickerColumns}
+                    selectedColumnIds={visibleColumnIds}
+                    onChange={handleVisibleColumnIdsChange}
+                    disabled={status === "processing" || columnPickerLoading}
+                  />
+                )}
+                {columnPickerError ? (
+                  <p className="mt-2 text-xs text-danger">{columnPickerError}</p>
+                ) : null}
               </div>
-            )}
-          </div>
-        )}
-      </div>
+
+              {advancedSettings.length > 0 && (
+                <div className="border-t border-rail-line pt-2">
+                  <SettingsCard
+                    title=""
+                    description="Highlight rules and export options"
+                    fields={advancedSettings}
+                    onChange={handleAdvancedChange}
+                    disabled={status === "processing"}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {saveMessage && (
         <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
@@ -426,7 +436,10 @@ export function WorkflowPageLayout({
         onReset={handleReset}
         onDownload={() => void onDownload()}
         onSave={() => void handleSave()}
-        generateDisabled={status === "processing" || visibleColumnIds.length === 0}
+        generateDisabled={
+          status === "processing" ||
+          (showAdvancedSettings && visibleColumnIds.length === 0)
+        }
         resetDisabled={status === "idle" && previewData.length === 0}
         downloadDisabled={!canDownload}
         showDownload={!dualOutputMode}

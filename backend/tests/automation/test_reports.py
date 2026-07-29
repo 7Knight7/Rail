@@ -8,6 +8,7 @@ from app.automation.reports import (
     REPORT_4_TYPES,
     REPORT_5_SCR_TRAIN,
     REPORT_6_SCR_STATION,
+    REPORT_9,
     REPORT_10_13_COMPREHENSIVE,
     ReportCatalog,
     catalog,
@@ -23,6 +24,7 @@ def test_catalog_contains_all_reports():
         "types",
         "scr-train",
         "scr-station",
+        "report9",
         "comprehensive-10-13",
     ]
 
@@ -35,6 +37,7 @@ def test_default_catalog_order():
         REPORT_4_TYPES,
         REPORT_5_SCR_TRAIN,
         REPORT_6_SCR_STATION,
+        REPORT_9,
         REPORT_10_13_COMPREHENSIVE,
     ]
 

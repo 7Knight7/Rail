@@ -46,6 +46,7 @@ const UI_TO_BACKEND: Record<string, string> = {
   cause: "types",
   "scr-train": "scr-train",
   "scr-station": "scr-station",
+  report9: "report9",
   "comprehensive-10-13": "comprehensive-10-13",
 };
 

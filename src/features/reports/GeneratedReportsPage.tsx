@@ -32,6 +32,7 @@ const REPORT_DISPLAY_NAMES: Record<string, string> = {
   types: "Cause Wise Analysis",
   "scr-train": "SCR Train Report",
   "scr-station": "SCR Station Report",
+  report9: "All Zones Train/Station Cause Wise on Date",
   "comprehensive-10-13": "Report 10-13 (Comprehensive Reports)",
 };
 
@@ -347,7 +348,7 @@ export function GeneratedReportsPage() {
                             onClick={() =>
                               void onDownload(
                                 pdfDl,
-                                `${report.slug}.pdf`,
+                                `${getReportDisplayName(report.slug)}.pdf`,
                                 `pdf-${report.slug}`,
                               )
                             }
@@ -363,7 +364,7 @@ export function GeneratedReportsPage() {
                             onClick={() =>
                               void onDownload(
                                 excelDl,
-                                `${report.slug}.xlsx`,
+                                `${getReportDisplayName(report.slug)}.xlsx`,
                                 `xlsx-${report.slug}`,
                               )
                             }

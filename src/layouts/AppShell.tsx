@@ -27,6 +27,7 @@ const REPORT_CONFIG_ITEMS = [
   { id: "types", label: "Cause Wise Analysis", path: "/workflows/types" },
   { id: "scr-train", label: "SCR Train Report", path: "/workflows/scr-train" },
   { id: "scr-station", label: "SCR Station Report", path: "/workflows/scr-station" },
+  { id: "report9", label: "All Zones Train/Station Cause Wise on Date", path: "/workflows/report9" },
   { id: "comprehensive-10-13", label: "Report 10-13 (Comprehensive)", path: "/workflows/comprehensive-10-13" },
 ];
 
@@ -44,6 +45,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/workflows/types": "Cause Wise Analysis",
   "/workflows/scr-train": "SCR Train Report",
   "/workflows/scr-station": "SCR Station Report",
+  "/workflows/report9": "All Zones Train/Station Cause Wise on Date",
   "/workflows/comprehensive-10-13": "Report 10-13 (Comprehensive Reports)",
   "/workflows/summary": "Summary Report",
 };

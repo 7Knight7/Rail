@@ -26,6 +26,7 @@ SUPPORTED_REPORT_IDS = frozenset(
         "scr-station",
         "report1",
         "report1_feedback",
+        "report9",
         "comprehensive-10-13",
     }
 )

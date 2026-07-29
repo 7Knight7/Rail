@@ -43,6 +43,12 @@ export const AUTOMATION_REPORTS: AutomationReport[] = [
     estimatedMinutes: 2,
   },
   {
+    id: "report9",
+    label: "All Zones Train/Station Cause Wise on Date",
+    workflowPath: "/workflows/report9",
+    estimatedMinutes: 3,
+  },
+  {
     id: "comprehensive-10-13",
     label: "Report 10-13 (Comprehensive Reports)",
     workflowPath: "/workflows/comprehensive-10-13",

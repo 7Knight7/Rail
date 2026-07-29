@@ -311,7 +311,11 @@ function ReportCards({
                     disabled={!pdf?.download_url || busy === `pdf-${card.slug}`}
                     onClick={() =>
                       pdf?.download_url &&
-                      onDownload(pdf.download_url, `${card.slug}.pdf`, `pdf-${card.slug}`)
+                      onDownload(
+                        pdf.download_url,
+                        `${card.name}.pdf`,
+                        `pdf-${card.slug}`,
+                      )
                     }
                   >
                     <Download className="mr-1 h-3.5 w-3.5" />
@@ -326,7 +330,7 @@ function ReportCards({
                       excel?.download_url &&
                       onDownload(
                         excel.download_url,
-                        `${card.slug}.xlsx`,
+                        `${card.name}.xlsx`,
                         `xlsx-${card.slug}`,
                       )
                     }
