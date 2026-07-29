@@ -17,7 +17,7 @@ import { apiRequest } from "@/api/client";
 import { automationApi } from "@/api/automation";
 import {
   isTerminalRunStatus,
-  shouldResumeRun,
+  isActiveRunStatus,
 } from "@/features/automation/hooks/useAutomationPage";
 
 const mockApiRequest = vi.mocked(apiRequest);
@@ -44,14 +44,23 @@ describe("stop generation helpers", () => {
     expect(res.status).toBe("stopped");
   });
 
-  it("never auto-resumes progress after login or refresh", () => {
-    expect(shouldResumeRun("running")).toBe(false);
-    expect(shouldResumeRun("paused")).toBe(false);
-    expect(shouldResumeRun("pending")).toBe(false);
-    expect(shouldResumeRun("stopped")).toBe(false);
-    expect(shouldResumeRun("cancelled")).toBe(false);
-    expect(shouldResumeRun("completed")).toBe(false);
-    expect(shouldResumeRun("failed")).toBe(false);
+  it("identifies active non-terminal run statuses for progress restoration", () => {
+    // Active statuses should return true
+    expect(isActiveRunStatus("running")).toBe(true);
+    expect(isActiveRunStatus("paused")).toBe(true);
+    expect(isActiveRunStatus("pending")).toBe(true);
+    expect(isActiveRunStatus("queued")).toBe(true);
+    expect(isActiveRunStatus("extracting")).toBe(true);
+    expect(isActiveRunStatus("processing")).toBe(true);
+    expect(isActiveRunStatus("pause_requested")).toBe(true);
+    expect(isActiveRunStatus("stopping")).toBe(true);
+
+    // Terminal statuses should return false
+    expect(isActiveRunStatus("stopped")).toBe(false);
+    expect(isActiveRunStatus("cancelled")).toBe(false);
+    expect(isActiveRunStatus("completed")).toBe(false);
+    expect(isActiveRunStatus("failed")).toBe(false);
+    expect(isActiveRunStatus("idle")).toBe(false);
   });
 
   it("terminal statuses clear active progress polling", () => {

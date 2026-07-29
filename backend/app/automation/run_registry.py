@@ -162,6 +162,8 @@ async def ensure_schema_columns(session: AsyncSession) -> None:
         "ALTER TABLE automation_artifacts ADD COLUMN report_slug VARCHAR(64)",
         "ALTER TABLE automation_artifacts ADD COLUMN status VARCHAR(32) DEFAULT 'ready'",
         "ALTER TABLE automation_artifacts ADD COLUMN metadata_json TEXT",
+        "ALTER TABLE automation_runs ADD COLUMN date_from DATE",
+        "ALTER TABLE automation_runs ADD COLUMN date_to DATE",
     ]
     for stmt in statements:
         try:
@@ -222,7 +224,11 @@ async def create_cdp_run(
     run_id: str | None = None,
     trigger_type: str = "cdp_in_process",
     manual_config: dict | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> AutomationRunModel:
+    from datetime import date as date_type
+
     profile = await ensure_cdp_profile(session)
     run = AutomationRunModel(
         id=run_id or str(uuid4()),
@@ -232,6 +238,9 @@ async def create_cdp_run(
         started_at=datetime.now(UTC),
         created_by=user_id,
     )
+    if date_from and date_to:
+        run.date_from = date_type.fromisoformat(date_from)
+        run.date_to = date_type.fromisoformat(date_to)
     if manual_config is not None:
         import json
 

@@ -193,6 +193,8 @@ export const automationApi = {
   async start(options?: {
     report_slugs?: string[];
     async_mode?: boolean;
+    date_from?: string;
+    date_to?: string;
   }): Promise<AutomationStartResult> {
     return apiRequest<AutomationStartResult>(
       "/automation/start",
@@ -201,6 +203,8 @@ export const automationApi = {
         body: JSON.stringify({
           report_slugs: options?.report_slugs ?? null,
           async_mode: options?.async_mode ?? false,
+          date_from: options?.date_from ?? null,
+          date_to: options?.date_to ?? null,
         }),
       },
       false,

@@ -19,6 +19,7 @@ import {
   SCRTrainPage,
   SCRStationPage,
   SummaryPage,
+  ComprehensivePage,
 } from "@/features/workflows";
 import { TemplateListPage, TemplateEditorPage } from "@/features/admin/templates";
 import { PromptListPage, PromptEditorPage } from "@/features/admin/prompts";
@@ -95,6 +96,10 @@ export const router = createBrowserRouter([
                   {
                     path: "workflows/scr-station",
                     element: <SCRStationPage />,
+                  },
+                  {
+                    path: "workflows/comprehensive-10-13",
+                    element: <ComprehensivePage />,
                   },
                   {
                     path: "workflows/summary",

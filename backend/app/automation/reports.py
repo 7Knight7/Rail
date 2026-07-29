@@ -78,6 +78,14 @@ REPORT_6_SCR_STATION = ReportDefinition(
     url_fragment="mis_reports/report6",
 )
 
+REPORT_10_13_COMPREHENSIVE = ReportDefinition(
+    name="Report 10-13 (Comprehensive Reports)",
+    slug="comprehensive-10-13",
+    page_path="/mis_reports/report1",
+    screenshot_filename="comprehensive-10-13.png",
+    url_fragment="mis_reports/report1",
+)
+
 DEFAULT_CATALOG = [
     REPORT_1,
     REPORT_2,
@@ -85,6 +93,7 @@ DEFAULT_CATALOG = [
     REPORT_4_TYPES,
     REPORT_5_SCR_TRAIN,
     REPORT_6_SCR_STATION,
+    REPORT_10_13_COMPREHENSIVE,
 ]
 
 

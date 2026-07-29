@@ -42,6 +42,12 @@ export const AUTOMATION_REPORTS: AutomationReport[] = [
     workflowPath: "/workflows/scr-station",
     estimatedMinutes: 2,
   },
+  {
+    id: "comprehensive-10-13",
+    label: "Report 10-13 (Comprehensive Reports)",
+    workflowPath: "/workflows/comprehensive-10-13",
+    estimatedMinutes: 4,
+  },
 ];
 
 export const LOGIN_STEP = {

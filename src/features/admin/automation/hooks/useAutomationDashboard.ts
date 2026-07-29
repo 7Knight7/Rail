@@ -58,6 +58,8 @@ export function useAutomationDashboard(pollIntervalMs = 5000) {
     async (options?: {
       report_slugs?: string[];
       async_mode?: boolean;
+      date_from?: string;
+      date_to?: string;
     }): Promise<AutomationStartResult | null> => {
       setActing(true);
       try {

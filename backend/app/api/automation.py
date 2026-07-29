@@ -45,6 +45,7 @@ ALLOWED_PDF_KEYS = frozenset(
         "types",
         "scr-train",
         "scr-station",
+        "comprehensive-10-13",
     }
 )
 
@@ -81,6 +82,8 @@ class RunDetailResponse(BaseModel):
 class StartAutomationRequest(BaseModel):
     report_slugs: list[str] | None = None
     async_mode: bool = False
+    date_from: str | None = None
+    date_to: str | None = None
 
 
 class StartAcceptedResponse(BaseModel):
@@ -121,6 +124,42 @@ def _resolve_latest_pdf(report_key: str) -> Path:
     return pdf_path
 
 
+def _validate_date_range(date_from: str | None, date_to: str | None) -> None:
+    """Validate date_from/date_to parameters; raises HTTPException 422 on failure."""
+    if (date_from is None) != (date_to is None):
+        raise HTTPException(
+            status_code=422,
+            detail="Both date_from and date_to are required when specifying a date range",
+        )
+    if date_from is None:
+        return
+
+    import re
+    from datetime import date as date_type
+
+    iso_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    if not iso_pattern.match(date_from) or not iso_pattern.match(date_to):
+        raise HTTPException(
+            status_code=422,
+            detail="date_from and date_to must be in YYYY-MM-DD format",
+        )
+
+    try:
+        from_date = date_type.fromisoformat(date_from)
+        to_date = date_type.fromisoformat(date_to)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid date value: {exc}",
+        ) from exc
+
+    if from_date > to_date:
+        raise HTTPException(
+            status_code=422,
+            detail="date_from must not be after date_to",
+        )
+
+
 @router.post(
     "/start",
     dependencies=[Depends(require_admin), Depends(validate_csrf_token)],
@@ -134,6 +173,8 @@ async def start_automation(
 
     When ``async_mode`` is true, returns ``run_id`` immediately; poll GET /runs/{id}.
     """
+    _validate_date_range(body.date_from, body.date_to)
+
     report_slugs = body.report_slugs
     if body.async_mode:
         try:
@@ -148,13 +189,26 @@ async def start_automation(
                 error_code=exc.code,
             )
         run_id, status = await service.start_async(
-            user_id=_user.id, report_slugs=report_slugs
+            user_id=_user.id,
+            report_slugs=report_slugs,
+            date_from=body.date_from,
+            date_to=body.date_to,
         )
-        logger.info("Automation async start: run_id=%s", run_id)
+        logger.info(
+            "Automation async start: run_id=%s date_from=%s date_to=%s",
+            run_id,
+            body.date_from,
+            body.date_to,
+        )
         return StartAcceptedResponse(run_id=run_id, status=status)
 
     try:
-        result = await service.start(user_id=_user.id, report_slugs=report_slugs)
+        result = await service.start(
+            user_id=_user.id,
+            report_slugs=report_slugs,
+            date_from=body.date_from,
+            date_to=body.date_to,
+        )
     except Exception as exc:
         logger.exception("Unexpected automation start failure")
         raise HTTPException(status_code=500, detail="Automation failed to start") from exc
@@ -214,6 +268,8 @@ async def get_run(
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _user: Annotated[User, Depends(require_admin)],
 ) -> RunDetailResponse:
+    from app.automation.reports import catalog
+
     run = await db.get(AutomationRunModel, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
@@ -229,6 +285,18 @@ async def get_run(
             total_duration = result.total_duration_seconds
         except Exception:
             result = None
+
+    # For in-progress runs, include all expected reports with "waiting" status for those not yet processed
+    if run.status in ("running", "pending", "queued", "paused", "pause_requested"):
+        processed_slugs = {r.get("slug") for r in reports}
+        for catalog_report in catalog.reports:
+            if catalog_report.slug not in processed_slugs:
+                reports.append({
+                    "slug": catalog_report.slug,
+                    "dataset_key": catalog_report.slug,
+                    "status": "waiting",
+                    "error": None,
+                })
 
     # Enrich missing URLs from registered artifacts
     try:

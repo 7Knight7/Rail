@@ -507,6 +507,53 @@ class FilterService:
             )
         elif normalized == "today":
             candidates.extend(["Today", "Current Day", "CURRENT DAY", "TODAY"])
+        elif normalized in {"carriage & wagon", "carriage and wagon", "c&w"}:
+            candidates.extend(
+                ["Carriage & Wagon", "Carriage And Wagon", "C&W", "CARRIAGE & WAGON", "Carriage&Wagon"]
+            )
+        elif normalized in {"security-train", "security - train", "security train", "security- train"}:
+            candidates.extend(
+                [
+                    "Security-Train",
+                    "Security - Train",
+                    "Security- Train",
+                    "SECURITY-TRAIN",
+                    "Security Train",
+                ]
+            )
+        elif normalized in {"punctuality-train", "punctuality - train", "punctuality train", "punctuality- train", "punctuality"}:
+            candidates.extend(
+                [
+                    "Punctuality-Train",
+                    "Punctuality - Train",
+                    "Punctuality- Train",
+                    "PUNCTUALITY-TRAIN",
+                    "Punctuality Train",
+                    "Punctuality",
+                ]
+            )
+        elif "electrical" in normalized and ("train" in normalized or "equipment" in normalized):
+            candidates.extend(
+                [
+                    "Electrical Equipment-Train",
+                    "Electrical Equipment - Train",
+                    "Electrical Equipment- Train",
+                    "ELECTRICAL EQUIPMENT-TRAIN",
+                    "Electrical Equipment Train",
+                    "Electrical Equip-Train",
+                    "Electrical Equipment",
+                ]
+            )
+        elif normalized == "all":
+            candidates.extend(["ALL", "All", "all", "--All--", "-- All --"])
+        elif normalized == "train":
+            candidates.extend(["Train", "TRAIN", "train"])
+        elif normalized in {"south central railway", "scr"}:
+            candidates.extend(
+                ["South Central Railway", "SCR", "SOUTH CENTRAL RAILWAY", "South-Central Railway"]
+            )
+        elif normalized in {"division wise", "divisionwise"}:
+            candidates.extend(["Division Wise", "DivisionWise", "DIVISION WISE", "Division-Wise"])
         for candidate in candidates:
             try:
                 await locator.select_option(label=candidate)
@@ -517,12 +564,27 @@ class FilterService:
                     return candidate, True
                 except Exception:
                     continue
+
         selected = await locator.evaluate(
             "el => el.options[el.selectedIndex]?.text ?? ''"
         )
         if selected:
             return str(selected), True
-        raise FilterError(f"Could not select option '{value}' for dropdown")
+
+        available_options = await locator.evaluate(
+            "el => Array.from(el.options).map(o => ({value: o.value, label: (o.text || '').trim()}))"
+        )
+        log_automation_event(
+            logger,
+            "filter_select_failed",
+            requested_value=value,
+            candidates_tried=candidates,
+            available_options=available_options,
+        )
+        raise FilterError(
+            f"Could not select option '{value}' for dropdown. "
+            f"Tried: {candidates}. Available: {available_options}"
+        )
 
     async def _apply_checkbox(self, locator: Locator, value: str) -> None:
         should_check = value.lower() in {"true", "1", "yes", "on", "checked"}

@@ -265,12 +265,17 @@ class BaseReportHandler(ABC):
                 )
 
             await self.generator.generate_report(report_root, page)
+
+            await page.wait_for_timeout(500)
+
             row_count = await self.generator.count_rows(report_root)
 
             if not await self.generator.verify_report_displayed(report_root):
-                raise ReportGenerationError(
-                    f"Report {report.slug} did not display after generate"
-                )
+                await page.wait_for_timeout(1000)
+                if not await self.generator.verify_report_displayed(report_root):
+                    raise ReportGenerationError(
+                        f"Report {report.slug} did not display after generate"
+                    )
 
             return report_root, applied_values, row_count
 

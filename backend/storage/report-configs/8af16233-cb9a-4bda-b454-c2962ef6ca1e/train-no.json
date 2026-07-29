@@ -1,0 +1,22 @@
+{
+  "selected_column_ids": [
+    "train-no.sno",
+    "train-no.train_name",
+    "train-no.owning_zone",
+    "train-no.owning_division",
+    "train-no.train_no"
+  ],
+  "column_order": [
+    "train-no.sno",
+    "train-no.train_name",
+    "train-no.owning_zone",
+    "train-no.owning_division",
+    "train-no.train_no"
+  ],
+  "export_format": "xlsx",
+  "config_overrides": {
+    "topCount": 20,
+    "sortBy": "count"
+  },
+  "filter_conditions": []
+}

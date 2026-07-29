@@ -98,9 +98,39 @@ class Report1Handler(BaseReportHandler):
             await self.navigation.navigate_to_report(page, report)
             page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
 
-            report_root, _, row_count = await self.apply_filters_and_submit(
-                page, report, filters=REPORT_1_FILTERS, session=session
+            try:
+                await page.wait_for_load_state("networkidle", timeout=10_000)
+            except Exception:
+                pass
+
+            report_root = await self.filter_service.get_report_root(page)
+
+            applied_values = await self._apply_filters_fast(report_root, page)
+            log_automation_event(
+                logger,
+                "report1_filters_applied_fast",
+                applied_values=applied_values,
             )
+
+            run_id = ctx.run_id if ctx is not None else ""
+            from app.automation.portal_from_date import apply_previous_from_date, log_phase1_submit_clicked
+            await apply_previous_from_date(
+                page, run_id, report.slug, "comprehensive",
+                filter_service=self.filter_service,
+            )
+            log_phase1_submit_clicked(run_id, report.slug, "comprehensive")
+
+            await self.generator.generate_report(report_root, page)
+
+            await page.wait_for_timeout(500)
+
+            row_count = await self.generator.count_rows(report_root)
+
+            if not await self.generator.verify_report_displayed(report_root):
+                await page.wait_for_timeout(1000)
+                if not await self.generator.verify_report_displayed(report_root):
+                    raise Exception("Report 1 table did not display after generate")
+
             await self.click_received_twice(report_root, page, report_slug=report.slug)
 
             extractor = TableExtractor(output_dir=Path(config.extracted_data_dir))
@@ -450,6 +480,73 @@ class Report1Handler(BaseReportHandler):
             )
 
         return terminal
+
+    async def _apply_filters_fast(self, report_root, page) -> dict[str, str]:
+        """Apply Report 1 filters using fast JavaScript batch operation."""
+        js_code = """() => {
+            const results = {};
+            const selectByLabel = (sel, targetLabels) => {
+                const el = document.querySelector(sel);
+                if (!el || el.tagName !== 'SELECT') return null;
+                const labels = Array.isArray(targetLabels) ? targetLabels : [targetLabels];
+                
+                // Priority 1: Exact match (case-insensitive)
+                for (const label of labels) {
+                    const labelLower = label.toLowerCase().trim();
+                    for (let i = 0; i < el.options.length; i++) {
+                        const optText = (el.options[i].text || '').trim();
+                        if (optText.toLowerCase() === labelLower) {
+                            el.selectedIndex = i;
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                            return optText;
+                        }
+                    }
+                }
+                
+                // Priority 2: Option text includes target label (NOT vice versa)
+                for (const label of labels) {
+                    const labelLower = label.toLowerCase().trim();
+                    for (let i = 0; i < el.options.length; i++) {
+                        const optText = (el.options[i].text || '').trim();
+                        if (optText.toLowerCase().includes(labelLower)) {
+                            el.selectedIndex = i;
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                            return optText;
+                        }
+                    }
+                }
+                
+                return el.options[el.selectedIndex]?.text || '';
+            };
+
+            results.zone = selectByLabel('#complaintZoneInput', ['ALL', 'All']);
+            results.division = selectByLabel('#complaintDivInput', ['ALL', 'All']);
+            results.department = selectByLabel('#complaintDeptInput', ['ALL', 'All']);
+            results.mode = selectByLabel('#complaintModeInput', ['ALL', 'All']);
+            results.type = selectByLabel('#complaintTypeInput', ['ALL', 'All']);
+            results.sub_type = selectByLabel('#complaintSubTypeInput', ['ALL', 'All']);
+            results.view = selectByLabel('#viewType', ['Zone Wise', 'ZoneWise']);
+            results.excluding_assistance_cases = selectByLabel('#assistanceInput', ['Yes', 'YES']);
+            results.excluding_refund_cases = selectByLabel('#refundInput', ['YES', 'Yes']);
+            results.excluding_inquiry_cases = selectByLabel('#inquiryInput', ['Yes', 'YES']);
+            results.channel_type = selectByLabel('#channelTypeInput', ['ALL', 'All']);
+            results.train_type = selectByLabel('#trainTypeInput', ['ALL', 'All']);
+
+            return results;
+        }"""
+
+        applied_values = await report_root.evaluate(js_code)
+
+        from app.automation.wait_utils import tracked_sleep
+        await tracked_sleep(0.05, reason="report1_fast_filters_settle")
+
+        log_automation_event(
+            logger,
+            "report1_filters_applied_fast",
+            applied_values=applied_values,
+        )
+
+        return applied_values
 
     def _failed(
         self,

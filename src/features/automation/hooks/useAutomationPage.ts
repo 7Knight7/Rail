@@ -15,9 +15,18 @@ import {
 const LAST_RUN_KEY = RAILMADAD_LAST_RUN_KEY;
 const ACTIVE_SESSION_KEY = RAILMADAD_ACTIVE_GENERATION_KEY;
 
-/** Home never auto-resumes progress after login/refresh — user must click Generate. */
-export function shouldResumeRun(_status: string): boolean {
-  return false;
+/** Check if a run status is active (not terminal) and should restore progress UI. */
+export function isActiveRunStatus(status: string): boolean {
+  return (
+    status === "queued" ||
+    status === "pending" ||
+    status === "running" ||
+    status === "extracting" ||
+    status === "processing" ||
+    status === "paused" ||
+    status === "pause_requested" ||
+    status === "stopping"
+  );
 }
 
 export function isTerminalRunStatus(status: string): boolean {
@@ -37,6 +46,7 @@ const UI_TO_BACKEND: Record<string, string> = {
   cause: "types",
   "scr-train": "scr-train",
   "scr-station": "scr-station",
+  "comprehensive-10-13": "comprehensive-10-13",
 };
 
 const BACKEND_TO_UI: Record<string, string> = Object.fromEntries(
@@ -327,15 +337,19 @@ export function useAutomationPage(): UseAutomationPageReturn {
         if (isTerminalRunStatus(detail.status)) {
           stopPolling();
           activeRunIdRef.current = null;
+          // Clear session key but keep localStorage for result page until dismissed
           try {
             sessionStorage.removeItem(ACTIVE_SESSION_KEY);
           } catch {
             // ignore
           }
           if (detail.status === "stopped" || detail.status === "cancelled") {
+            // Fully clear state and return to landing page for stopped runs
             clearGenerationSessionState();
+            setGenerationStarted(false);
             resetRun();
           }
+          // For completed/failed - keep generationStarted=true to show result page
         }
       } catch (error) {
         console.error("Failed to poll run", error);
@@ -356,27 +370,59 @@ export function useAutomationPage(): UseAutomationPageReturn {
     [pollRun, stopPolling],
   );
 
-  // Land on Generate CTA — never auto-resume progress from storage or stale engine runs.
-  // Empty deps: must not re-run when resetRun identity changes mid-generation.
+  // Track whether we've already attempted restoration this mount
+  const restorationAttemptedRef = useRef(false);
+
+  // Helper to clear all stale generation state
+  const clearStaleState = useCallback(() => {
+    stopPolling();
+    activeRunIdRef.current = null;
+    seenRef.current = new Set();
+    lastPolledStatusRef.current = null;
+    stoppingRef.current = false;
+    pausingRef.current = false;
+    setGenerationStarted(false);
+    setStopping(false);
+    resetRun();
+    try {
+      sessionStorage.removeItem(ACTIVE_SESSION_KEY);
+      localStorage.removeItem(LAST_RUN_KEY);
+    } catch {
+      // ignore
+    }
+  }, [resetRun, stopPolling]);
+
+  // On mount: always show landing page, never auto-restore progress view
+  // The progress view should ONLY appear after user explicitly clicks Generate
   useEffect(() => {
     const resetUi = () => {
-      stopPolling();
+      clearStaleState();
+      restorationAttemptedRef.current = false;
+    };
+
+    const initializeLandingPage = async () => {
+      if (restorationAttemptedRef.current) return;
+      restorationAttemptedRef.current = true;
+
+      // ALWAYS show landing page on mount/refresh/login
+      // Never auto-restore progress view based on backend state
+      setGenerationStarted(false);
+      setStopping(false);
       activeRunIdRef.current = null;
       seenRef.current = new Set();
       lastPolledStatusRef.current = null;
-      stoppingRef.current = false;
-      pausingRef.current = false;
-      setGenerationStarted(false);
-      setStopping(false);
-      resetRun();
+
+      // Clear any stale storage hints from previous sessions
       try {
         sessionStorage.removeItem(ACTIVE_SESSION_KEY);
+        localStorage.removeItem(LAST_RUN_KEY);
       } catch {
         // ignore
       }
     };
 
-    resetUi();
+    void initializeLandingPage();
+
     window.addEventListener(CLEAR_GENERATION_UI_EVENT, resetUi);
     return () => {
       window.removeEventListener(CLEAR_GENERATION_UI_EVENT, resetUi);
@@ -385,15 +431,16 @@ export function useAutomationPage(): UseAutomationPageReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/login only
   }, []);
 
-  const onStart = useCallback(async () => {
+  const onStart = useCallback(async (options?: { date_from?: string; date_to?: string }) => {
     if (state.selectedReportIds.length === 0) return;
-    // Only block if this page already started a generation — ignore stale engine "active" runs.
+    // Block if generation is already in progress or an active run exists
     if (
       generationStarted ||
       state.runStatus === "running" ||
       state.runStatus === "paused" ||
       stopping ||
-      acting
+      acting ||
+      activeRunIdRef.current
     ) {
       return;
     }
@@ -410,10 +457,20 @@ export function useAutomationPage(): UseAutomationPageReturn {
       source: "playwright",
     });
 
+    if (options?.date_from && options?.date_to) {
+      console.info(
+        "home_full_run: selected_date_from=%s selected_date_to=%s generation_source=home_full_run",
+        options.date_from,
+        options.date_to,
+      );
+    }
+
     const slugs = toBackendSlugs(reportIds);
     const result = await startInProcess({
       report_slugs: slugs,
       async_mode: true,
+      date_from: options?.date_from,
+      date_to: options?.date_to,
     });
 
     if (result?.error_code === "RAILMADAD_NOT_LOGGED_IN") {

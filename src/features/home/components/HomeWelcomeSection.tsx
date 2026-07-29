@@ -8,6 +8,11 @@ interface HomeWelcomeSectionProps {
   isStarting: boolean;
   onGenerate: () => void;
   disabled?: boolean;
+  dateFrom: string;
+  dateTo: string;
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
+  dateRangeError: string | null;
 }
 
 export function HomeWelcomeSection({
@@ -15,6 +20,11 @@ export function HomeWelcomeSection({
   isStarting,
   onGenerate,
   disabled,
+  dateFrom,
+  dateTo,
+  onDateFromChange,
+  onDateToChange,
+  dateRangeError,
 }: HomeWelcomeSectionProps) {
   const { user } = useAuth();
   const name = user?.username?.split(/[\s_-]/)[0] ?? "Officer";
@@ -33,6 +43,45 @@ export function HomeWelcomeSection({
           analytics and report files will automatically be updated.
         </p>
       </div>
+
+      {isAdmin && (
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="home-date-from"
+              className="text-sm font-medium text-rail-ink"
+            >
+              From Date
+            </label>
+            <input
+              id="home-date-from"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => onDateFromChange(e.target.value)}
+              className="h-10 rounded-lg border border-rail-border bg-white px-3 text-sm text-rail-ink shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="home-date-to"
+              className="text-sm font-medium text-rail-ink"
+            >
+              To Date
+            </label>
+            <input
+              id="home-date-to"
+              type="date"
+              value={dateTo}
+              onChange={(e) => onDateToChange(e.target.value)}
+              className="h-10 rounded-lg border border-rail-border bg-white px-3 text-sm text-rail-ink shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        </div>
+      )}
+
+      {isAdmin && dateRangeError && (
+        <p className="text-sm text-red-600">{dateRangeError}</p>
+      )}
 
       {isAdmin ? (
         <Button

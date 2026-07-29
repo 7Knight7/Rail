@@ -5,3 +5,4 @@ export { TypesPage } from "./TypesPage";
 export { SCRTrainPage } from "./SCRTrainPage";
 export { SCRStationPage } from "./SCRStationPage";
 export { SummaryPage } from "./SummaryPage";
+export { ComprehensivePage } from "./ComprehensivePage";

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { RailMadadLoginDialog } from "@/features/automation/components/RailMadadLoginDialog";
 import { ChromeConnectionDialog } from "@/features/automation/components/ChromeConnectionDialog";
@@ -21,6 +22,11 @@ import {
 import { useDashboardSummary } from "@/features/home/hooks/useDashboardSummary";
 import { useAutomationPage } from "@/features/automation/hooks/useAutomationPage";
 import { usePermissions } from "@/hooks/usePermissions";
+import {
+  defaultReportDateFrom,
+  defaultReportDateTo,
+  validateReportDateRange,
+} from "@/utils/reportDateRange";
 
 function pipelineStepFromProgress(percent: number, isRunning: boolean): number {
   if (!isRunning) return 0;
@@ -35,6 +41,12 @@ export function HomePage() {
   const { isAdmin } = usePermissions();
   const generation = useAutomationPage();
   const { summary, loading: summaryLoading } = useDashboardSummary();
+
+  const [dateFrom, setDateFrom] = useState(defaultReportDateFrom);
+  const [dateTo, setDateTo] = useState(defaultReportDateTo);
+
+  const dateRangeError = validateReportDateRange(dateFrom, dateTo);
+  const isDateRangeValid = dateRangeError === null;
 
   const statusDisplay = summary
     ? currentStatusDisplay(summary.current_status)
@@ -160,8 +172,13 @@ export function HomePage() {
         <HomeWelcomeSection
           isAdmin={isAdmin}
           isStarting={generation.acting && !showProgress}
-          onGenerate={() => void generation.onStart()}
-          disabled={generation.selectedReportIds.length === 0}
+          onGenerate={() => void generation.onStart({ date_from: dateFrom, date_to: dateTo })}
+          disabled={generation.selectedReportIds.length === 0 || !isDateRangeValid}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+          dateRangeError={dateRangeError}
         />
 
         <HomeStatsGrid metrics={metrics} />

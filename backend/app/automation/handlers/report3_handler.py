@@ -46,8 +46,13 @@ class Report3Handler(BaseReportHandler):
         page = await self.ensure_mis_page(page, session, f"{report.slug}_after_nav", report=report)
         try:
             await page.wait_for_selector("#viewType, select", timeout=15000)
+            await page.wait_for_load_state("networkidle", timeout=10000)
         except Exception:
-            pass
+            log_automation_event(
+                logger,
+                "report3_initial_wait_timeout",
+                slug=report.slug,
+            )
 
         report_root, _, row_count = await self.apply_filters_and_submit(
             page,
@@ -69,7 +74,7 @@ class Report3Handler(BaseReportHandler):
             self.discovery_service,
             self.generator,
             session,
-            max_retries=1,
+            max_retries=2,
         )
 
         if await self.reject_empty_table(extraction_result) or not extraction_result.csv_path:

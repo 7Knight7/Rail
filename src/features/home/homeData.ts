@@ -72,6 +72,14 @@ export const SCHEDULED_REPORTS: ScheduledReport[] = [
     status: "Ready",
     path: "/workflows/scr-station",
   },
+  {
+    id: "comprehensive-10-13",
+    name: "Comprehensive Reports 10-13",
+    icon: Layers,
+    duration: "~4 min",
+    status: "Ready",
+    path: "/workflows/comprehensive-10-13",
+  },
 ];
 
 /** Icons for the live status metric cards (values come from /dashboard/summary). */

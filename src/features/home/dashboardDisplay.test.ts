@@ -23,7 +23,7 @@ function summary(overrides: Partial<DashboardSummary> = {}): DashboardSummary {
     successful_report_count: 0,
     failed_report_count: 0,
     generated_report_count: 0,
-    total_enabled_reports: 6,
+    total_enabled_reports: 7,
     estimated_duration_seconds: null,
     default_expected_duration_seconds: 900,
     reports: [],
@@ -65,9 +65,9 @@ describe("last generated card", () => {
     const ok = summary({
       last_generated_at: new Date().toISOString(),
       last_run_status: "success",
-      successful_report_count: 6,
+      successful_report_count: 7,
     });
-    expect(lastGeneratedDescription(ok)).toBe("All 6 reports completed successfully");
+    expect(lastGeneratedDescription(ok)).toBe("All 7 reports completed successfully");
   });
 
   it("does not claim success for partial or failed runs", () => {
@@ -125,10 +125,10 @@ describe("generated reports card", () => {
   it("renders X/Y from successful and total configured counts", () => {
     expect(
       generatedReportsValue(
-        summary({ successful_report_count: 6, total_enabled_reports: 6 }),
+        summary({ successful_report_count: 7, total_enabled_reports: 7 }),
       ),
-    ).toBe("6/6");
-    expect(generatedReportsValue(summary())).toBe("0/6");
+    ).toBe("7/7");
+    expect(generatedReportsValue(summary())).toBe("0/7");
   });
 
   it("describes generated artifact count", () => {

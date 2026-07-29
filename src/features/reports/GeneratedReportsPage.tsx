@@ -25,6 +25,20 @@ import { formatDateTime12h } from "@/utils/datetime";
 
 const LAST_RUN_KEY = "railmadad_last_run_id";
 
+const REPORT_DISPLAY_NAMES: Record<string, string> = {
+  report1: "Zone Wise Report",
+  division: "Division Report",
+  "train-no": "Top 20 Trains",
+  types: "Cause Wise Analysis",
+  "scr-train": "SCR Train Report",
+  "scr-station": "SCR Station Report",
+  "comprehensive-10-13": "Report 10-13 (Comprehensive Reports)",
+};
+
+function getReportDisplayName(slug: string): string {
+  return REPORT_DISPLAY_NAMES[slug] || slug;
+}
+
 function triggerBlobDownload(blob: Blob, filename: string) {
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -299,7 +313,7 @@ export function GeneratedReportsPage() {
                   return (
                     <Card key={report.slug} className="border-rail-line">
                       <CardHeader>
-                        <CardTitle className="text-sm">{report.slug}</CardTitle>
+                        <CardTitle className="text-sm">{getReportDisplayName(report.slug)}</CardTitle>
                         <CardDescription>
                           {report.status}
                           {report.row_count != null || report.source_row_count != null

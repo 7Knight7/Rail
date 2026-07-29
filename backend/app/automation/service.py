@@ -79,6 +79,8 @@ def _run_attach_in_thread(
     report_slugs: list[str] | None = None,
     run_id: str | None = None,
     manual_config: dict | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> MultiReportResult:
     """Run Playwright in a dedicated loop (required on Windows + Uvicorn)."""
     if sys.platform == "win32":
@@ -89,6 +91,8 @@ def _run_attach_in_thread(
             report_slugs=report_slugs,
             run_id=run_id,
             manual_config=manual_config,
+            date_from=date_from,
+            date_to=date_to,
         )
     )
 
@@ -100,6 +104,8 @@ class AutomationService:
         self,
         user_id: str | None = None,
         report_slugs: list[str] | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> MultiReportResult:
         """Connect to Chrome via CDP and run catalog reports (blocking until done)."""
         run_id = str(uuid4())
@@ -112,7 +118,13 @@ class AutomationService:
             )
         try:
             return await asyncio.to_thread(
-                _run_attach_in_thread, user_id, report_slugs, run_id
+                _run_attach_in_thread,
+                user_id,
+                report_slugs,
+                run_id,
+                None,
+                date_from,
+                date_to,
             )
         finally:
             release_automation_lock(run_id)
@@ -121,13 +133,20 @@ class AutomationService:
         self,
         user_id: str | None = None,
         report_slugs: list[str] | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
     ) -> tuple[str, str]:
         """Create a run row and start CDP work in a background thread.
 
         Returns (run_id, status) immediately so the UI can poll GET /runs/{id}.
         """
         async with SessionLocal() as db:
-            run = await create_cdp_run(db, user_id=user_id)
+            run = await create_cdp_run(
+                db,
+                user_id=user_id,
+                date_from=date_from,
+                date_to=date_to,
+            )
             run_id = run.id
 
         clear_cancel(run_id)
@@ -149,7 +168,14 @@ class AutomationService:
 
         def _worker() -> None:
             try:
-                _run_attach_in_thread(user_id, report_slugs, run_id)
+                _run_attach_in_thread(
+                    user_id,
+                    report_slugs,
+                    run_id,
+                    None,
+                    date_from,
+                    date_to,
+                )
             except Exception as exc:
                 logger.exception("Background automation failed for run %s", run_id)
                 asyncio.run(

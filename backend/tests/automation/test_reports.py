@@ -8,12 +8,13 @@ from app.automation.reports import (
     REPORT_4_TYPES,
     REPORT_5_SCR_TRAIN,
     REPORT_6_SCR_STATION,
+    REPORT_10_13_COMPREHENSIVE,
     ReportCatalog,
     catalog,
 )
 
 
-def test_catalog_contains_all_6_reports():
+def test_catalog_contains_all_reports():
     slugs = [report.slug for report in catalog.reports]
     assert slugs == [
         "report1",
@@ -22,6 +23,7 @@ def test_catalog_contains_all_6_reports():
         "types",
         "scr-train",
         "scr-station",
+        "comprehensive-10-13",
     ]
 
 
@@ -33,6 +35,7 @@ def test_default_catalog_order():
         REPORT_4_TYPES,
         REPORT_5_SCR_TRAIN,
         REPORT_6_SCR_STATION,
+        REPORT_10_13_COMPREHENSIVE,
     ]
 
 

@@ -33,6 +33,7 @@ def _register_all_handlers() -> None:
     from .report4_handler import Report4Handler
     from .report5_handler import Report5Handler
     from .report6_handler import Report6Handler
+    from .comprehensive1013_handler import Comprehensive1013Handler
 
     register_handler("report1", Report1Handler)
     register_handler("division", Report2Handler)
@@ -40,6 +41,7 @@ def _register_all_handlers() -> None:
     register_handler("types", Report4Handler)
     register_handler("scr-train", Report5Handler)
     register_handler("scr-station", Report6Handler)
+    register_handler("comprehensive-10-13", Comprehensive1013Handler)
 
 
 _register_all_handlers()

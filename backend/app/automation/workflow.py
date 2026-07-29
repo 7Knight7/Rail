@@ -393,6 +393,62 @@ async def extract_with_retry(
     return result, retry_attempted, retry_succeeded
 
 
+async def _apply_feedback_filters_fast(report_root) -> dict[str, str]:
+    """Apply Feedback filters using fast JavaScript batch operation."""
+    js_code = """() => {
+        const results = {};
+        const selectByLabel = (sel, targetLabels) => {
+            const el = document.querySelector(sel);
+            if (!el || el.tagName !== 'SELECT') return null;
+            const labels = Array.isArray(targetLabels) ? targetLabels : [targetLabels];
+            
+            // Priority 1: Exact match (case-insensitive)
+            for (const label of labels) {
+                const labelLower = label.toLowerCase().trim();
+                for (let i = 0; i < el.options.length; i++) {
+                    const optText = (el.options[i].text || '').trim();
+                    if (optText.toLowerCase() === labelLower) {
+                        el.selectedIndex = i;
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        return optText;
+                    }
+                }
+            }
+            
+            // Priority 2: Option text includes target label (NOT vice versa)
+            for (const label of labels) {
+                const labelLower = label.toLowerCase().trim();
+                for (let i = 0; i < el.options.length; i++) {
+                    const optText = (el.options[i].text || '').trim();
+                    if (optText.toLowerCase().includes(labelLower)) {
+                        el.selectedIndex = i;
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        return optText;
+                    }
+                }
+            }
+            
+            return el.options[el.selectedIndex]?.text || '';
+        };
+
+        results.zone = selectByLabel('#complaintZoneInput, select[name*="Zone"]', ['ALL', 'All']);
+        results.division = selectByLabel('#complaintDivInput, select[name*="Division"]', ['ALL', 'All']);
+        results.department = selectByLabel('#complaintDeptInput, select[name*="Dept"]', ['ALL', 'All']);
+        results.mode = selectByLabel('#complaintModeInput, select[name*="Mode"]', ['ALL', 'All']);
+        results.type = selectByLabel('#complaintTypeInput, select[name*="Type"]', ['ALL', 'All']);
+        results.sub_type = selectByLabel('#complaintSubTypeInput, select[name*="SubType"]', ['ALL', 'All']);
+        results.view = selectByLabel('#viewType, select[name*="View"]', ['Zone Wise / Dept. Wise', 'Zone Wise', 'ZoneWise']);
+        results.excluding_assistance_cases = selectByLabel('#assistanceInput, select[name*="assistance"]', ['Yes', 'YES']);
+        results.excluding_refund_cases = selectByLabel('#refundInput, select[name*="refund"]', ['YES', 'Yes']);
+        results.excluding_inquiry_cases = selectByLabel('#inquiryInput, select[name*="inquiry"]', ['Yes', 'YES']);
+
+        return results;
+    }"""
+
+    applied_values = await report_root.evaluate(js_code)
+    return applied_values
+
+
 async def attempt_feedback_extract(
     page,
     extractor: TableExtractor,
@@ -407,16 +463,16 @@ async def attempt_feedback_extract(
     await navigation.navigate_to_report(page, REPORT_6_FEEDBACK)
 
     report_root = await filter_service.get_report_root(page)
-    discovered_fields = await discovery_service.discover_fields(page)
-    report_filters = build_filters_from_discovery(discovered_fields, REPORT_6_FEEDBACK.slug)
-    applied_values = await filter_service.apply_filters(
-        report_root, report_filters, page=page
-    )
-    await filter_service.validate_mandatory(report_root, report_filters, applied_values)
+
+    applied_values = await _apply_feedback_filters_fast(report_root)
+
+    from app.automation.wait_utils import tracked_sleep
+    await tracked_sleep(0.05, reason="feedback_fast_filters_settle")
+
     log_automation_event(
         logger,
-        "feedback_filters_verified",
-        filters=applied_filter_records(report_filters, applied_values),
+        "feedback_filters_applied_fast",
+        applied_values=applied_values,
     )
 
     ctx = get_run_context()
@@ -585,6 +641,64 @@ async def extract_feedback_zone_csv(
     return result, retry_attempted, retry_succeeded
 
 
+async def _apply_report1_filters_fast(report_root) -> dict[str, str]:
+    """Apply Report 1 filters using fast JavaScript batch operation."""
+    js_code = """() => {
+        const results = {};
+        const selectByLabel = (sel, targetLabels) => {
+            const el = document.querySelector(sel);
+            if (!el || el.tagName !== 'SELECT') return null;
+            const labels = Array.isArray(targetLabels) ? targetLabels : [targetLabels];
+            
+            // Priority 1: Exact match (case-insensitive)
+            for (const label of labels) {
+                const labelLower = label.toLowerCase().trim();
+                for (let i = 0; i < el.options.length; i++) {
+                    const optText = (el.options[i].text || '').trim();
+                    if (optText.toLowerCase() === labelLower) {
+                        el.selectedIndex = i;
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        return optText;
+                    }
+                }
+            }
+            
+            // Priority 2: Option text includes target label (NOT vice versa)
+            for (const label of labels) {
+                const labelLower = label.toLowerCase().trim();
+                for (let i = 0; i < el.options.length; i++) {
+                    const optText = (el.options[i].text || '').trim();
+                    if (optText.toLowerCase().includes(labelLower)) {
+                        el.selectedIndex = i;
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                        return optText;
+                    }
+                }
+            }
+            
+            return el.options[el.selectedIndex]?.text || '';
+        };
+
+        results.zone = selectByLabel('#complaintZoneInput', ['ALL', 'All']);
+        results.division = selectByLabel('#complaintDivInput', ['ALL', 'All']);
+        results.department = selectByLabel('#complaintDeptInput', ['ALL', 'All']);
+        results.mode = selectByLabel('#complaintModeInput', ['ALL', 'All']);
+        results.type = selectByLabel('#complaintTypeInput', ['ALL', 'All']);
+        results.sub_type = selectByLabel('#complaintSubTypeInput', ['ALL', 'All']);
+        results.view = selectByLabel('#viewType', ['Zone Wise', 'ZoneWise']);
+        results.excluding_assistance_cases = selectByLabel('#assistanceInput', ['Yes', 'YES']);
+        results.excluding_refund_cases = selectByLabel('#refundInput', ['YES', 'Yes']);
+        results.excluding_inquiry_cases = selectByLabel('#inquiryInput', ['Yes', 'YES']);
+        results.channel_type = selectByLabel('#channelTypeInput', ['ALL', 'All']);
+        results.train_type = selectByLabel('#trainTypeInput', ['ALL', 'All']);
+
+        return results;
+    }"""
+
+    applied_values = await report_root.evaluate(js_code)
+    return applied_values
+
+
 async def regenerate_comprehensive_for_pdf(
     page,
     navigation: NavigationService,
@@ -598,8 +712,7 @@ async def regenerate_comprehensive_for_pdf(
 ):
     """Return to Report 1, reapply filters, Submit, re-sort Received, then ready for PDF.
 
-    Skips full rediscovery when known_filters provided, and does not re-save CSV
-    (verify table + sort only).
+    Uses fast JavaScript filter application for speed.
     """
     from app.automation.run_context import get_run_context
 
@@ -613,16 +726,25 @@ async def regenerate_comprehensive_for_pdf(
     async def _body():
         await verify_mis_session_or_raise(session, page, "comprehensive_regenerate")
         await navigation.navigate_to_report(page, REPORT_1)
+
+        try:
+            await page.wait_for_load_state("networkidle", timeout=10_000)
+        except Exception:
+            pass
+
         report_root = await filter_service.get_report_root(page)
-        if known_filters is not None:
-            report_filters = known_filters
-        else:
-            discovered_fields = await discovery_service.discover_fields(page)
-            report_filters = build_filters_from_discovery(discovered_fields, REPORT_1.slug)
-        applied_values = await filter_service.apply_filters(
-            report_root, report_filters, page=page
+
+        applied_values = await _apply_report1_filters_fast(report_root)
+
+        from app.automation.wait_utils import tracked_sleep
+        await tracked_sleep(0.1, reason="regen_fast_filters_settle")
+
+        log_automation_event(
+            logger,
+            "comprehensive_regen_filters_applied_fast",
+            applied_values=applied_values,
         )
-        await filter_service.validate_mandatory(report_root, report_filters, applied_values)
+
         run_id = ctx.run_id if ctx is not None else ""
         await apply_previous_from_date(
             page,
@@ -637,10 +759,15 @@ async def regenerate_comprehensive_for_pdf(
             "comprehensive_pdf_regen",
         )
         await generator.generate_report(report_root, page)
+
+        await page.wait_for_timeout(500)
+
         if not await generator.verify_report_displayed(report_root):
-            raise ReportGenerationError(
-                "Comprehensive report did not display after regenerate before PDF"
-            )
+            await page.wait_for_timeout(1000)
+            if not await generator.verify_report_displayed(report_root):
+                raise ReportGenerationError(
+                    "Comprehensive report did not display after regenerate before PDF"
+                )
         row_count = await generator.count_rows(report_root)
         if row_count is None or row_count <= 0:
             raise ReportGenerationError(
@@ -656,7 +783,7 @@ async def regenerate_comprehensive_for_pdf(
             received_sorted=True,
             rediscovery_skipped=known_filters is not None,
         )
-        return report_root, report_filters, applied_values
+        return report_root, known_filters, applied_values
 
     if span_cm is not None:
         with span_cm:

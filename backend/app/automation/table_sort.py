@@ -120,17 +120,21 @@ class ReceivedColumnService:
         if root is not page:
             search_roots.append(page)
 
+        # Normalize the target header for comparison (collapse whitespace)
+        normalized_target = re.sub(r"\s+", " ", column_header.strip()).lower()
         exact = re.compile(rf"^{re.escape(column_header)}$", re.I)
+        
         candidates: list[Locator] = []
         for search_root in search_roots:
             if column_header == RECEIVED_COLUMN:
                 candidates.append(search_root.locator(selectors.report1_received_header))
             candidates.extend([
-                search_root.locator(f"table thead th").filter(has_text=exact),
-                search_root.locator(f".dataTables_wrapper th").filter(has_text=exact),
+                search_root.locator("table thead th").filter(has_text=exact),
+                search_root.locator(".dataTables_wrapper th").filter(has_text=exact),
                 search_root.get_by_role("columnheader", name=exact),
             ])
 
+        # First pass: exact match
         for locator in candidates:
             try:
                 count = await locator.count()
@@ -149,6 +153,34 @@ class ReceivedColumnService:
                 continue
             except Exception as exc:
                 logger.debug("Error locating %s header: %s", column_header, exc)
+
+        # Second pass: partial/fuzzy match (for headers with extra whitespace or variants)
+        for search_root in search_roots:
+            all_headers = search_root.locator("table thead th, .dataTables_wrapper th")
+            try:
+                count = await all_headers.count()
+                for index in range(count):
+                    candidate = all_headers.nth(index)
+                    if not await candidate.is_visible():
+                        continue
+                    text = (await candidate.inner_text()).strip()
+                    # Normalize whitespace in header text for comparison
+                    normalized_text = re.sub(r"\s+", " ", text).lower()
+                    if normalized_target in normalized_text or normalized_text in normalized_target:
+                        if not await self._is_enabled(candidate):
+                            continue
+                        log_automation_event(
+                            logger,
+                            "sort_header_fuzzy_match",
+                            column=column_header,
+                            found_text=text,
+                        )
+                        await candidate.wait_for(state="visible", timeout=HEADER_WAIT_TIMEOUT_MS)
+                        return candidate
+            except PlaywrightTimeoutError:
+                continue
+            except Exception as exc:
+                logger.debug("Error in fuzzy search for %s header: %s", column_header, exc)
 
         return None
 

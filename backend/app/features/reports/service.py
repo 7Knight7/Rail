@@ -140,7 +140,7 @@ def _find_report(result: MultiReportResult | None, slug: str) -> ReportResult | 
 
 
 DUAL_ARTIFACT_SLUGS = frozenset(
-    {"report1", "division", "scr-train", "scr-station", "train-no", "types"}
+    {"report1", "division", "scr-train", "scr-station", "train-no", "types", "comprehensive-10-13"}
 )
 
 

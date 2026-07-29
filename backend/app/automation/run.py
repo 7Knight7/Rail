@@ -360,6 +360,8 @@ async def attach_to_railmadad(
     user_id: str | None = None,
     run_id: str | None = None,
     manual_config: dict | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
 ) -> MultiReportResult:
     """Connect to Chrome over CDP and execute catalog reports sequentially."""
     manager = BrowserManager(cdp_url=config.chrome_debug_url)
@@ -385,10 +387,15 @@ async def attach_to_railmadad(
         logger.warning("Could not persist CDP run row: %s", exc)
 
     timing = RunTiming(run_id=resolved_run_id)
-    if manual_config:
+    if date_from and date_to:
+        date_range = ReportDateRange.from_iso(date_from, date_to)
+        resolution_source = "frontend"
+    elif manual_config:
         date_range = ReportDateRange.from_snapshot(manual_config)
+        resolution_source = "manual_config"
     else:
         date_range = ReportDateRange.default_global_range()
+        resolution_source = "backend_default"
     frozen_from_date = date_range.iso_from()
     ctx = RunContext(
         run_id=resolved_run_id,
@@ -405,6 +412,8 @@ async def attach_to_railmadad(
         "phase1_from_date_frozen",
         run_id=resolved_run_id,
         expected_from_date=frozen_from_date,
+        expected_to_date=date_range.iso_to(),
+        resolution_source=resolution_source,
     )
     token = set_run_context(ctx)
     run_id = resolved_run_id
