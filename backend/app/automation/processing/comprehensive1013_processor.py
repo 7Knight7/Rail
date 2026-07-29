@@ -27,18 +27,19 @@ from typing import Any
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A3, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.automation.config import config
 from app.automation.comprehensive1013_filters import (
     COMPREHENSIVE_1013_SECTION_IDS,
     SectionConfig,
-    get_all_section_configs,
     get_section_config_by_id,
 )
 from app.automation.date_range import date_range_for_processing
-from app.automation.formatting.pdf_table import build_fitted_table
+from app.automation.formatting.pdf_table import SAFE_MARGIN_PT, build_fitted_table
 from app.automation.formatting.text_pipeline import normalize_report_title
 from app.automation.processing.base import ProcessingResult
 from app.automation.processing.comprehensive_output_columns import (
@@ -55,6 +56,54 @@ from app.automation.utils import (
     log_automation_event,
     resolve_report_dir,
 )
+
+# Report 10-13 PDF only: compact margins/spacing so four sections fit one page.
+_PDF_MARGIN_PT = min(SAFE_MARGIN_PT, 14.0)
+_PDF_SECTION_GAP_PT = 8.0
+_PDF_AFTER_HEADING_PT = 4.0
+_PDF_TITLE_AFTER_PT = 6.0
+_PDF_HEIGHT_BUFFER_PT = 12.0
+
+
+def _escape_paragraph_xml(text: str) -> str:
+    """Escape XML special characters for reportlab Paragraph markup."""
+    return (
+        str(text)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def _heading_table_centered_over_width(
+    heading: str,
+    table_width: float,
+    style: ParagraphStyle,
+) -> Table:
+    """Render a section heading centred above a table of the given width."""
+    centered_style = ParagraphStyle(
+        name=f"{style.name}Centered",
+        parent=style,
+        alignment=TA_CENTER,
+    )
+    heading_table = Table(
+        [[Paragraph(_escape_paragraph_xml(heading), centered_style)]],
+        colWidths=[table_width],
+        hAlign="LEFT",
+    )
+    heading_table.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    return heading_table
 
 logger = logging.getLogger(__name__)
 
@@ -477,23 +526,29 @@ class Comprehensive1013Processor:
         *,
         report_date: str,
     ) -> None:
-        """Write combined PDF with all sections stacked vertically."""
+        """Write all four sections stacked continuously on a single PDF page."""
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
-
-        sample_headers = next(
-            (list(section.headers) for section in sections if section.headers),
-            ["Division"],
-        )
-        pagesize, col_widths, margin = self._choose_layout(sample_headers)
-        table_width = sum(col_widths) if col_widths else 500
+        margin = _PDF_MARGIN_PT
+        base_pagesize = landscape(A3)
+        page_width = base_pagesize[0]
 
         styles = getSampleStyleSheet()
         section_style = ParagraphStyle(
             "ComprehensiveSection",
             parent=styles["Heading2"],
-            fontSize=11,
-            spaceAfter=6,
+            fontSize=10,
+            leading=12,
+            spaceBefore=0,
+            spaceAfter=0,
             textColor=colors.black,
+        )
+        empty_style = ParagraphStyle(
+            "ComprehensiveEmpty",
+            parent=styles["Normal"],
+            fontSize=8,
+            leading=10,
+            spaceBefore=0,
+            spaceAfter=0,
         )
 
         main_title = normalize_report_title(
@@ -503,21 +558,22 @@ class Comprehensive1013Processor:
         title_style = ParagraphStyle(
             "ComprehensiveTitle",
             parent=styles["Heading1"],
-            fontSize=14,
+            fontSize=12,
+            leading=14,
             alignment=1,
-            spaceAfter=12,
+            spaceBefore=0,
+            spaceAfter=0,
         )
 
-        story: list = [Paragraph(main_title, title_style), Spacer(1, 8)]
+        # One title only; no PageBreak / repeated titles between sections.
+        story: list = [
+            Paragraph(_escape_paragraph_xml(main_title), title_style),
+            Spacer(1, _PDF_TITLE_AFTER_PT),
+        ]
 
         for section_idx, section in enumerate(sections):
             if section_idx > 0:
-                story.append(PageBreak())
-                story.append(Paragraph(main_title, title_style))
-                story.append(Spacer(1, 6))
-
-            story.append(Paragraph(section.section_config.section_title, section_style))
-            story.append(Spacer(1, 8))
+                story.append(Spacer(1, _PDF_SECTION_GAP_PT))
 
             if section.rows:
                 table_data: list[list[object]] = [list(section.headers)]
@@ -533,16 +589,48 @@ class Comprehensive1013Processor:
                     ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
                 ]
 
-                table, section_pagesize, section_margin = build_fitted_table(
+                table, section_pagesize, _section_margin = build_fitted_table(
                     table_data,
                     style_commands,
+                    margin=margin,
                 )
-                if section_pagesize[0] > pagesize[0]:
-                    pagesize = section_pagesize
-                    margin = section_margin
+                if section_pagesize[0] > page_width:
+                    page_width = section_pagesize[0]
+
+                table_width = float(sum(table._colWidths))
+                story.append(
+                    _heading_table_centered_over_width(
+                        section.section_config.section_title,
+                        table_width,
+                        section_style,
+                    )
+                )
+                story.append(Spacer(1, _PDF_AFTER_HEADING_PT))
                 story.append(table)
             else:
-                story.append(Paragraph("No data available for this section.", styles["Normal"]))
+                story.append(Paragraph("No data available for this section.", empty_style))
+
+        usable_width = page_width - (2 * margin)
+        content_height = 0.0
+        for flowable in story:
+            _width, height = flowable.wrap(usable_width, 100000)
+            content_height += float(height)
+
+        page_height = max(
+            base_pagesize[1],
+            content_height + (2 * margin) + _PDF_HEIGHT_BUFFER_PT,
+        )
+        pagesize = (page_width, page_height)
+
+        log_automation_event(
+            logger,
+            "comprehensive1013_pdf_single_page_layout",
+            page_width=page_width,
+            page_height=page_height,
+            content_height=content_height,
+            margin=margin,
+            section_count=len(sections),
+        )
 
         doc = SimpleDocTemplate(
             str(temp_path),
@@ -554,21 +642,3 @@ class Comprehensive1013Processor:
         )
         doc.build(story)
         temp_path.replace(target_path)
-
-    @staticmethod
-    def _choose_layout(headers: list[str]) -> tuple[tuple[float, float], list[float], float]:
-        """Choose page layout based on column count."""
-        from reportlab.lib.pagesizes import A3, A4, landscape
-
-        col_count = len(headers)
-        if col_count <= 8:
-            pagesize = landscape(A4)
-            margin = 36
-        else:
-            pagesize = landscape(A3)
-            margin = 28
-
-        col_width = (pagesize[0] - 2 * margin) / max(col_count, 1)
-        col_widths = [col_width] * col_count
-
-        return pagesize, col_widths, margin
