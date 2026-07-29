@@ -108,6 +108,8 @@ export interface ReportCardInfo {
   status: DashboardStatus;
   generated_at: string | null;
   duration_seconds: number | null;
+  sections_total?: number | null;
+  row_count?: number | null;
   files: ReportFileMeta[];
 }
 

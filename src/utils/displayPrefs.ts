@@ -16,7 +16,6 @@ export interface NotificationPrefs {
   onCompletion: boolean;
   onFailure: boolean;
   sound: boolean;
-  desktop: boolean;
 }
 
 export interface DisplayPrefs {
@@ -39,7 +38,6 @@ export const DEFAULT_DISPLAY_PREFS: DisplayPrefs = {
     onCompletion: true,
     onFailure: true,
     sound: false,
-    desktop: false,
   },
 };
 
@@ -53,7 +51,6 @@ interface DisplaySettingsResponse {
   notify_on_completion: boolean;
   notify_on_failure: boolean;
   notification_sound: boolean;
-  desktop_notifications: boolean;
 }
 
 let current: DisplayPrefs = DEFAULT_DISPLAY_PREFS;
@@ -93,7 +90,6 @@ export async function loadDisplayPrefs(): Promise<void> {
         onCompletion: !!data.notify_on_completion,
         onFailure: !!data.notify_on_failure,
         sound: !!data.notification_sound,
-        desktop: !!data.desktop_notifications,
       },
     });
   } catch {

@@ -9,10 +9,11 @@ type SettingFieldProps = {
   setting: SettingItem;
   value: unknown;
   onChange: (value: unknown) => void;
+  disabled?: boolean;
 };
 
-export function SettingField({ setting, value, onChange }: SettingFieldProps) {
-  const disabled = !setting.is_editable;
+export function SettingField({ setting, value, onChange, disabled: disabledProp }: SettingFieldProps) {
+  const disabled = disabledProp || !setting.is_editable;
   const id = `${setting.category}-${setting.key}`;
 
   if (setting.value_type === "boolean") {

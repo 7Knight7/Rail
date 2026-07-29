@@ -105,6 +105,8 @@ class ReportCardInfo(BaseModel):
     status: DashboardStatus = "pending"
     generated_at: str | None = None
     duration_seconds: float | None = None
+    sections_total: int | None = None
+    row_count: int | None = None
     files: list[ReportFileMeta] = Field(default_factory=list)
 
 

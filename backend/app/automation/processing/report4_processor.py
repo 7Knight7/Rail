@@ -12,7 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, Side
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.platypus import KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
 from app.automation.formatting.scr import highlight_south_central_railway_rows, row_contains_scr
@@ -28,6 +28,13 @@ from app.automation.formatting.topn_pdf import (
     topn_section_style,
 )
 from app.automation.processing.base import ProcessingResult
+
+# Report 4 PDF: two section tables per page on A3 landscape.
+_REPORT4_PDF_MARGIN_PT = 14.0
+_REPORT4_TITLE_AFTER_PT = 6.0
+_REPORT4_SECTION_GAP_PT = 8.0
+_REPORT4_BEFORE_TABLE_PT = 6.0
+_REPORT4_TABLE_CELL_PADDING_PT = 2.0
 from app.automation.processing.column_config import project_topn_for_output, resolve_projection_column_keys
 from app.automation.processing.report3_processor import Report3Processor
 from app.automation.processing.topn_output_columns import topn_default_ids, topn_labels
@@ -491,25 +498,35 @@ class Report4Processor:
             (list(section.headers) for section in sections if section.headers),
             ["Train Name"],
         )
-        pagesize, col_widths, margin = choose_topn_landscape_layout(sample_headers)
+        pagesize, col_widths, margin = choose_topn_landscape_layout(
+            sample_headers,
+            margin=_REPORT4_PDF_MARGIN_PT,
+        )
         table_width = sum(col_widths)
         styles = getSampleStyleSheet()
         section_style = topn_section_style("Report4Section")
+        section_style.spaceBefore = 2
+        section_style.spaceAfter = 4
 
         main_title = normalize_report_title(
             f"Rail Madad Report No 4 - Cause wise Top 10 Trains {report_date}",
             report_slug="types",
         )
-        story: list = [build_topn_title_block(main_title, table_width), Spacer(1, 8)]
+        story: list = []
 
         for section_idx, section in enumerate(sections):
-            if section_idx > 0:
-                story.append(PageBreak())
+            if section_idx % 2 == 0:
+                if section_idx > 0:
+                    story.append(PageBreak())
                 story.append(build_topn_title_block(main_title, table_width))
-                story.append(Spacer(1, 6))
+                story.append(Spacer(1, _REPORT4_TITLE_AFTER_PT))
+            else:
+                story.append(Spacer(1, _REPORT4_SECTION_GAP_PT))
 
-            story.append(Paragraph(section.type_config.section_title, section_style))
-            story.append(Spacer(1, 8))
+            section_block: list = [
+                Paragraph(section.type_config.section_title, section_style),
+                Spacer(1, _REPORT4_BEFORE_TABLE_PT),
+            ]
 
             if section.rows:
                 table_data: list[list[object]] = [list(section.headers)]
@@ -534,14 +551,21 @@ class Report4Processor:
                 table, section_pagesize, section_margin, section_widths = build_topn_fitted_table(
                     table_data,
                     style_commands,
+                    margin=_REPORT4_PDF_MARGIN_PT,
+                    splittable=False,
+                    cell_padding=_REPORT4_TABLE_CELL_PADDING_PT,
                 )
                 if section_pagesize[0] > pagesize[0]:
                     pagesize = section_pagesize
                     margin = section_margin
                     table_width = sum(section_widths)
-                story.append(table)
+                section_block.append(table)
             else:
-                story.append(Paragraph("No data available for this type.", styles["Normal"]))
+                section_block.append(
+                    Paragraph("No data available for this type.", styles["Normal"])
+                )
+
+            story.append(KeepTogether(section_block))
 
         doc = SimpleDocTemplate(
             str(temp_path),

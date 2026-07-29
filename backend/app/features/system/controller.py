@@ -1,8 +1,10 @@
 """API controller for system info and maintenance actions (admin only)."""
 
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities.user import User
@@ -23,20 +25,36 @@ async def get_system_info(
     return await SystemService(session).info()
 
 
+@router.get("/export-logs")
+async def export_logs(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> Response:
+    """Download administrative events as PDF (admin only)."""
+    pdf_bytes = await SystemService(session).export_logs_pdf()
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    filename = f"RailMadad_Administrative_Logs_{timestamp}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
 @router.post(
     "/clear-cache",
     response_model=ClearCacheResponse,
     dependencies=[Depends(validate_csrf_token)],
 )
 async def clear_cache(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
     user: Annotated[User, Depends(require_admin)],
 ) -> ClearCacheResponse:
-    """Clear the settings cache and dashboard analytics cache."""
-    from app.features.dashboard.analytics import clear_analytics_cache
-    from app.features.settings.cache import settings_cache
-
-    await settings_cache.invalidate_all()
-    clear_analytics_cache()
+    """Clear in-memory caches and whitelisted disposable filesystem cache."""
+    service = SystemService(session)
+    result = await service.clear_cache()
 
     try:
         from app.features.activity.emit import emit_activity
@@ -50,4 +68,4 @@ async def clear_cache(
     except Exception:
         pass
 
-    return ClearCacheResponse(cleared=["settings", "dashboard_analytics"])
+    return result

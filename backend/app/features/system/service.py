@@ -13,7 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.automation.config import config as automation_config
 from app.core.config import settings
 from app.features.dashboard.service import canonical_run_status
-from app.features.system.schemas import SystemComponentStatus, SystemInfoResponse
+from app.features.system.cache_cleaner import CacheCleanResult, clear_whitelisted_cache
+from app.features.system.log_export import collect_admin_events
+from app.features.system.log_export_pdf import build_admin_events_pdf
+from app.features.system.schemas import ClearCacheResponse, SystemComponentStatus, SystemInfoResponse
 from app.infrastructure.database.models import AutomationRunModel
 
 logger = logging.getLogger(__name__)
@@ -143,4 +146,33 @@ class SystemService:
             last_successful_run_at=last_success,
             last_failed_run_at=last_failure,
             storage_usage_bytes=_storage_usage_bytes(),
+        )
+
+    async def export_logs_pdf(self) -> bytes:
+        events = await collect_admin_events(self._session)
+        return build_admin_events_pdf(
+            events,
+            environment=settings.environment,
+            app_version=settings.app_version,
+        )
+
+    async def clear_cache(self) -> ClearCacheResponse:
+        from app.features.dashboard.analytics import clear_analytics_cache
+        from app.features.settings.cache import settings_cache
+
+        await settings_cache.invalidate_all()
+        clear_analytics_cache()
+        cleared = ["settings", "dashboard_analytics"]
+
+        fs_result: CacheCleanResult = clear_whitelisted_cache()
+        cleared.extend(fs_result.cleared)
+
+        return ClearCacheResponse(
+            success=True,
+            cleared=cleared,
+            files_removed=fs_result.files_removed,
+            directories_removed=fs_result.directories_removed,
+            bytes_freed=fs_result.bytes_freed,
+            skipped_locked=fs_result.skipped_locked,
+            partial=fs_result.partial,
         )

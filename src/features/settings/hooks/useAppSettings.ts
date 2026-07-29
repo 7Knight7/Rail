@@ -6,6 +6,7 @@ import {
   type SettingUpdateItem,
 } from "@/api/settings";
 import { useToast } from "@/components/ui/Toast";
+import { unlockNotificationAudio } from "@/features/notifications/notificationSounds";
 import { loadDisplayPrefs } from "@/utils/displayPrefs";
 
 function buildDraftMap(categories: SettingCategory[]): Record<string, unknown> {
@@ -93,6 +94,9 @@ export function useAppSettings(activeCategory?: string | null, searchQuery?: str
     try {
       await settingsApi.update(updates);
       showToast("success", "Settings saved");
+      if (Boolean(draft["notifications.notification_sound"])) {
+        unlockNotificationAudio();
+      }
       await load();
       void loadDisplayPrefs();
     } catch {

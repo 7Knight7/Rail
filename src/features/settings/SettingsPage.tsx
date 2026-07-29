@@ -13,14 +13,22 @@ import {
   Upload,
   UserRound,
 } from "lucide-react";
-import { activityApi } from "@/api/activity";
 import { authApi } from "@/api/auth";
 import { SETTINGS_CATEGORY_META, type SettingItem } from "@/api/settings";
 import { systemApi, type SystemInfo } from "@/api/system";
+import { ApiError } from "@/api/client";
 import { PageHeader } from "@/components/PageHeader";
 import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Spinner } from "@/components/ui/Spinner";
@@ -34,6 +42,7 @@ import { SettingField } from "@/features/settings/components/SettingField";
 import { useAppSettings } from "@/features/settings/hooks/useAppSettings";
 import { clearAnalyticsCache } from "@/features/dashboard/hooks/useDashboardAnalytics";
 import { clearDashboardCache } from "@/features/home/hooks/useDashboardSummary";
+import { unlockNotificationAudio } from "@/features/notifications/notificationSounds";
 
 type TabSlug = "general" | "notifications" | "account" | "system";
 
@@ -56,10 +65,6 @@ function formatBytes(bytes: number): string {
     unit += 1;
   }
   return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
-}
-
-function csvEscape(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
 function triggerBlobDownload(blob: Blob, filename: string) {
@@ -217,7 +222,6 @@ export function SettingsPage() {
                   editable={canManageSettings}
                 />
               )}
-              {activeTab === "notifications" && <ComingSoonNotifications />}
               {activeTab === "account" && (
                 <AccountTab
                   sessionTimeoutCard={
@@ -260,6 +264,9 @@ function SettingsCategoryCard({
   setValue: (category: string, key: string, value: unknown) => void;
   editable: boolean;
 }) {
+  const notificationsEnabled =
+    slug !== "notifications" || Boolean(getValue("notifications", "enable_notifications"));
+
   return (
     <Card>
       <CardHeader>
@@ -268,43 +275,40 @@ function SettingsCategoryCard({
       </CardHeader>
       <CardBody>
         <div className="grid gap-6 sm:grid-cols-2">
-          {settings.map((setting) => (
-            <div key={setting.id}>
-              <SettingField
-                setting={setting}
-                value={getValue(slug, setting.key)}
-                onChange={(value) => {
-                  if (editable) setValue(slug, setting.key, value);
-                }}
-              />
-              {setting.is_modified && (
-                <p className="mt-1 text-xs text-amber-600">Modified from default</p>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardBody>
-    </Card>
-  );
-}
+          {settings.map((setting) => {
+            const isChildNotificationToggle =
+              slug === "notifications" &&
+              setting.key !== "enable_notifications" &&
+              !notificationsEnabled;
 
-function ComingSoonNotifications() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>More Channels</CardTitle>
-        <CardDescription>Additional delivery channels planned</CardDescription>
-      </CardHeader>
-      <CardBody className="space-y-3">
-        {["Email notifications", "WhatsApp notifications"].map((label) => (
-          <div
-            key={label}
-            className="flex items-center justify-between rounded-lg border border-dashed border-slate-200 px-4 py-3 opacity-70"
-          >
-            <span className="text-sm text-slate-500">{label}</span>
-            <StatusBadge variant="neutral">Coming Soon</StatusBadge>
-          </div>
-        ))}
+            return (
+              <div
+                key={setting.id}
+                className={cn(isChildNotificationToggle && "opacity-60 pointer-events-none")}
+              >
+                <SettingField
+                  setting={setting}
+                  value={getValue(slug, setting.key)}
+                  disabled={!editable || isChildNotificationToggle}
+                  onChange={(value) => {
+                    if (!editable) return;
+                    setValue(slug, setting.key, value);
+                    if (
+                      slug === "notifications" &&
+                      setting.key === "notification_sound" &&
+                      value === true
+                    ) {
+                      unlockNotificationAudio();
+                    }
+                  }}
+                />
+                {setting.is_modified && (
+                  <p className="mt-1 text-xs text-amber-600">Modified from default</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </CardBody>
     </Card>
   );
@@ -469,6 +473,7 @@ function SystemTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [clearCacheOpen, setClearCacheOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -489,41 +494,43 @@ function SystemTab() {
   const onExportLogs = async () => {
     setBusy("logs");
     try {
-      const res = await activityApi.list({ limit: 1000, offset: 0 });
-      const header = "Time,Status,Action,Report,Message";
-      const rows = res.items.map((item) =>
-        [
-          formatDateTime12h(item.created_at),
-          item.status,
-          item.action,
-          item.report_slug ?? "",
-          item.message,
-        ]
-          .map(csvEscape)
-          .join(","),
-      );
-      const blob = new Blob([[header, ...rows].join("\n")], {
-        type: "text/csv;charset=utf-8",
-      });
-      triggerBlobDownload(blob, `activity-log-${new Date().toISOString().slice(0, 10)}.csv`);
-      showToast("success", `Exported ${res.items.length} activity entries`);
-    } catch {
-      showToast("error", "Failed to export logs");
+      const { blob, filename } = await systemApi.exportLogs();
+      triggerBlobDownload(blob, filename);
+      showToast("success", "Administrative logs exported");
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to export logs";
+      showToast("error", message);
     } finally {
       setBusy(null);
     }
   };
 
-  const onClearCache = async () => {
+  const onClearCacheConfirm = async () => {
+    setClearCacheOpen(false);
     setBusy("cache");
     try {
-      await systemApi.clearCache();
+      const result = await systemApi.clearCache();
       clearDashboardCache();
       clearAnalyticsCache();
-      showToast("success", "Caches cleared");
+      let message = `Cache cleared — ${result.files_removed} files removed, ${formatBytes(result.bytes_freed)} freed.`;
+      if (result.partial) {
+        message += " Some locked files were skipped.";
+      }
+      showToast("success", message);
       await load();
-    } catch {
-      showToast("error", "Failed to clear cache");
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to clear cache";
+      showToast("error", message);
     } finally {
       setBusy(null);
     }
@@ -612,7 +619,7 @@ function SystemTab() {
           </Button>
           <Button
             variant="secondary"
-            onClick={() => void onClearCache()}
+            onClick={() => setClearCacheOpen(true)}
             disabled={busy === "cache"}
           >
             <Eraser className="mr-2 h-4 w-4" />
@@ -620,6 +627,25 @@ function SystemTab() {
           </Button>
         </CardBody>
       </Card>
+
+      <Dialog open={clearCacheOpen} onOpenChange={setClearCacheOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear application cache?</DialogTitle>
+            <DialogDescription>
+              Generated reports, logs, settings and user data will not be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setClearCacheOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void onClearCacheConfirm()} disabled={busy === "cache"}>
+              Clear Cache
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

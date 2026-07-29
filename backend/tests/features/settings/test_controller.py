@@ -133,6 +133,27 @@ async def test_display_settings_for_viewer(authenticated_client, seeded_settings
     assert data["time_format"] == "12h"
     assert data["default_page_size"] == 50
     assert data["enable_notifications"] is True
+    assert "desktop_notifications" not in data
+
+
+@pytest.mark.asyncio
+async def test_notification_definitions_count(seeded_settings, test_session: AsyncSession):
+    from sqlalchemy import select
+
+    definitions = (
+        await test_session.execute(
+            select(AppSettingDefinitionModel).where(
+                AppSettingDefinitionModel.category == "notifications"
+            )
+        )
+    ).scalars().all()
+    assert len(definitions) == 4
+    assert {d.key for d in definitions} == {
+        "enable_notifications",
+        "notify_on_completion",
+        "notify_on_failure",
+        "notification_sound",
+    }
 
 
 @pytest.mark.asyncio

@@ -18,6 +18,11 @@ from app.features.auth.dependencies import (
     validate_csrf_token,
 )
 from app.features.dashboard.service import DashboardService, canonical_run_status
+from app.features.dashboard.analytics import (
+    DISPLAY_NAMES,
+    DashboardAnalyticsService,
+    clear_analytics_cache,
+)
 from app.infrastructure.database.models import (
     AutomationArtifactModel,
     AutomationProfileModel,
@@ -360,3 +365,73 @@ async def test_config_updated_emitted_on_template_create(
         and c.get("status") == "success"
         for c in calls
     )
+
+
+@pytest.mark.asyncio
+async def test_analytics_report_cards_include_comprehensive_1013(
+    test_session: AsyncSession, profile: AutomationProfileModel
+):
+    clear_analytics_cache()
+    reports = [
+        {"slug": d.slug, "status": "success", "duration_seconds": 20.0}
+        for d in catalog.reports
+    ]
+    comprehensive = next(
+        rep for rep in reports if rep["slug"] == "comprehensive-10-13"
+    )
+    comprehensive.update(
+        {
+            "completed_at": "2026-07-29T06:07:56.084514+00:00",
+            "duration_seconds": 26.852,
+            "row_count": 12,
+            "processed_row_count": 12,
+        }
+    )
+    run = _run(
+        profile.id,
+        status="completed",
+        success=len(catalog.reports),
+        failure=0,
+        duration_s=180,
+        reports=reports,
+    )
+    test_session.add(run)
+    await test_session.flush()
+
+    test_session.add_all(
+        [
+            AutomationArtifactModel(
+                run_id=run.id,
+                artifact_type="pdf",
+                file_path="storage/output/pdf/comprehensive-10-13/sample.pdf",
+                report_slug="comprehensive-10-13",
+                status="ready",
+                file_size_bytes=31725,
+            ),
+            AutomationArtifactModel(
+                run_id=run.id,
+                artifact_type="excel",
+                file_path="storage/output/excel/comprehensive-10-13/sample.xlsx",
+                report_slug="comprehensive-10-13",
+                status="ready",
+                file_size_bytes=18432,
+            ),
+        ]
+    )
+    await test_session.commit()
+
+    analytics = await DashboardAnalyticsService(test_session).analytics()
+    assert len(analytics.report_cards) == len(DISPLAY_NAMES)
+    assert analytics.report_cards[-1].slug == "comprehensive-10-13"
+    assert analytics.report_cards[-1].name == "Report 10-13 (Comprehensive Reports)"
+    assert analytics.report_cards[-1].status == "success"
+    assert analytics.report_cards[-1].sections_total == 4
+    assert analytics.report_cards[-1].row_count == 12
+    assert analytics.report_cards[-1].duration_seconds == pytest.approx(26.852)
+
+    files = {f.file_type: f for f in analytics.report_cards[-1].files}
+    assert files["pdf"].file_size_bytes == 31725
+    assert files["excel"].file_size_bytes == 18432
+    assert files["pdf"].download_url.startswith("/api/v1/automation/artifacts/")
+    assert files["pdf"].preview_url.startswith("/api/v1/automation/artifacts/")
+    assert files["excel"].download_url.startswith("/api/v1/automation/artifacts/")

@@ -25,3 +25,8 @@ class SystemInfoResponse(BaseModel):
 class ClearCacheResponse(BaseModel):
     success: bool = True
     cleared: list[str]
+    files_removed: int = 0
+    directories_removed: int = 0
+    bytes_freed: int = 0
+    skipped_locked: int = 0
+    partial: bool = False

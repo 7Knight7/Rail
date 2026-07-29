@@ -87,4 +87,3 @@ class DisplaySettingsResponse(BaseModel):
     notify_on_completion: bool = True
     notify_on_failure: bool = True
     notification_sound: bool = False
-    desktop_notifications: bool = False

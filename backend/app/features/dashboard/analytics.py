@@ -48,6 +48,7 @@ DISPLAY_NAMES = {
     "scr-train": "SCR Train Report",
     "scr-station": "SCR Station Report",
     "report9": "All Zones Train/Station Cause Wise on Date",
+    "comprehensive-10-13": "Report 10-13 (Comprehensive Reports)",
 }
 
 # Recomputed only when a newer completed run appears
@@ -335,6 +336,22 @@ def _iso_or_none(value: Any) -> str | None:
     return str(value)
 
 
+def _card_row_metadata(slug: str, rep: dict[str, Any] | None) -> tuple[int | None, int | None]:
+    """Return optional (sections_total, row_count) for dashboard report cards."""
+    if slug != "comprehensive-10-13" or not rep:
+        return None, None
+    row_count = rep.get("row_count")
+    if row_count is None:
+        row_count = rep.get("processed_row_count")
+    if row_count is None:
+        row_count = rep.get("source_row_count")
+    try:
+        parsed_row_count = int(row_count) if row_count is not None else None
+    except (TypeError, ValueError):
+        parsed_row_count = None
+    return 4, parsed_row_count
+
+
 class DashboardAnalyticsService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -380,6 +397,7 @@ class DashboardAnalyticsService:
         cards: list[ReportCardInfo] = []
         for slug, name in DISPLAY_NAMES.items():
             rep = reports_by_slug.get(slug)
+            sections_total, row_count = _card_row_metadata(slug, rep)
             cards.append(
                 ReportCardInfo(
                     slug=slug,
@@ -387,6 +405,8 @@ class DashboardAnalyticsService:
                     status=_report_status(rep),  # type: ignore[arg-type]
                     generated_at=_iso_or_none((rep or {}).get("completed_at")),
                     duration_seconds=(rep or {}).get("duration_seconds"),
+                    sections_total=sections_total,
+                    row_count=row_count,
                     files=sorted(
                         files_by_slug.get(slug, []), key=lambda f: f.file_type
                     ),

@@ -291,6 +291,22 @@ function ReportCards({
                 <dd className="text-right tabular-nums text-slate-700">
                   {formatBytes(excel?.file_size_bytes ?? null)}
                 </dd>
+                {card.sections_total != null && (
+                  <>
+                    <dt>Sections</dt>
+                    <dd className="text-right tabular-nums text-slate-700">
+                      {card.sections_total}
+                    </dd>
+                  </>
+                )}
+                {card.sections_total == null && card.row_count != null && (
+                  <>
+                    <dt>Rows</dt>
+                    <dd className="text-right tabular-nums text-slate-700">
+                      {card.row_count}
+                    </dd>
+                  </>
+                )}
               </dl>
               {isAdmin && (
                 <div className="flex flex-wrap gap-2">

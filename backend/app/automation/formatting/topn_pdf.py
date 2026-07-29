@@ -152,6 +152,8 @@ def build_topn_fitted_table(
     margin: float = TOPN_SAFE_MARGIN_PT,
     body_font_size: float = TOPN_BODY_FONT_PT,
     header_font_size: float = TOPN_HEADER_FONT_PT,
+    splittable: bool = True,
+    cell_padding: float = 3.0,
 ) -> tuple[Table, tuple[float, float], float, list[float]]:
     """
     Build a Top-N table that fits A3/A2 landscape without horizontal cropping.
@@ -188,16 +190,16 @@ def build_topn_fitted_table(
         for cell in table_data[0]
     ]
 
-    table = _build_table(wrapped, col_widths, splittable=True, repeat_rows=1)
+    table = _build_table(wrapped, col_widths, splittable=splittable, repeat_rows=1)
     commands = list(style_commands)
     commands.extend(
         [
             ("FONTSIZE", (0, 1), (-1, -1), body_font_size),
             ("FONTSIZE", (0, 0), (-1, 0), header_font_size),
-            ("LEFTPADDING", (0, 0), (-1, -1), 3),
-            ("RIGHTPADDING", (0, 0), (-1, -1), 3),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("LEFTPADDING", (0, 0), (-1, -1), cell_padding),
+            ("RIGHTPADDING", (0, 0), (-1, -1), cell_padding),
+            ("TOPPADDING", (0, 0), (-1, -1), cell_padding),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), cell_padding),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("FONTNAME", (0, 1), (-1, -1), pdf_font_regular()),
             ("FONTNAME", (0, 0), (-1, 0), pdf_font_bold()),
@@ -212,6 +214,6 @@ def build_topn_fitted_table(
         commands,
         pagesize,
         used_margin,
-        splittable=True,
+        splittable=splittable,
     )
     return table, pagesize, used_margin, list(col_widths)

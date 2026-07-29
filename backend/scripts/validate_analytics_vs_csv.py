@@ -14,6 +14,7 @@ if sys.platform == "win32":
 import httpx
 from sqlalchemy import select
 
+from app.features.dashboard.analytics import DISPLAY_NAMES
 from app.infrastructure.database.models import AutomationRunModel
 from app.infrastructure.database.session import SessionLocal
 
@@ -106,8 +107,8 @@ async def main() -> int:
                    sum(t["complaints"] for t in api["scr_trains"]),
                    len([r for r in scr_rows if (r.get("Train/Station") or "").lower() not in ("", "null")])))
 
-    # Report cards
-    checks.append(("report_cards", len(api["report_cards"]), 6))
+    # Report cards — one card per configured dashboard report slug
+    checks.append(("report_cards", len(api["report_cards"]), len(DISPLAY_NAMES)))
     checks.append(("all_files_sized",
                    all(f["file_size_bytes"] and f["file_size_bytes"] > 0
                        for card in api["report_cards"] for f in card["files"]),

@@ -91,6 +91,25 @@ class ActivityRepository:
         rows = list((await self._session.execute(stmt)).scalars().all())
         return rows, total
 
+    async def list_all(
+        self,
+        *,
+        limit: int = 10_000,
+        offset: int = 0,
+    ) -> tuple[list[UserActivityModel], int]:
+        """Admin-only: all users' activity rows (system log export)."""
+        count_stmt = select(func.count()).select_from(UserActivityModel)
+        total = (await self._session.execute(count_stmt)).scalar_one()
+
+        stmt = (
+            select(UserActivityModel)
+            .order_by(UserActivityModel.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        rows = list((await self._session.execute(stmt)).scalars().all())
+        return rows, total
+
     async def get_after(
         self,
         user_id: str,

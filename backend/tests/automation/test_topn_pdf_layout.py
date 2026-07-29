@@ -126,7 +126,7 @@ def test_report3_pdf_layout_valid_and_has_20_rows(
     assert pagesize == landscape(A3)
 
 
-def test_report4_pdf_seven_sections_page_breaks(
+def test_report4_pdf_seven_sections_two_tables_per_page(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -179,7 +179,7 @@ def test_report4_pdf_seven_sections_page_breaks(
     assert pdf_bytes.startswith(b"%PDF")
 
     page_count = len(__import__("re").findall(rb"/Type\s*/Page(?!s)\b", pdf_bytes))
-    assert page_count >= 7
+    assert page_count == 4
 
     configs = get_type_configs()
     assert len(configs) == 7

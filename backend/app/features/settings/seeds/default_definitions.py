@@ -103,11 +103,6 @@ DEFAULT_SETTING_DEFINITIONS: list[dict] = [
         description="Play a short sound when a notification fires",
         sort_order=4,
     ),
-    _def(
-        "notifications", "desktop_notifications", "Desktop Notifications", "boolean", False,
-        description="Show browser desktop notifications (requires permission)",
-        sort_order=5,
-    ),
     # Account
     _def(
         "account", "session_timeout", "Session Timeout", "enum", "30m",
