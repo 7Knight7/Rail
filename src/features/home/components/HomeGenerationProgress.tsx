@@ -171,7 +171,9 @@ export function HomeGenerationProgress({
                   )}
                 </span>
                 <StepIcon status={step.status} />
-                <span className="flex-1 font-medium text-slate-800">{step.label}</span>
+                <span className="flex-1 font-medium leading-snug break-words text-slate-800">
+                  {step.label}
+                </span>
                 <span
                   className={cn(
                     "text-xs",

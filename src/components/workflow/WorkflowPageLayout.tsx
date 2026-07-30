@@ -8,7 +8,11 @@ import { OutputCard } from "./OutputCard";
 import { ActionBar } from "./ActionBar";
 import { useManualReportGeneration } from "./useManualReportGeneration";
 import { cn } from "@/utils/cn";
-import { formatFileSize, reportsApi } from "@/api/reports";
+import { formatFileSize, reportsApi, resolveReportSlug } from "@/api/reports";
+import {
+  getReportDisplayName,
+  getReportDownloadName,
+} from "@/utils/reportDisplayNames";
 import {
   defaultReportDateFrom,
   defaultReportDateTo,
@@ -72,9 +76,9 @@ function applyDefaultDateRange(fields: SettingField[]): SettingField[] {
 
 export function WorkflowPageLayout({
   reportId,
-  title,
+  title: _title,
   description,
-  breadcrumbs = [{ label: "Report Configuration" }, { label: title }],
+  breadcrumbs,
   settingsFields: initialSettings,
   advancedFields: initialAdvanced = [],
   previewColumns: defaultPreviewColumns = [],
@@ -83,6 +87,12 @@ export function WorkflowPageLayout({
 }: WorkflowPageLayoutProps) {
   const outputCatalogMode = usesOutputColumnCatalog(reportId);
   const reactivePreviewMode = usesReactiveOutputPreview(reportId);
+  const displayTitle = getReportDisplayName(resolveReportSlug(reportId));
+  const downloadTitle = getReportDownloadName(resolveReportSlug(reportId));
+  const resolvedBreadcrumbs = breadcrumbs ?? [
+    { label: "Report Configuration" },
+    { label: displayTitle },
+  ];
   const { metadata, loading: metadataLoading, error: metadataError } = useDatasetMetadata(reportId);
   const {
     columns: outputColumns,
@@ -322,7 +332,7 @@ export function WorkflowPageLayout({
 
   return (
     <div className="space-y-8">
-      <PageHeader title={title} description={description} breadcrumbs={breadcrumbs} />
+      <PageHeader title={displayTitle} description={description} breadcrumbs={resolvedBreadcrumbs} />
 
       {beforeSettings}
 
@@ -477,7 +487,7 @@ export function WorkflowPageLayout({
                       ? `${runState.excel_filename ?? "report.xlsx"} · ${runState.pdf_filename}`
                       : runState.excel_filename ??
                         runState.output_filename ??
-                        `${title.toLowerCase().replace(/\s+/g, "_")}_report`,
+                        `${downloadTitle.toLowerCase().replace(/\s+/g, "_")}_report`,
                   size: formatFileSize(
                     dualOutputMode
                       ? (runState.excel_file_size ?? runState.output_file_size)

@@ -20,6 +20,7 @@ from app.automation.formatting.report5_styles import (
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
+from app.automation.formatting.artifact_titles import build_artifact_main_title, is_artifact_title_row
 from app.automation.formatting.excel_print import apply_column_formatting, apply_report_print_setup
 from app.automation.formatting.report5_validate import (
     validate_report5_excel_styles,
@@ -174,8 +175,7 @@ class Report5Processor:
         date_range = date_range_for_processing(column_selection)
 
 
-        report_date = date_range.title_suffix()
-
+        main_title = build_artifact_main_title("scr-train", date_range)
 
         filename_suffix = date_range.filename_suffix()
         run_timestamp = datetime.now().strftime("%H%M%S")
@@ -210,7 +210,7 @@ class Report5Processor:
                     excel_path,
                     output_headers,
                     output_rows,
-                    report_date=report_date,
+                    main_title=main_title,
                 )
             else:
                 if template_path and template_path.exists() and using_manual_selection:
@@ -227,7 +227,7 @@ class Report5Processor:
                         expected_path=str(template_path) if template_path else "N/A",
                         fallback="programmatic_generation",
                     )
-                self._write_excel(excel_path, output_headers, output_rows, report_date=report_date)
+                self._write_excel(excel_path, output_headers, output_rows, main_title=main_title)
         except Exception as exc:
             return ProcessingResult(
                 input_row_count=len(source_rows),
@@ -255,7 +255,7 @@ class Report5Processor:
             )
 
         try:
-            self._write_pdf(pdf_path, output_headers, output_rows, report_date=report_date)
+            self._write_pdf(pdf_path, output_headers, output_rows, main_title=main_title)
             validate_report5_unicode_content(output_headers, output_rows)
             validate_report5_layout(
                 headers=output_headers,
@@ -333,18 +333,14 @@ class Report5Processor:
         headers: list[str],
         rows: list[list[str]],
         *,
-        report_date: str,
+        main_title: str,
     ) -> None:
         """Write Excel using template column widths; layout matches programmatic output."""
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
         workbook = load_workbook(str(template_path))
         worksheet = workbook.active
 
-        title = normalize_report_title(
-            f"Rail Madad Report No 5 - SCR {self.expected_mode} Mode Unsatisfactory Feedback "
-            f"{report_date}",
-            report_slug="scr-train",
-        )
+        title = normalize_report_title(main_title, report_slug="scr-train")
         for merged in list(worksheet.merged_cells.ranges):
             if merged.min_row <= 2:
                 worksheet.unmerge_cells(str(merged))
@@ -400,18 +396,14 @@ class Report5Processor:
         headers: list[str],
         rows: list[list[str]],
         *,
-        report_date: str,
+        main_title: str,
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
         workbook = Workbook()
         worksheet = workbook.active
         worksheet.title = "Report 5"
 
-        title = normalize_report_title(
-            f"Rail Madad Report No 5 - SCR {self.expected_mode} Mode Unsatisfactory Feedback "
-            f"{report_date}",
-            report_slug="scr-train",
-        )
+        title = normalize_report_title(main_title, report_slug="scr-train")
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
         title_cell = worksheet.cell(row=1, column=1, value=title)
         apply_report5_title_cell(title_cell)
@@ -463,7 +455,7 @@ class Report5Processor:
             if not first_row:
                 raise ValueError("workbook has no rows")
             first_cells = [str(cell).strip() if cell is not None else "" for cell in first_row]
-            if len(first_cells) == 1 or any("Rail Madad Report" in cell for cell in first_cells):
+            if len(first_cells) == 1 or is_artifact_title_row(first_cells):
                 header_row = next(rows_iter, None)
             else:
                 header_row = first_row
@@ -491,7 +483,7 @@ class Report5Processor:
         headers: list[str],
         rows: list[list[str]],
         *,
-        report_date: str,
+        main_title: str,
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
 
@@ -516,10 +508,7 @@ class Report5Processor:
         )
         story = [
             Paragraph(
-                normalize_report_title(
-                    f"Rail Madad Report No 5 - SCR {self.expected_mode} Mode Unsatisfactory Feedback {report_date}",
-                    report_slug="scr-train",
-                ),
+                normalize_report_title(main_title, report_slug="scr-train"),
                 pdf_title_style("Report5Title"),
             ),
             Spacer(1, 12),

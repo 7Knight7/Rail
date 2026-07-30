@@ -17,19 +17,15 @@ import { TopBar } from "@/layouts/TopBar";
 import { cn } from "@/utils/cn";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useNotificationRuntime } from "@/features/notifications/useNotificationRuntime";
+import { getReportDisplayNameByPath, WORKFLOW_PATHS } from "@/utils/reportDisplayNames";
 
-const SIDEBAR_W = 252;
+const SIDEBAR_W = 272;
 
-const REPORT_CONFIG_ITEMS = [
-  { id: "merging", label: "Zone Wise Report", path: "/workflows/merging" },
-  { id: "division", label: "Division (Bottom 25)", path: "/workflows/division" },
-  { id: "train-no", label: "Top 20 Trains", path: "/workflows/train-no" },
-  { id: "types", label: "Cause Wise Analysis", path: "/workflows/types" },
-  { id: "scr-train", label: "SCR Train Report", path: "/workflows/scr-train" },
-  { id: "scr-station", label: "SCR Station Report", path: "/workflows/scr-station" },
-  { id: "report9", label: "All Zones Train/Station Cause Wise on Date", path: "/workflows/report9" },
-  { id: "comprehensive-10-13", label: "Report 10-13 (Comprehensive)", path: "/workflows/comprehensive-10-13" },
-];
+const REPORT_CONFIG_ITEMS = WORKFLOW_PATHS.map(({ slug, path }) => ({
+  id: slug,
+  label: getReportDisplayNameByPath(path) ?? slug,
+  path,
+}));
 
 const PAGE_TITLES: Record<string, string> = {
   "/home": "Operations Center",
@@ -39,15 +35,10 @@ const PAGE_TITLES: Record<string, string> = {
   "/daily-summary": "Daily Summary",
   "/logs": "Activity Log",
   "/settings": "Settings",
-  "/workflows/merging": "Zone Wise Report",
-  "/workflows/division": "Division (Bottom 25)",
-  "/workflows/train-no": "Top 20 Trains",
-  "/workflows/types": "Cause Wise Analysis",
-  "/workflows/scr-train": "SCR Train Report",
-  "/workflows/scr-station": "SCR Station Report",
-  "/workflows/report9": "All Zones Train/Station Cause Wise on Date",
-  "/workflows/comprehensive-10-13": "Report 10-13 (Comprehensive Reports)",
   "/workflows/summary": "Summary Report",
+  ...Object.fromEntries(
+    WORKFLOW_PATHS.map(({ path }) => [path, getReportDisplayNameByPath(path) ?? path]),
+  ),
 };
 
 function resolvePageTitle(pathname: string): string {
@@ -93,7 +84,13 @@ function NavLinkItem({
           aria-hidden="true"
         />
       )}
-      <span className="truncate">{label}</span>
+      <span
+        className={cn(
+          indent ? "leading-snug break-words line-clamp-2" : "truncate",
+        )}
+      >
+        {label}
+      </span>
     </NavLink>
   );
 }
@@ -222,7 +219,7 @@ export function AppShell() {
         </div>
       )}
 
-      <div className="lg:pl-[calc(252px+2rem)]">
+      <div className="lg:pl-[calc(272px+2rem)]">
         <div className="mx-auto max-w-[1280px] px-4 pb-8 lg:px-6">
           <TopBar
             pageTitle={pageTitle}

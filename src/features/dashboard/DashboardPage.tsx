@@ -21,6 +21,7 @@ import { useDashboardSummary } from "@/features/home/hooks/useDashboardSummary";
 import { useDashboardAnalytics } from "@/features/dashboard/hooks/useDashboardAnalytics";
 import { usePermissions } from "@/hooks/usePermissions";
 import { formatDateTime12h } from "@/utils/datetime";
+import { getReportDisplayName, getReportDownloadName } from "@/utils/reportDisplayNames";
 import { cn } from "@/utils/cn";
 
 const TERMINAL_STATUSES: DashboardStatus[] = [
@@ -223,7 +224,9 @@ function WorkflowStatusCard({ summary }: { summary: DashboardSummary }) {
           {isActive && current && (
             <span className="text-slate-600">
               Current report:{" "}
-              <span className="font-medium text-slate-900">{current.name}</span>
+              <span className="font-medium text-slate-900">
+                {getReportDisplayName(current.slug)}
+              </span>
             </span>
           )}
           <span className="text-slate-600">
@@ -254,7 +257,7 @@ function ReportCards({
 }: {
   cards: ReportCardInfo[];
   isAdmin: boolean;
-  onPreview: (url: string) => void;
+  onPreview: (url: string, title: string) => void;
   onDownload: (url: string, filename: string, key: string) => void;
   busy: string | null;
 }) {
@@ -263,11 +266,14 @@ function ReportCards({
       {cards.map((card) => {
         const pdf = card.files.find((f) => f.file_type === "pdf");
         const excel = card.files.find((f) => f.file_type === "excel");
+        const displayName = getReportDisplayName(card.slug);
         return (
           <Card key={card.slug} className="border-rail-line">
             <CardHeader className="pb-1">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-sm">{card.name}</CardTitle>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-sm leading-snug break-words pr-2">
+                  {displayName}
+                </CardTitle>
                 <StatusBadge variant={statusBadgeVariant(card.status)}>
                   {reportStatusLabel(card.status)}
                 </StatusBadge>
@@ -315,7 +321,9 @@ function ReportCards({
                     size="sm"
                     variant="secondary"
                     disabled={!pdf?.preview_url}
-                    onClick={() => pdf?.preview_url && onPreview(pdf.preview_url)}
+                    onClick={() =>
+                      pdf?.preview_url && onPreview(pdf.preview_url, displayName)
+                    }
                   >
                     <Eye className="mr-1 h-3.5 w-3.5" />
                     Preview
@@ -329,7 +337,7 @@ function ReportCards({
                       pdf?.download_url &&
                       onDownload(
                         pdf.download_url,
-                        `${card.name}.pdf`,
+                        `${getReportDownloadName(card.slug)}.pdf`,
                         `pdf-${card.slug}`,
                       )
                     }
@@ -346,7 +354,7 @@ function ReportCards({
                       excel?.download_url &&
                       onDownload(
                         excel.download_url,
-                        `${card.name}.xlsx`,
+                        `${getReportDownloadName(card.slug)}.xlsx`,
                         `xlsx-${card.slug}`,
                       )
                     }
@@ -431,7 +439,7 @@ function AnalyticsSections({ analytics }: { analytics: DashboardAnalytics }) {
           {complaint_types.length > 0 && (
             <Section
               title="Complaint Type Distribution"
-              subtitle="From the Cause Wise Analysis report"
+              subtitle="From Report 5: Cause Wise Analysis"
             >
               <DataTable
                 headers={["Type", "Complaints", "Share"]}
@@ -488,6 +496,7 @@ export function DashboardPage() {
   const { summary } = useDashboardSummary();
   const { analytics, loading, error } = useDashboardAnalytics();
   const [previewApiUrl, setPreviewApiUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("PDF Preview");
   const [busy, setBusy] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -577,7 +586,10 @@ export function DashboardPage() {
           <ReportCards
             cards={analytics.report_cards}
             isAdmin={isAdmin}
-            onPreview={setPreviewApiUrl}
+            onPreview={(url, title) => {
+              setPreviewTitle(title);
+              setPreviewApiUrl(url);
+            }}
             onDownload={(url, filename, key) => void onDownload(url, filename, key)}
             busy={busy}
           />
@@ -586,8 +598,11 @@ export function DashboardPage() {
 
       <PdfPreviewModal
         apiUrl={previewApiUrl}
-        onClose={() => setPreviewApiUrl(null)}
-        title="PDF Preview"
+        onClose={() => {
+          setPreviewApiUrl(null);
+          setPreviewTitle("PDF Preview");
+        }}
+        title={previewTitle}
       />
     </div>
   );

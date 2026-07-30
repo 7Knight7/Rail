@@ -1,3 +1,5 @@
+import { getReportDisplayName } from "@/utils/reportDisplayNames";
+
 export interface AutomationReport {
   id: string;
   label: string;
@@ -5,56 +7,38 @@ export interface AutomationReport {
   estimatedMinutes: number;
 }
 
-export const AUTOMATION_REPORTS: AutomationReport[] = [
-  {
-    id: "zone",
-    label: "Zone Wise Report",
-    workflowPath: "/workflows/merging",
-    estimatedMinutes: 2,
-  },
-  {
-    id: "division",
-    label: "Division Report",
-    workflowPath: "/workflows/division",
-    estimatedMinutes: 2,
-  },
-  {
-    id: "train",
-    label: "Top 20 Trains",
-    workflowPath: "/workflows/train-no",
-    estimatedMinutes: 2,
-  },
-  {
-    id: "cause",
-    label: "Cause Wise Analysis",
-    workflowPath: "/workflows/types",
-    estimatedMinutes: 2,
-  },
-  {
-    id: "scr-train",
-    label: "SCR Train Report",
-    workflowPath: "/workflows/scr-train",
-    estimatedMinutes: 2,
-  },
+const AUTOMATION_REPORT_DEFS: Array<{
+  id: string;
+  slug: string;
+  workflowPath: string;
+  estimatedMinutes: number;
+}> = [
+  { id: "zone", slug: "report1", workflowPath: "/workflows/merging", estimatedMinutes: 2 },
+  { id: "division", slug: "division", workflowPath: "/workflows/division", estimatedMinutes: 2 },
+  { id: "train", slug: "train-no", workflowPath: "/workflows/train-no", estimatedMinutes: 2 },
+  { id: "cause", slug: "types", workflowPath: "/workflows/types", estimatedMinutes: 2 },
+  { id: "scr-train", slug: "scr-train", workflowPath: "/workflows/scr-train", estimatedMinutes: 2 },
   {
     id: "scr-station",
-    label: "SCR Station Report",
+    slug: "scr-station",
     workflowPath: "/workflows/scr-station",
     estimatedMinutes: 2,
   },
-  {
-    id: "report9",
-    label: "All Zones Train/Station Cause Wise on Date",
-    workflowPath: "/workflows/report9",
-    estimatedMinutes: 3,
-  },
+  { id: "report9", slug: "report9", workflowPath: "/workflows/report9", estimatedMinutes: 3 },
   {
     id: "comprehensive-10-13",
-    label: "Report 10-13 (Comprehensive Reports)",
+    slug: "comprehensive-10-13",
     workflowPath: "/workflows/comprehensive-10-13",
     estimatedMinutes: 4,
   },
 ];
+
+export const AUTOMATION_REPORTS: AutomationReport[] = AUTOMATION_REPORT_DEFS.map((item) => ({
+  id: item.id,
+  label: getReportDisplayName(item.slug),
+  workflowPath: item.workflowPath,
+  estimatedMinutes: item.estimatedMinutes,
+}));
 
 export const LOGIN_STEP = {
   id: "login",

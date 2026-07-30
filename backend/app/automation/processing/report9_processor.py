@@ -28,6 +28,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from app.automation.config import config
 from app.automation.date_range import date_range_for_processing
+from app.automation.formatting.artifact_titles import build_artifact_main_title
 from app.automation.formatting.pdf_fonts import ensure_pdf_unicode_fonts, pdf_font_bold, pdf_font_regular
 from app.automation.formatting.pdf_table import SAFE_MARGIN_PT
 from app.automation.formatting.text_pipeline import normalize_report_title
@@ -46,7 +47,6 @@ from app.automation.utils import (
 logger = logging.getLogger(__name__)
 
 PROCESSOR_NAME = "report9_processor"
-REPORT9_DISPLAY_TITLE = "All Zones Train/Station Cause Wise on Date"
 REPORT9_SHEET_TITLE = "Cause Wise on Date"  # Excel sheet name limit is 31 chars
 REPORT9_FILE_STEM = "Rail_Madad_All_Zones_Train_Station_Cause_Wise_on_Date"
 
@@ -128,6 +128,7 @@ class Report9Processor:
             )
 
         date_range = date_range_for_processing(column_selection)
+        main_title = build_artifact_main_title("report9", date_range)
         title_suffix = date_range.title_suffix()
         filename_suffix = date_range.filename_suffix()
         subtitle = f"All Zones and SCR Train/Station Cause Wise Grievances {title_suffix}"
@@ -155,7 +156,7 @@ class Report9Processor:
         pdf_path = pdf_dir / f"{base_name}.pdf"
 
         try:
-            self._write_excel(excel_path, sections, subtitle=subtitle)
+            self._write_excel(excel_path, sections, main_title=main_title, subtitle=subtitle)
             log_automation_event(logger, "report9_excel_generated", excel_path=str(excel_path))
         except Exception as exc:
             return ProcessingResult(
@@ -166,7 +167,7 @@ class Report9Processor:
             )
 
         try:
-            self._write_pdf(pdf_path, sections, subtitle=subtitle)
+            self._write_pdf(pdf_path, sections, main_title=main_title, subtitle=subtitle)
             log_automation_event(logger, "report9_pdf_generated", pdf_path=str(pdf_path))
         except Exception as exc:
             return ProcessingResult(
@@ -374,6 +375,7 @@ class Report9Processor:
         target_path: Path,
         sections: list[Report9Section],
         *,
+        main_title: str,
         subtitle: str,
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
@@ -382,7 +384,7 @@ class Report9Processor:
         worksheet.title = REPORT9_SHEET_TITLE
 
         col_count = len(OUTPUT_HEADERS)
-        main_title = normalize_report_title(REPORT9_DISPLAY_TITLE, report_slug="report9")
+        main_title = normalize_report_title(main_title, report_slug="report9")
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=col_count)
         title_cell = worksheet.cell(row=1, column=1, value=main_title)
         title_cell.font = Font(bold=True, size=14)
@@ -449,6 +451,7 @@ class Report9Processor:
         target_path: Path,
         sections: list[Report9Section],
         *,
+        main_title: str,
         subtitle: str,
     ) -> None:
         ensure_pdf_unicode_fonts()
@@ -484,8 +487,10 @@ class Report9Processor:
             fontName=pdf_font_bold(),
         )
 
+        normalized_main_title = normalize_report_title(main_title, report_slug="report9")
+
         story: list[Any] = [
-            Paragraph(_escape_paragraph_xml(REPORT9_DISPLAY_TITLE), title_style),
+            Paragraph(_escape_paragraph_xml(normalized_main_title), title_style),
             Paragraph(_escape_paragraph_xml(subtitle), subtitle_style),
         ]
 
@@ -540,7 +545,7 @@ class Report9Processor:
             rightMargin=margin,
             topMargin=margin,
             bottomMargin=margin,
-            title=REPORT9_DISPLAY_TITLE,
+            title=normalized_main_title,
         )
         doc.build(story)
         temp_path.replace(target_path)

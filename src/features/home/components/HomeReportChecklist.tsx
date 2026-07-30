@@ -27,7 +27,9 @@ export function HomeReportChecklist({ reports = SCHEDULED_REPORTS }: HomeReportC
                 <Icon className="h-4 w-4 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-[#1F2937]">{report.name}</p>
+                <p className="text-sm font-medium leading-snug break-words text-[#1F2937]">
+                  {report.name}
+                </p>
                 <p className="text-xs text-[#64748B]">{report.duration}</p>
               </div>
               <span

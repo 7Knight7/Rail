@@ -272,7 +272,8 @@ def test_report_title_contains_station(
     worksheet = workbook.active
     title = worksheet.cell(row=1, column=1).value
     
-    assert "Station" in title or "Report No 6" in title
+    assert "Report 7: SCR Station Report" in title
+    assert "Report No 6" not in title
 
 
 def test_train_station_data_separation():

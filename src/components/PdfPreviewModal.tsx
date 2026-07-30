@@ -70,7 +70,7 @@ export function PdfPreviewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+          <h2 className="text-sm font-semibold leading-snug break-words text-slate-900">{title}</h2>
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>
             Close
           </Button>

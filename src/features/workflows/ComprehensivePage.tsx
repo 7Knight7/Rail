@@ -11,6 +11,7 @@ import {
 } from "@/utils/reportDateRange";
 import { cn } from "@/utils/cn";
 import { reportsApi } from "@/api/reports";
+import { getReportDisplayName } from "@/utils/reportDisplayNames";
 
 const AVAILABLE_COLUMNS = [
   { id: "sno", label: "S.No." },
@@ -276,8 +277,8 @@ export function ComprehensivePage() {
   return (
     <article className="mx-auto max-w-4xl">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Report 10-13 (Comprehensive Reports)
+        <h1 className="text-2xl font-semibold leading-snug tracking-tight text-slate-900">
+          {getReportDisplayName("comprehensive-10-13")}
         </h1>
         <p className="mt-2 text-base leading-relaxed text-slate-600">
           Configure and generate comprehensive reports for C&W, Security, Punctuality, and

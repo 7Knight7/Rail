@@ -64,7 +64,9 @@ export function HomeReportsGrid({ liveReports }: HomeReportsGridProps) {
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-rail-muted opacity-0 transition-all duration-200 group-hover:opacity-100" />
                   </div>
-                  <p className="mt-4 font-medium text-rail-ink">{report.name}</p>
+                  <p className="mt-4 font-medium leading-snug break-words text-rail-ink">
+                    {report.name}
+                  </p>
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-xs text-rail-muted">{duration}</span>
                     <span className={cn("status-pill", pillClass(label))}>

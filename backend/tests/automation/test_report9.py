@@ -177,6 +177,13 @@ class TestReport9Processor:
         assert "test-run" in result.excel_path
         assert "test-run" in result.pdf_path
 
+        from openpyxl import load_workbook
+
+        workbook = load_workbook(result.excel_path)
+        main_title = workbook.active.cell(row=1, column=1).value
+        assert "Report 9: All Zones Train/Station Cause Wise on Date" in str(main_title)
+        assert "28-07-2026" in str(main_title)
+
         # Verify sort + total via re-load of first section CSV processing path
         sections, _ = processor._load_sections(index_path)
         assert [s.config.source_id for s in sections] == [

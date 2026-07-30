@@ -1,8 +1,7 @@
 import { WorkflowPageLayout } from "@/components/workflow/WorkflowPageLayout";
 import { Card, CardBody, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { EXPORT_FORMAT_FIELD, REPORT_DATE_RANGE_FIELDS } from "@/features/workflows/reportConfigFields";
-
-const REPORT9_TITLE = "All Zones Train/Station Cause Wise on Date";
+import { getReportDisplayName } from "@/utils/reportDisplayNames";
 
 const settingsFields = [
   ...REPORT_DATE_RANGE_FIELDS,
@@ -54,7 +53,7 @@ export function Report9Page() {
   return (
     <WorkflowPageLayout
       reportId="report9"
-      title={REPORT9_TITLE}
+      title={getReportDisplayName("report9")}
       description="Train/Station Cause Wise Grievances"
       settingsFields={settingsFields}
       showAdvancedSettings={false}

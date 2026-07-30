@@ -122,6 +122,10 @@ def test_seven_types_in_exact_order(
     workbook = load_workbook(result.excel_path)
     worksheet = workbook.active
 
+    main_title = worksheet.cell(row=1, column=1).value
+    assert "Report 5: Cause Wise Analysis" in str(main_title)
+    assert "Report No 4" not in str(main_title)
+
     section_titles_found = []
     for row_idx in range(1, worksheet.max_row + 1):
         cell_value = worksheet.cell(row=row_idx, column=1).value

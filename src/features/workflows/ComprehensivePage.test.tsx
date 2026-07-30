@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { ComprehensivePage } from "./ComprehensivePage";
+import { getReportDisplayName } from "@/utils/reportDisplayNames";
 
 vi.mock("@/api/reports", () => ({
   reportsApi: {
@@ -28,7 +29,7 @@ describe("ComprehensivePage", () => {
       renderWithRouter(<ComprehensivePage />);
 
       expect(
-        screen.getByText("Report 10-13 (Comprehensive Reports)"),
+        screen.getByText(getReportDisplayName("comprehensive-10-13")),
       ).toBeInTheDocument();
     });
 

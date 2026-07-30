@@ -239,7 +239,8 @@ def test_report_title_contains_train(
     worksheet = workbook.active
     title = worksheet.cell(row=1, column=1).value
     
-    assert "Train" in title or "Report No 5" in title
+    assert "Report 6: SCR Train Report" in title
+    assert "Report No 5" not in title
 
 
 def test_report5_pdf_survives_tall_text_cell(

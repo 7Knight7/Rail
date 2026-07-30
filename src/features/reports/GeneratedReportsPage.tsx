@@ -22,23 +22,9 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { cn } from "@/utils/cn";
 import { formatDateTime12h } from "@/utils/datetime";
+import { getReportDisplayName, getReportDownloadName } from "@/utils/reportDisplayNames";
 
 const LAST_RUN_KEY = "railmadad_last_run_id";
-
-const REPORT_DISPLAY_NAMES: Record<string, string> = {
-  report1: "Zone Wise Report",
-  division: "Division Report",
-  "train-no": "Top 20 Trains",
-  types: "Cause Wise Analysis",
-  "scr-train": "SCR Train Report",
-  "scr-station": "SCR Station Report",
-  report9: "All Zones Train/Station Cause Wise on Date",
-  "comprehensive-10-13": "Report 10-13 (Comprehensive Reports)",
-};
-
-function getReportDisplayName(slug: string): string {
-  return REPORT_DISPLAY_NAMES[slug] || slug;
-}
 
 function triggerBlobDownload(blob: Blob, filename: string) {
   const objectUrl = URL.createObjectURL(blob);
@@ -60,6 +46,7 @@ export function GeneratedReportsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewApiUrl, setPreviewApiUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("PDF Review");
   const [busy, setBusy] = useState<string | null>(null);
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
 
@@ -313,8 +300,10 @@ export function GeneratedReportsPage() {
 
                   return (
                     <Card key={report.slug} className="border-rail-line">
-                      <CardHeader>
-                        <CardTitle className="text-sm">{getReportDisplayName(report.slug)}</CardTitle>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm leading-snug break-words">
+                          {getReportDisplayName(report.slug)}
+                        </CardTitle>
                         <CardDescription>
                           {report.status}
                           {report.row_count != null || report.source_row_count != null
@@ -335,7 +324,10 @@ export function GeneratedReportsPage() {
                             size="sm"
                             variant="secondary"
                             disabled={!pdfReady || !preview || !hasCurrentPdfUrl}
-                            onClick={() => setPreviewApiUrl(preview)}
+                            onClick={() => {
+                              setPreviewTitle(getReportDisplayName(report.slug));
+                              setPreviewApiUrl(preview);
+                            }}
                           >
                             <Eye className="mr-1 h-3.5 w-3.5" />
                             Preview PDF
@@ -348,7 +340,7 @@ export function GeneratedReportsPage() {
                             onClick={() =>
                               void onDownload(
                                 pdfDl,
-                                `${getReportDisplayName(report.slug)}.pdf`,
+                                `${getReportDownloadName(report.slug)}.pdf`,
                                 `pdf-${report.slug}`,
                               )
                             }
@@ -364,7 +356,7 @@ export function GeneratedReportsPage() {
                             onClick={() =>
                               void onDownload(
                                 excelDl,
-                                `${getReportDisplayName(report.slug)}.xlsx`,
+                                `${getReportDownloadName(report.slug)}.xlsx`,
                                 `xlsx-${report.slug}`,
                               )
                             }
@@ -410,7 +402,10 @@ export function GeneratedReportsPage() {
                   <CardBody>
                     {dailySummary.missing_reports.length > 0 ? (
                       <p className="mb-2 text-xs text-amber-700">
-                        Missing: {dailySummary.missing_reports.join(", ")}
+                        Missing:{" "}
+                        {dailySummary.missing_reports
+                          .map((slug) => getReportDisplayName(slug))
+                          .join(", ")}
                       </p>
                     ) : null}
                     <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-surface p-3 text-xs text-rail-ink font-sans">
@@ -427,7 +422,11 @@ export function GeneratedReportsPage() {
 
       <PdfPreviewModal
         apiUrl={previewApiUrl}
-        onClose={() => setPreviewApiUrl(null)}
+        title={previewTitle}
+        onClose={() => {
+          setPreviewApiUrl(null);
+          setPreviewTitle("PDF Review");
+        }}
       />
     </div>
   );

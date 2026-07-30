@@ -15,6 +15,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
+from app.automation.formatting.artifact_titles import build_artifact_main_title
 from app.automation.formatting.scr import highlight_south_central_railway_rows, row_contains_scr
 from app.automation.formatting.text_pipeline import (
     normalize_report_title,
@@ -149,8 +150,7 @@ class Report4Processor:
         date_range = date_range_for_processing(column_selection)
 
 
-        report_date = date_range.title_suffix()
-
+        main_title = build_artifact_main_title("types", date_range)
 
         filename_suffix = date_range.filename_suffix()
         excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
@@ -160,9 +160,9 @@ class Report4Processor:
         pdf_path = pdf_dir / f"{base_name}.pdf"
 
         try:
-            self._write_excel(excel_path, sections, report_date=report_date)
+            self._write_excel(excel_path, sections, main_title=main_title)
             log_automation_event(logger, "report4_excel_generated", excel_path=str(excel_path))
-            self._write_pdf(pdf_path, sections, report_date=report_date)
+            self._write_pdf(pdf_path, sections, main_title=main_title)
             log_automation_event(logger, "report4_pdf_generated", pdf_path=str(pdf_path))
             for section in sections:
                 verify_text_rendering(
@@ -417,7 +417,7 @@ class Report4Processor:
         target_path: Path,
         sections: list[TypeDataset],
         *,
-        report_date: str,
+        main_title: str,
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
         workbook = Workbook()
@@ -425,11 +425,7 @@ class Report4Processor:
         worksheet.title = "Report 4"
 
         col_count = self._section_width(sections)
-        main_title = normalize_report_title(
-            f"Rail Madad Report No 4 - Cause wise Top 10 Trains "
-            f"{report_date}",
-            report_slug="types",
-        )
+        main_title = normalize_report_title(main_title, report_slug="types")
         worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=col_count)
         title_cell = worksheet.cell(row=1, column=1, value=main_title)
         title_cell.font = Font(bold=True, size=14)
@@ -489,7 +485,7 @@ class Report4Processor:
         target_path: Path,
         sections: list[TypeDataset],
         *,
-        report_date: str,
+        main_title: str,
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
 
@@ -508,10 +504,7 @@ class Report4Processor:
         section_style.spaceBefore = 2
         section_style.spaceAfter = 4
 
-        main_title = normalize_report_title(
-            f"Rail Madad Report No 4 - Cause wise Top 10 Trains {report_date}",
-            report_slug="types",
-        )
+        main_title = normalize_report_title(main_title, report_slug="types")
         story: list = []
 
         for section_idx, section in enumerate(sections):

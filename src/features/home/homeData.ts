@@ -12,6 +12,7 @@ import {
   Timer,
   Train,
 } from "lucide-react";
+import { getReportDisplayName } from "@/utils/reportDisplayNames";
 
 export interface ScheduledReport {
   /** Backend report catalog slug — cards are matched by slug, never position. */
@@ -23,71 +24,31 @@ export interface ScheduledReport {
   path: string;
 }
 
+function scheduledReport(
+  id: string,
+  icon: LucideIcon,
+  duration: string,
+  path: string,
+): ScheduledReport {
+  return {
+    id,
+    name: getReportDisplayName(id),
+    icon,
+    duration,
+    status: "Ready",
+    path,
+  };
+}
+
 export const SCHEDULED_REPORTS: ScheduledReport[] = [
-  {
-    id: "report1",
-    name: "Zone Wise Complaints",
-    icon: MapPin,
-    duration: "~2 min",
-    status: "Ready",
-    path: "/workflows/merging",
-  },
-  {
-    id: "division",
-    name: "Division Bottom 25",
-    icon: Building2,
-    duration: "~2 min",
-    status: "Ready",
-    path: "/workflows/division",
-  },
-  {
-    id: "train-no",
-    name: "Top 20 Trains",
-    icon: Train,
-    duration: "~2 min",
-    status: "Ready",
-    path: "/workflows/train-no",
-  },
-  {
-    id: "types",
-    name: "Cause Wise Analysis",
-    icon: BarChart3,
-    duration: "~2 min",
-    status: "Ready",
-    path: "/workflows/types",
-  },
-  {
-    id: "scr-train",
-    name: "SCR Train Report",
-    icon: Train,
-    duration: "~2 min",
-    status: "Ready",
-    path: "/workflows/scr-train",
-  },
-  {
-    id: "scr-station",
-    name: "SCR Station Report",
-    icon: Building2,
-    duration: "~2 min",
-    status: "Ready",
-    path: "/workflows/scr-station",
-  },
-  {
-    id: "report9",
-    name: "All Zones Train/Station Cause Wise on Date",
-    icon: Layers,
-    duration: "~3 min",
-    status: "Ready",
-    path: "/workflows/report9",
-  },
-  {
-    id: "comprehensive-10-13",
-    name: "Comprehensive Reports 10-13",
-    icon: Layers,
-    duration: "~4 min",
-    status: "Ready",
-    path: "/workflows/comprehensive-10-13",
-  },
+  scheduledReport("report1", MapPin, "~2 min", "/workflows/merging"),
+  scheduledReport("division", Building2, "~2 min", "/workflows/division"),
+  scheduledReport("train-no", Train, "~2 min", "/workflows/train-no"),
+  scheduledReport("types", BarChart3, "~2 min", "/workflows/types"),
+  scheduledReport("scr-train", Train, "~2 min", "/workflows/scr-train"),
+  scheduledReport("scr-station", Building2, "~2 min", "/workflows/scr-station"),
+  scheduledReport("report9", Layers, "~3 min", "/workflows/report9"),
+  scheduledReport("comprehensive-10-13", Layers, "~4 min", "/workflows/comprehensive-10-13"),
 ];
 
 /** Icons for the live status metric cards (values come from /dashboard/summary). */
