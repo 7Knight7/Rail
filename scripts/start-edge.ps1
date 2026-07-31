@@ -4,7 +4,7 @@ param(
     [int]$Port = 9222,
     [string]$UserDataDir = "C:\EdgeDebug",
     [string]$EdgeExecutablePath = $env:EDGE_EXECUTABLE_PATH,
-    [string]$RailMadadUrl = "https://railmadad.indianrail.gov.in",
+    [string]$RailMadadUrl = "https://railmadad.indianrailways.gov.in/madad/final/home.jsp",
     [string]$AppUrl = "http://127.0.0.1:5173",
     [string]$BackendHealthUrl = "http://127.0.0.1:8000/api/v1/health",
     [int]$ServiceTimeoutSeconds = 120,
@@ -56,6 +56,123 @@ function Close-StaleEdgeDebugProcesses {
             Write-Host "Closing stale Edge automation process PID $($_.ProcessId)"
             Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
         }
+}
+
+function Clear-EdgeSessionRestoreState {
+    param([string]$ProfileDir)
+
+    $defaultProfile = Join-Path $ProfileDir "Default"
+    if (-not (Test-Path $defaultProfile)) {
+        return
+    }
+
+    $restoreArtifacts = @(
+        (Join-Path $defaultProfile "Current Session"),
+        (Join-Path $defaultProfile "Current Tabs"),
+        (Join-Path $defaultProfile "Last Session"),
+        (Join-Path $defaultProfile "Last Tabs"),
+        (Join-Path $defaultProfile "Sessions")
+    )
+
+    foreach ($artifact in $restoreArtifacts) {
+        if (-not (Test-Path $artifact)) {
+            continue
+        }
+
+        Write-Host "Removing session restore artifact: $artifact"
+        Remove-Item -LiteralPath $artifact -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Get-CdpPageTabs {
+    param([string]$ListUrl)
+
+    try {
+        $all = Invoke-RestMethod -Uri $ListUrl -TimeoutSec 3
+        return @(
+            $all | Where-Object {
+                $_.type -eq "page" -and
+                $_.url -notlike "edge://*" -and
+                $_.url -notlike "chrome://*" -and
+                $_.url -notlike "devtools://*"
+            }
+        )
+    } catch {
+        return @()
+    }
+}
+
+function Test-ProjectUrlOpen {
+    param([string]$Url)
+
+    return $Url -match "127\.0\.0\.1:5173" -or $Url -match "localhost:5173"
+}
+
+function Test-RailMadadHomeUrlOpen {
+    param([string]$Url)
+
+    return $Url -match "railmadad\.indianrailways\.gov\.in/madad/final/home\.jsp"
+}
+
+function Open-CdpTab {
+    param(
+        [int]$Port,
+        [string]$Url
+    )
+
+    $newTabUrl = "http://127.0.0.1:$Port/json/new?$Url"
+    Invoke-RestMethod -Uri $newTabUrl -Method Get -TimeoutSec 10 | Out-Null
+}
+
+function Ensure-RequiredTabs {
+    param(
+        [int]$Port,
+        [string]$AppUrl,
+        [string]$RailMadadUrl
+    )
+
+    $listUrl = "http://127.0.0.1:$Port/json/list"
+    $tabs = Get-CdpPageTabs -ListUrl $listUrl
+    $openUrls = @($tabs | ForEach-Object { $_.url })
+
+    $projectOpen = @($openUrls | Where-Object { Test-ProjectUrlOpen -Url $_ }).Count -gt 0
+    $railmadadOpen = @($openUrls | Where-Object { Test-RailMadadHomeUrlOpen -Url $_ }).Count -gt 0
+
+    if (-not $projectOpen) {
+        Write-Host "Opening missing project tab: $AppUrl"
+        Open-CdpTab -Port $Port -Url $AppUrl
+    }
+
+    if (-not $railmadadOpen) {
+        Write-Host "Opening missing RailMadad tab: $RailMadadUrl"
+        Open-CdpTab -Port $Port -Url $RailMadadUrl
+    }
+}
+
+function Write-RequiredTabSummary {
+    param(
+        [int]$Port,
+        [string]$AppUrl,
+        [string]$RailMadadUrl
+    )
+
+    $tabs = Get-CdpPageTabs -ListUrl "http://127.0.0.1:$Port/json/list"
+    $openUrls = @($tabs | ForEach-Object { $_.url })
+
+    $projectTabs = @($openUrls | Where-Object { Test-ProjectUrlOpen -Url $_ })
+    $railmadadTabs = @($openUrls | Where-Object { Test-RailMadadHomeUrlOpen -Url $_ })
+
+    Write-Host ""
+    Write-Host "Required tabs:"
+    Write-Host "  Project ($AppUrl): $($projectTabs.Count) open"
+    foreach ($url in $projectTabs) {
+        Write-Host "    - $url"
+    }
+    Write-Host "  RailMadad ($RailMadadUrl): $($railmadadTabs.Count) open"
+    foreach ($url in $railmadadTabs) {
+        Write-Host "    - $url"
+    }
+    Write-Host "  Other page tabs: $($tabs.Count - $projectTabs.Count - $railmadadTabs.Count)"
 }
 
 Write-Host "=== RailMadad Edge automation startup ==="
@@ -123,12 +240,12 @@ if (Test-HttpReady -Url $cdpVersionUrl) {
     try {
         $probe = Invoke-WebRequest -Uri $cdpVersionUrl -UseBasicParsing -TimeoutSec 3
         Write-Host $probe.Content
-        $listResp = Invoke-WebRequest -Uri $cdpListUrl -UseBasicParsing -TimeoutSec 3
-        $tabs = $listResp.Content | ConvertFrom-Json
-        Write-Host "Open tabs: $($tabs.Count)"
     } catch {
-        Write-Host "CDP is ready but could not fetch tab list."
+        Write-Host "CDP is ready but could not fetch version details."
     }
+
+    Ensure-RequiredTabs -Port $Port -AppUrl $AppUrl -RailMadadUrl $RailMadadUrl
+    Write-RequiredTabSummary -Port $Port -AppUrl $AppUrl -RailMadadUrl $RailMadadUrl
     Write-Host ""
     Write-Host "Next: log in to RailMadad in this Edge window, then click Generate in the app at $AppUrl"
     exit 0
@@ -136,14 +253,18 @@ if (Test-HttpReady -Url $cdpVersionUrl) {
 
 Close-StaleEdgeDebugProcesses -ProfileDir $UserDataDir
 Start-Sleep -Seconds 2
+Clear-EdgeSessionRestoreState -ProfileDir $UserDataDir
 
 Write-Host "Launching Edge (user-data-dir: $UserDataDir, CDP port: $Port)..."
 Start-Process -FilePath $edge -ArgumentList @(
     "--remote-debugging-port=$Port",
     "--remote-debugging-address=127.0.0.1",
     "--user-data-dir=$UserDataDir",
-    $RailMadadUrl,
-    $AppUrl
+    "--disable-restore-session-state",
+    "--no-first-run",
+    "--no-default-browser-check",
+    $AppUrl,
+    $RailMadadUrl
 )
 
 Write-Host "Waiting for CDP at $cdpVersionUrl ..."
@@ -154,12 +275,9 @@ for ($i = 0; $i -lt 40; $i++) {
             $resp = Invoke-WebRequest -Uri $cdpVersionUrl -UseBasicParsing -TimeoutSec 3
             Write-Host "OK: Edge CDP is ready."
             Write-Host $resp.Content
-            $listResp = Invoke-WebRequest -Uri $cdpListUrl -UseBasicParsing -TimeoutSec 3
-            $tabs = $listResp.Content | ConvertFrom-Json
-            Write-Host ""
-            Write-Host "Open tabs: $($tabs.Count)"
+            Write-RequiredTabSummary -Port $Port -AppUrl $AppUrl -RailMadadUrl $RailMadadUrl
         } catch {
-            Write-Host "OK: Edge CDP is ready (could not fetch tab list)."
+            Write-Host "OK: Edge CDP is ready (could not fetch tab summary)."
         }
         Write-Host ""
         Write-Host "Service summary:"
