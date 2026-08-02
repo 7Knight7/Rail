@@ -10,18 +10,16 @@ from typing import Any
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, Side
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Spacer
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
+from app.automation.formatting.pdf_fonts import pdf_font_bold, pdf_title_style
+from app.automation.formatting.pdf_table import build_fitted_table
 from app.automation.formatting.scr import highlight_south_central_railway_rows, row_contains_scr
 from app.automation.formatting.text_pipeline import (
     normalize_report_title,
     prepare_output_for_rendering,
     verify_text_rendering,
-)
-from app.automation.formatting.topn_pdf import (
-    build_topn_fitted_table,
-    build_topn_title_block,
 )
 from app.automation.processing.base import ProcessingResult
 from app.automation.processing.column_config import project_topn_for_output
@@ -300,23 +298,27 @@ class Report3Processor:
         style_commands: list[tuple] = [
             ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
             ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("FONTNAME", (0, 0), (-1, 0), pdf_font_bold()),
         ]
         for row_idx in scr_row_indices:
             style_commands.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.yellow))
             style_commands.append(("TEXTCOLOR", (0, row_idx), (-1, row_idx), colors.black))
 
-        table, pagesize, margin, col_widths = build_topn_fitted_table(
-            table_data,
-            style_commands,
-        )
+        table, pagesize, margin = build_fitted_table(table_data, style_commands)
+        usable_width = pagesize[0] - (2 * margin)
+        table_width = float(sum(table._colWidths))
+        if table_width > 0 and table_width < usable_width - 0.5:
+            scale = usable_width / table_width
+            table._colWidths = [float(width) * scale for width in table._colWidths]
+
         title = normalize_report_title(
             f"Rail Madad Report No 3 - 20 Trains having maximum grievances "
             f"{report_date}",
             report_slug="train-no",
         )
         story = [
-            build_topn_title_block(title, sum(col_widths)),
-            Spacer(1, 10),
+            Paragraph(title, pdf_title_style("Report3Title")),
+            Spacer(1, 12),
             table,
         ]
         doc = SimpleDocTemplate(

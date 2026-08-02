@@ -662,7 +662,11 @@ class BaseReportHandler(ABC):
                 from app.automation.run_registry import build_dual_artifact_metadata
 
                 artifact_metadata = None
-                if processing_result.selected_column_ids:
+                if getattr(processing_result, "artifact_metadata", None):
+                    artifact_metadata = dict(processing_result.artifact_metadata)
+                    if ctx.run_id and "run_id" not in artifact_metadata:
+                        artifact_metadata["run_id"] = ctx.run_id
+                elif processing_result.selected_column_ids:
                     artifact_metadata = build_dual_artifact_metadata(
                         selected_column_ids=processing_result.selected_column_ids,
                         column_order=processing_result.column_order,

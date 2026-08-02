@@ -42,5 +42,17 @@ export const EXPORT_FORMAT_FIELD = {
   ],
 };
 
+export const COMPREHENSIVE_EXPORT_FORMAT_FIELD = {
+  id: "exportFormat",
+  label: "Export Format",
+  type: "select" as const,
+  value: "both",
+  options: [
+    { value: "xlsx", label: "Excel (.xlsx)" },
+    { value: "pdf", label: "PDF" },
+    { value: "both", label: "PDF and Excel" },
+  ],
+};
+
 /** Fields still rendered in the advanced settings card (filters/columns are separate). */
 export const COMMON_ADVANCED_FIELDS = [HIGHLIGHT_RULES_FIELD];

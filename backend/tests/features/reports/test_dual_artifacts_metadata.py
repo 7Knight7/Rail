@@ -44,16 +44,14 @@ def test_dual_artifacts_reject_stale_run_id(tmp_path: Path):
 
     excel = _art(tmp_path, slug="report1", meta=meta_ok)
     pdf = _art(tmp_path, slug="report1", meta=meta_stale)
-    assert (
-        _dual_artifacts_metadata_consistent(
-            excel,
-            pdf,
-            {"column_order": cols},
-            run_id="current-run",
-            report_slug="report1",
-        )
-        is False
+    ok, _ = _dual_artifacts_metadata_consistent(
+        excel,
+        pdf,
+        {"column_order": cols},
+        run_id="current-run",
+        report_slug="report1",
     )
+    assert ok is False
 
 
 def test_dual_artifacts_accept_matching_current_run(tmp_path: Path):
@@ -66,16 +64,15 @@ def test_dual_artifacts_accept_matching_current_run(tmp_path: Path):
     )
     excel = _art(tmp_path, slug="division", meta=meta)
     pdf = _art(tmp_path, slug="division", meta=meta)
-    assert (
-        _dual_artifacts_metadata_consistent(
-            excel,
-            pdf,
-            {"column_order": cols, "selected_column_ids": cols},
-            run_id="run-xyz",
-            report_slug="division",
-        )
-        is True
+    ok, err = _dual_artifacts_metadata_consistent(
+        excel,
+        pdf,
+        {"column_order": cols, "selected_column_ids": cols},
+        run_id="run-xyz",
+        report_slug="division",
     )
+    assert ok is True
+    assert err is None
 
 
 def test_dual_artifacts_reject_column_order_mismatch(tmp_path: Path):
@@ -87,13 +84,11 @@ def test_dual_artifacts_reject_column_order_mismatch(tmp_path: Path):
     )
     excel = _art(tmp_path, slug="types", meta=meta)
     pdf = _art(tmp_path, slug="types", meta=meta)
-    assert (
-        _dual_artifacts_metadata_consistent(
-            excel,
-            pdf,
-            {"column_order": ["b"]},
-            run_id="run-1",
-            report_slug="types",
-        )
-        is False
+    ok, _ = _dual_artifacts_metadata_consistent(
+        excel,
+        pdf,
+        {"column_order": ["b"]},
+        run_id="run-1",
+        report_slug="types",
     )
+    assert ok is False

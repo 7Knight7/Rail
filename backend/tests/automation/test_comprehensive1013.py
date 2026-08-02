@@ -15,6 +15,7 @@ from app.automation.reports import (
 )
 from app.automation.handlers.registry import HANDLER_REGISTRY, get_handler
 from app.automation.processing.registry import PROCESSORS
+from app.automation.processing.comprehensive1013_processor import Comprehensive1013Processor
 from app.automation.comprehensive1013_filters import (
     COMPREHENSIVE_1013_SECTION_IDS,
     SECTION_CONFIGS,
@@ -271,6 +272,46 @@ class TestHeaderNormalization:
 
     def test_normalize_unknown_header(self):
         assert normalize_header_to_column_id("Unknown Column") is None
+
+
+class TestComprehensiveProjection:
+    def test_project_columns_uses_organisation_when_division_empty(self):
+        processor = Comprehensive1013Processor()
+        raw_headers = [
+            "S.No.",
+            "Division",
+            "Organisation",
+            "Opening Balance",
+            "Received",
+        ]
+        data_rows = [
+            {
+                "S.No.": "1",
+                "Division": "",
+                "Organisation": "SECUNDERABAD DIVISION (South Central Railway)",
+                "Opening Balance": "0",
+                "Received": "10",
+            }
+        ]
+        selected = ["sno", "division", "opening_balance", "received"]
+        headers, rows = processor._project_columns(raw_headers, data_rows, selected)
+        assert headers == ["S.No.", "Division", "Opening Balance", "Received"]
+        assert rows[0][1] == "SECUNDERABAD DIVISION (South Central Railway)"
+
+    def test_project_columns_prefers_division_over_empty_organisation(self):
+        processor = Comprehensive1013Processor()
+        raw_headers = ["S.No.", "Division", "Organisation", "Received"]
+        data_rows = [
+            {
+                "S.No.": "1",
+                "Division": "HYDERABAD DIVISION (South Central Railway)",
+                "Organisation": "",
+                "Received": "5",
+            }
+        ]
+        selected = ["sno", "division", "received"]
+        _, rows = processor._project_columns(raw_headers, data_rows, selected)
+        assert rows[0][1] == "HYDERABAD DIVISION (South Central Railway)"
 
 
 class TestCatalogIntegrity:

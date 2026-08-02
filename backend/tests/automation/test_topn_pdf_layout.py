@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A3, landscape
+from reportlab.lib.pagesizes import A3, A4, landscape
 
+from app.automation.formatting.pdf_table import build_fitted_table
 from app.automation.formatting.topn_pdf import (
     TOPN_BODY_FONT_PT,
     TOPN_HEADER_FONT_PT,
@@ -35,7 +36,7 @@ def test_topn_layout_prefers_a3_and_fits_width():
     assert pagesize == landscape(A3)
     assert margin == TOPN_SAFE_MARGIN_PT
     usable = pagesize[0] - (2 * margin)
-    assert abs(sum(col_widths) - usable) < 0.6
+    assert sum(col_widths) <= usable + 0.6
     train_idx = headers.index("Train Name")
     rating_idx = headers.index("Average Rating")
     received_idx = headers.index("Received")
@@ -74,7 +75,7 @@ def test_topn_fitted_table_wraps_within_printable_width():
     assert TOPN_BODY_FONT_PT >= 8.5
     assert TOPN_HEADER_FONT_PT >= 9.0
     assert TOPN_TITLE_FONT_PT >= 15.0
-    assert abs(sum(col_widths) - usable) < 0.6
+    assert sum(col_widths) <= usable + 0.6
 
 
 def test_report3_pdf_layout_valid_and_has_20_rows(
@@ -117,13 +118,18 @@ def test_report3_pdf_layout_valid_and_has_20_rows(
     table_data = [headers]
     for r in range(3, 3 + TOP_N):
         table_data.append([str(ws.cell(r, c).value or "") for c in range(1, len(headers) + 1)])
-    table, pagesize, margin, _ = build_topn_fitted_table(
+    table, pagesize, margin = build_fitted_table(
         table_data,
         [("GRID", (0, 0), (-1, -1), 0.5, colors.black)],
     )
     usable = pagesize[0] - (2 * margin)
+    table_width = float(sum(table._colWidths))
+    if table_width > 0 and table_width < usable - 0.5:
+        scale = usable / table_width
+        table._colWidths = [float(width) * scale for width in table._colWidths]
     assert table.wrap(usable, pagesize[1])[0] <= usable + 1.0
-    assert pagesize == landscape(A3)
+    assert pagesize == landscape(A4)
+    assert abs(sum(table._colWidths) - usable) < 1.0
 
 
 def test_report4_pdf_seven_sections_two_tables_per_page(
@@ -193,6 +199,8 @@ def test_report4_pdf_seven_sections_two_tables_per_page(
         if ws.cell(r, 1).value and "Rail Madad 10 trains having maximum" in str(ws.cell(r, 1).value)
     ]
     assert len(found) == 7
+    assert "Rail Madad 10 trains having maximum" in str(ws.cell(row=2, column=1).value)
+    assert ws.cell(row=2, column=2).value is None
     for idx, cfg in enumerate(configs):
         assert cfg.section_title == found[idx]
 

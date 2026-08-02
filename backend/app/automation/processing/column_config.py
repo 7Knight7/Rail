@@ -45,9 +45,33 @@ from app.automation.processing.topn_output_columns import (
     topn_labels,
     validate_selected_topn_fields,
 )
+from app.automation.comprehensive1013_filters import (
+    COMPREHENSIVE_1013_SECTION_IDS,
+    SECTION_CONFIGS,
+)
+from app.automation.processing.comprehensive_output_columns import (
+    COMPREHENSIVE_COLUMN_IDS,
+    comprehensive_union_column_keys,
+    sanitize_comprehensive_section_columns,
+    sanitize_comprehensive_sections,
+    validate_comprehensive_sections,
+)
 from app.automation.report_keys import canonicalize_report_key
 
 logger = logging.getLogger(__name__)
+
+COMPREHENSIVE_REPORT_SLUG = "comprehensive-10-13"
+
+_SECTION_DISPLAY_NAMES: dict[str, str] = {
+    section.section_id: section.name for section in SECTION_CONFIGS
+}
+
+_SECTION_VALIDATION_NAMES: dict[str, str] = {
+    "report10_cw": "Report 10 — C&W",
+    "report11_security": "Report 11 — Security",
+    "report12_punctuality": "Report 12 — Punctuality",
+    "report13_electrical": "Report 13 — Electrical Equipment",
+}
 
 ConfigSource = Literal["manual_snapshot", "saved_user_config", "report_default"]
 
@@ -71,6 +95,7 @@ REPORT_DEFAULT_PROJECTION_KEYS: dict[str, list[str]] = {
     "report3": topn_default_ids("train-no"),
     "types": topn_default_ids("types"),
     "report4": topn_default_ids("types"),
+    COMPREHENSIVE_REPORT_SLUG: list(COMPREHENSIVE_COLUMN_IDS),
 }
 
 
@@ -622,6 +647,24 @@ def project_topn_for_output(
     return out_headers, out_rows, labels, keys, source
 
 
+def extract_comprehensive_sections_payload(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Read sections from a generate/save payload or legacy nested overrides."""
+    sections = payload.get("sections")
+    if isinstance(sections, dict) and sections:
+        return sections
+    overrides = payload.get("config_overrides")
+    if isinstance(overrides, dict):
+        nested = overrides.get("sections")
+        if isinstance(nested, dict) and nested:
+            return nested
+        column_selection = overrides.get("column_selection")
+        if isinstance(column_selection, dict):
+            legacy = column_selection.get("sections")
+            if isinstance(legacy, dict) and legacy:
+                return legacy
+    return None
+
+
 def output_column_catalog(report_slug: str) -> list[dict[str, object]]:
     slug = canonicalize_report_key(report_slug)
     if slug in TOPN_REPORT_SLUGS:
@@ -652,6 +695,22 @@ def output_column_catalog(report_slug: str) -> list[dict[str, object]]:
                 "default_visible": column.id in defaults,
             }
             for column in namespaced_catalog_for_slug(slug)
+        ]
+
+    if slug == COMPREHENSIVE_REPORT_SLUG:
+        from app.automation.processing.comprehensive_output_columns import COMPREHENSIVE_COLUMN_LABELS
+
+        defaults = set(COMPREHENSIVE_COLUMN_IDS)
+        return [
+            {
+                "id": col_id,
+                "label": COMPREHENSIVE_COLUMN_LABELS[col_id],
+                "group": "comprehensive",
+                "group_title": "Comprehensive Reports",
+                "required": False,
+                "default_visible": col_id in defaults,
+            }
+            for col_id in COMPREHENSIVE_COLUMN_IDS
         ]
 
     return []

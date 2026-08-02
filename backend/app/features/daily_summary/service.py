@@ -73,6 +73,7 @@ class DailySummaryService:
                 )
 
             text, row_counts, missing, notes = build_full_summary(sources, date_str)
+            # Reconciliation notes are appended inside build_full_summary; persist all notes.
             source_reports = [
                 slug
                 for slug in SUMMARY_SOURCE_SLUGS

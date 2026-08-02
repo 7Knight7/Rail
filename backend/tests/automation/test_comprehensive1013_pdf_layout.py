@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.pagesizes import A3, landscape
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table
 
 from app.automation.comprehensive1013_filters import COMPREHENSIVE_1013_SECTION_IDS
@@ -167,6 +168,10 @@ def test_comprehensive1013_pdf_is_single_page_with_section_order(
 
     assert _count_pdf_pages(pdf_path) == 1
 
+    pagesize = captured["pagesize"]
+    assert pagesize is not None
+    assert float(pagesize[1]) < landscape(A3)[1]
+
     flowables = captured["flowables"]
     assert flowables is not None
     assert not any(isinstance(item, PageBreak) for item in flowables)
@@ -229,6 +234,8 @@ def test_comprehensive1013_pdf_is_single_page_with_section_order(
         assert title_paragraph.style.alignment == TA_CENTER
         assert date_paragraph.style.alignment == TA_RIGHT
         assert expected_date in _paragraph_text(date_paragraph)
+        assert getattr(data_table, "hAlign", None) == "CENTER"
+        assert getattr(heading_table, "hAlign", None) == "CENTER"
 
         # Total row (last) must be bold — inspect resolved cell styles after wrap
         data_table.wrap(sum(float(w) for w in data_table._colWidths), 10000)

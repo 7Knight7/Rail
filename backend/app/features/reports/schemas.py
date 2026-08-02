@@ -44,6 +44,7 @@ class ManualGenerateRequest(ColumnSelectionRequest):
     filter_conditions: list[dict[str, Any]] = Field(default_factory=list)
     configuration_source: Literal["manual_snapshot"] = "manual_snapshot"
     force_fresh_extraction: bool = False
+    sections: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _validate_date_range(self) -> "ManualGenerateRequest":
@@ -125,6 +126,9 @@ class SaveReportConfigRequest(ColumnSelectionRequest):
     export_format: Literal["xlsx", "pdf", "csv"] = "xlsx"
     config_overrides: dict[str, Any] = Field(default_factory=dict)
     filter_conditions: list[dict[str, Any]] = Field(default_factory=list)
+    sections: dict[str, Any] = Field(default_factory=dict)
+    date_from: str | None = None
+    date_to: str | None = None
 
 
 class SaveReportConfigResponse(BaseModel):
@@ -143,3 +147,6 @@ class ReportConfigResponse(BaseModel):
     export_format: Literal["xlsx", "pdf", "csv"] = "xlsx"
     config_overrides: dict[str, Any] = Field(default_factory=dict)
     filter_conditions: list[dict[str, Any]] = Field(default_factory=list)
+    sections: dict[str, Any] = Field(default_factory=dict)
+    date_from: str | None = None
+    date_to: str | None = None

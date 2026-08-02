@@ -24,17 +24,17 @@ from app.automation.formatting.text_pipeline import (
 )
 from app.automation.formatting.topn_pdf import (
     build_topn_fitted_table,
+    build_topn_section_heading_block,
     build_topn_title_block,
     choose_topn_landscape_layout,
-    topn_section_style,
 )
 from app.automation.processing.base import ProcessingResult
 
 # Report 4 PDF: two section tables per page on A3 landscape.
-_REPORT4_PDF_MARGIN_PT = 14.0
-_REPORT4_TITLE_AFTER_PT = 6.0
+_REPORT4_PDF_MARGIN_PT = 12.0
+_REPORT4_TITLE_AFTER_PT = 5.0
 _REPORT4_SECTION_GAP_PT = 8.0
-_REPORT4_BEFORE_TABLE_PT = 6.0
+_REPORT4_BEFORE_TABLE_PT = 3.0
 _REPORT4_TABLE_CELL_PADDING_PT = 2.0
 from app.automation.processing.column_config import project_topn_for_output, resolve_projection_column_keys
 from app.automation.processing.report3_processor import Report3Processor
@@ -431,9 +431,9 @@ class Report4Processor:
         title_cell.font = Font(bold=True, size=14)
         title_cell.alignment = Alignment(horizontal="center")
 
-        current_row = 3
+        current_row = 2
 
-        for section in sections:
+        for section_idx, section in enumerate(sections):
             section_cols = max(len(section.headers), 1)
             worksheet.merge_cells(
                 start_row=current_row,
@@ -475,7 +475,8 @@ class Report4Processor:
                     end_col=len(section.headers),
                 )
 
-            current_row += 1
+            if section_idx < len(sections) - 1:
+                current_row += 1
 
         workbook.save(temp_path)
         temp_path.replace(target_path)
@@ -500,9 +501,6 @@ class Report4Processor:
         )
         table_width = sum(col_widths)
         styles = getSampleStyleSheet()
-        section_style = topn_section_style("Report4Section")
-        section_style.spaceBefore = 2
-        section_style.spaceAfter = 4
 
         main_title = normalize_report_title(main_title, report_slug="types")
         story: list = []
@@ -516,10 +514,17 @@ class Report4Processor:
             else:
                 story.append(Spacer(1, _REPORT4_SECTION_GAP_PT))
 
-            section_block: list = [
-                Paragraph(section.type_config.section_title, section_style),
-                Spacer(1, _REPORT4_BEFORE_TABLE_PT),
-            ]
+            story.append(
+                KeepTogether(
+                    [
+                        build_topn_section_heading_block(
+                            section.type_config.section_title,
+                            table_width,
+                        ),
+                        Spacer(1, _REPORT4_BEFORE_TABLE_PT),
+                    ]
+                )
+            )
 
             if section.rows:
                 table_data: list[list[object]] = [list(section.headers)]
@@ -545,20 +550,18 @@ class Report4Processor:
                     table_data,
                     style_commands,
                     margin=_REPORT4_PDF_MARGIN_PT,
-                    splittable=False,
+                    splittable=True,
                     cell_padding=_REPORT4_TABLE_CELL_PADDING_PT,
                 )
                 if section_pagesize[0] > pagesize[0]:
                     pagesize = section_pagesize
                     margin = section_margin
                     table_width = sum(section_widths)
-                section_block.append(table)
+                story.append(table)
             else:
-                section_block.append(
+                story.append(
                     Paragraph("No data available for this type.", styles["Normal"])
                 )
-
-            story.append(KeepTogether(section_block))
 
         doc = SimpleDocTemplate(
             str(temp_path),

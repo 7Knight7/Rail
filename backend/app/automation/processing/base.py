@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -30,3 +31,4 @@ class ProcessingResult:
     selected_column_ids: list[str] | None = None
     column_order: list[str] | None = None
     configuration_source: str | None = None
+    artifact_metadata: dict[str, Any] | None = None

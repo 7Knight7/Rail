@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ClipboardCopy,
@@ -39,10 +39,15 @@ export function DailySummaryPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<SummaryLoadState>("idle");
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const loadGenerationRef = useRef(0);
 
   const selectedRunId = runIdFromUrl || localStorage.getItem(LAST_RUN_KEY);
   const validRunId =
     selectedRunId && UUID_RE.test(selectedRunId) ? selectedRunId : null;
+  const selectedRun = runs.find((r) => r.run_id === validRunId);
+  const runIsProcessing =
+    selectedRun != null &&
+    !["completed", "failed", "stopped"].includes(selectedRun.status);
 
   const loadRuns = useCallback(async () => {
     try {
@@ -63,15 +68,19 @@ export function DailySummaryPage() {
   }, [validRunId, setSearchParams]);
 
   const loadSummary = useCallback(async (runId: string) => {
+    const generation = ++loadGenerationRef.current;
+    setSummary(null);
     setLoading(true);
     setLoadState("idle");
     setErrorDetail(null);
     try {
       const data = await dailySummaryApi.getForRun(runId);
+      if (generation !== loadGenerationRef.current) return;
       setSummary(data);
       localStorage.setItem(LAST_RUN_KEY, runId);
       setSearchParams({ run_id: runId }, { replace: true });
     } catch (err) {
+      if (generation !== loadGenerationRef.current) return;
       setSummary(null);
       if (err instanceof ApiError && err.code === "SUMMARY_NOT_GENERATED") {
         setLoadState("no_summary");
@@ -86,7 +95,9 @@ export function DailySummaryPage() {
         setErrorDetail(err instanceof Error ? err.message : "Could not load summary");
       }
     } finally {
-      setLoading(false);
+      if (generation === loadGenerationRef.current) {
+        setLoading(false);
+      }
     }
   }, [setSearchParams]);
 
@@ -172,7 +183,7 @@ export function DailySummaryPage() {
     <div className="space-y-6">
       <PageHeader
         title="Daily Summary"
-        description="Copy-ready WhatsApp-style briefing from the current run’s Previous-Day data (Reports 3–6)."
+        description="Copy-ready WhatsApp-style briefing from the current run’s Previous-Day data (Reports 1–2, 3–7, 9, and 10–13)."
       />
 
       <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
@@ -223,7 +234,11 @@ export function DailySummaryPage() {
                       : errorDetail ?? "Could not load summary."}
                 </p>
                 {validRunId && loadState !== "run_not_found" ? (
-                  <Button type="button" onClick={() => void onRegenerate()} disabled={busy === "regenerate"}>
+                  <Button
+                    type="button"
+                    onClick={() => void onRegenerate()}
+                    disabled={busy === "regenerate" || runIsProcessing}
+                  >
                     <RefreshCw className="mr-1 h-3.5 w-3.5" />
                     Generate / Regenerate
                   </Button>
@@ -259,7 +274,12 @@ export function DailySummaryPage() {
                       <Download className="mr-1 h-3.5 w-3.5" />
                       Download TXT
                     </Button>
-                    <Button type="button" size="sm" disabled={busy === "regenerate"} onClick={() => void onRegenerate()}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busy === "regenerate" || runIsProcessing}
+                      onClick={() => void onRegenerate()}
+                    >
                       <RefreshCw className="mr-1 h-3.5 w-3.5" />
                       Regenerate
                     </Button>

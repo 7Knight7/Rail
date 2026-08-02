@@ -24,13 +24,13 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import KeepTogether, LongTable, Paragraph, SimpleDocTemplate, Spacer, TableStyle
 
 from app.automation.config import config
 from app.automation.date_range import date_range_for_processing
 from app.automation.formatting.artifact_titles import build_artifact_main_title
 from app.automation.formatting.pdf_fonts import ensure_pdf_unicode_fonts, pdf_font_bold, pdf_font_regular
-from app.automation.formatting.pdf_table import SAFE_MARGIN_PT
+from app.automation.formatting.pdf_table import SAFE_MARGIN_PT, fit_column_widths, preferred_column_widths
 from app.automation.formatting.text_pipeline import normalize_report_title
 from app.automation.processing.base import ProcessingResult
 from app.automation.report9_filters import (
@@ -59,7 +59,8 @@ THIN_BORDER = Border(
 
 TOTAL_FILL = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
 
-_PDF_MARGIN_PT = min(SAFE_MARGIN_PT, 18.0)
+_PDF_MARGIN_PT = min(SAFE_MARGIN_PT, 14.0)
+_PDF_SECTION_GAP_PT = 8.0
 
 
 def _escape_paragraph_xml(text: str) -> str:
@@ -399,8 +400,8 @@ class Report9Processor:
         sub_cell.font = Font(bold=True, size=11)
         sub_cell.alignment = Alignment(horizontal="center")
 
-        current_row = 4
-        for section in sections:
+        current_row = 3
+        for section_idx, section in enumerate(sections):
             worksheet.merge_cells(
                 start_row=current_row,
                 start_column=1,
@@ -438,9 +439,11 @@ class Report9Processor:
                 cell.fill = TOTAL_FILL
                 if col_idx in (1, 3, 4):
                     cell.alignment = Alignment(horizontal="center")
-            current_row += 2
+            current_row += 1
+            if section_idx < len(sections) - 1:
+                current_row += 1
 
-        for col_idx, width in enumerate([8, 48, 12, 12], start=1):
+        for col_idx, width in enumerate([8, 22, 12, 12], start=1):
             worksheet.column_dimensions[chr(64 + col_idx)].width = width
 
         workbook.save(temp_path)
@@ -473,7 +476,7 @@ class Report9Processor:
             fontSize=10,
             leading=12,
             alignment=TA_CENTER,
-            spaceAfter=10,
+            spaceAfter=5,
             fontName=pdf_font_bold(),
         )
         section_style = ParagraphStyle(
@@ -482,8 +485,8 @@ class Report9Processor:
             fontSize=10,
             leading=12,
             alignment=TA_CENTER,
-            spaceBefore=6,
-            spaceAfter=4,
+            spaceBefore=2,
+            spaceAfter=2,
             fontName=pdf_font_bold(),
         )
 
@@ -497,24 +500,22 @@ class Report9Processor:
         page_width, _page_height = landscape(A4)
         usable_width = page_width - (2 * margin)
 
-        for section in sections:
-            story.append(
-                Paragraph(
-                    _escape_paragraph_xml(section.config.section_title),
-                    section_style,
-                )
+        for section_idx, section in enumerate(sections):
+            heading = Paragraph(
+                _escape_paragraph_xml(section.config.section_title),
+                section_style,
             )
             table_data: list[list[object]] = [list(section.headers)]
             table_data.extend([list(r) for r in section.rows])
             table_data.append(list(section.total_row))
 
-            col_widths = [
-                usable_width * 0.10,
-                usable_width * 0.52,
-                usable_width * 0.19,
-                usable_width * 0.19,
-            ]
-            table = Table(table_data, colWidths=col_widths, repeatRows=1)
+            preferred = preferred_column_widths(
+                table_data,
+                font_size=8,
+                headers=list(section.headers),
+            )
+            col_widths = fit_column_widths(preferred, usable_width)
+            table = LongTable(table_data, colWidths=col_widths, repeatRows=1)
             table.setStyle(
                 TableStyle(
                     [
@@ -527,7 +528,7 @@ class Report9Processor:
                         ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
                         ("ALIGN", (0, 0), (0, -1), "CENTER"),
                         ("ALIGN", (2, 0), (-1, -1), "CENTER"),
-                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
                         ("LEFTPADDING", (0, 0), (-1, -1), 3),
                         ("RIGHTPADDING", (0, 0), (-1, -1), 3),
                         ("TOPPADDING", (0, 0), (-1, -1), 2),
@@ -535,8 +536,13 @@ class Report9Processor:
                     ]
                 )
             )
-            story.append(table)
-            story.append(Spacer(1, 8))
+            section_flow: list[Any] = [heading, table]
+            if len(table_data) <= 18:
+                story.append(KeepTogether(section_flow))
+            else:
+                story.extend(section_flow)
+            if section_idx < len(sections) - 1:
+                story.append(Spacer(1, _PDF_SECTION_GAP_PT))
 
         doc = SimpleDocTemplate(
             str(temp_path),

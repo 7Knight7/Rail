@@ -113,7 +113,12 @@ describe("manual download gating", () => {
     expect(canPreviewPdf(dualReadyBase)).toBe(true);
     expect(canDownloadManualStatus(dualReadyBase)).toBe(true);
 
-    const missingPdf = { ...dualReadyBase, pdf_artifact_id: null, pdf_download_url: null };
+    const missingPdf = {
+      ...dualReadyBase,
+      pdf_artifact_id: null,
+      pdf_download_url: null,
+      pdf_preview_url: null,
+    };
     expect(canDownloadPdf(missingPdf)).toBe(false);
     expect(canPreviewPdf(missingPdf)).toBe(false);
   });

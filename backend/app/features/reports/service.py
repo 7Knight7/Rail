@@ -12,14 +12,20 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.automation.processing.column_config import (
+    COMPREHENSIVE_REPORT_SLUG,
+    extract_comprehensive_sections_payload,
     output_column_catalog,
     projection_labels_for_slug,
     resolve_projection_column_keys,
+    sanitize_comprehensive_sections,
     sanitize_projection_keys,
     validate_column_order,
     validate_projection_selection,
 )
-from app.automation.processing.output_columns import NAMESPACED_REPORT_SLUGS
+from app.automation.processing.comprehensive_output_columns import (
+    build_comprehensive_column_snapshot,
+    validate_comprehensive_artifact_metadata,
+)
 from app.automation.processing.scr_output_columns import SCR_NAMESPACED_SLUGS
 from app.automation.processing.topn_output_columns import TOPN_REPORT_SLUGS
 from app.automation.config import config
@@ -50,6 +56,7 @@ from app.features.reports.scr_fresh import (
     validate_manual_scr_column_snapshot,
 )
 from app.features.reports.slug_map import is_manual_report_slug, resolve_manual_slug
+from app.automation.report_keys import canonicalize_report_key
 from app.features.reports.status import extraction_success, map_manual_status
 from app.features.reports.topn_manual import has_valid_topn_dataset, start_topn_process_only_async
 from app.infrastructure.database.models import AutomationRunModel
@@ -66,6 +73,37 @@ def build_config_snapshot(
     configuration_source: str = "manual_snapshot",
     user_id: str | None = None,
 ) -> dict[str, Any]:
+    slug = canonicalize_report_key(report_slug)
+    try:
+        date_range = ReportDateRange.from_iso(str(body.date_from), str(body.date_to))
+    except DateRangeValidationError as exc:
+        raise ValueError(str(exc)) from exc
+
+    if slug == COMPREHENSIVE_REPORT_SLUG:
+        raw_sections = body.sections or extract_comprehensive_sections_payload(body.model_dump())
+        if not raw_sections:
+            raise ValueError("Report 10-13 requires column selections for all four sections.")
+        column_snapshot = build_comprehensive_column_snapshot(
+            raw_sections,
+            date_from=date_range.iso_from(),
+            date_to=date_range.iso_to(),
+            configuration_source=configuration_source,
+        )
+        snapshot: dict[str, Any] = {
+            **column_snapshot,
+            "export_format": body.export_format,
+            "config_overrides": dict(body.config_overrides),
+            "filter_conditions": list(body.filter_conditions),
+            "report_date": date_range.legacy_report_date(),
+            "snapshot_created_at": datetime.now(UTC).isoformat(),
+        }
+        snapshot.update(date_range.snapshot_fields())
+        if body.requested_formats:
+            snapshot["requested_formats"] = list(body.requested_formats)
+        if body.force_fresh_extraction:
+            snapshot["force_fresh_extraction"] = True
+        return snapshot
+
     column_order = body.column_order or body.selected_column_ids
     if column_order:
         keys = sanitize_projection_keys(column_order, report_slug, user_id=user_id)
@@ -84,11 +122,7 @@ def build_config_snapshot(
     if body.selected_column_ids:
         selected = sanitize_projection_keys(body.selected_column_ids, report_slug, user_id=user_id)
         validate_column_order(report_slug, selected, keys)
-    try:
-        date_range = ReportDateRange.from_iso(str(body.date_from), str(body.date_to))
-    except DateRangeValidationError as exc:
-        raise ValueError(str(exc)) from exc
-    snapshot: dict[str, Any] = {
+    snapshot = {
         "selected_column_ids": list(keys),
         "column_order": list(keys),
         "export_format": body.export_format,
@@ -166,14 +200,40 @@ def _artifact_for_format(
     return None
 
 
-def _artifacts_for_slug(artifacts: list, *, slug: str) -> dict[str, Any]:
-    """Return ready excel/pdf artifacts for a report slug."""
-    found: dict[str, Any] = {}
+def _artifacts_for_slug(
+    artifacts: list,
+    *,
+    slug: str,
+    manual_config: dict[str, Any] | None = None,
+    run_id: str | None = None,
+) -> dict[str, Any]:
+    """Return ready excel/pdf artifacts for a report slug, preferring matching snapshot."""
+    from app.features.reports.slug_map import resolve_manual_slug
+
+    resolved_slug = resolve_manual_slug(slug)
+    expected_hash = manual_config.get("snapshot_hash") if manual_config else None
+
+    candidates: dict[str, list[Any]] = {"excel": [], "pdf": []}
     for art in artifacts:
-        if art.report_slug != slug or art.status != "ready":
+        if art.report_slug != resolved_slug or art.status != "ready":
             continue
-        if art.artifact_type in {"excel", "pdf"} and (art.file_size_bytes or 0) > 0:
-            found[art.artifact_type] = art
+        if art.artifact_type not in {"excel", "pdf"} or (art.file_size_bytes or 0) <= 0:
+            continue
+        candidates[art.artifact_type].append(art)
+
+    found: dict[str, Any] = {}
+    for art_type, arts in candidates.items():
+        if not arts:
+            continue
+        preferred = None
+        for art in arts:
+            meta = _parse_artifact_metadata(art)
+            if run_id and meta.get("run_id") and str(meta["run_id"]) != str(run_id):
+                continue
+            if expected_hash and meta.get("snapshot_hash") and meta["snapshot_hash"] == expected_hash:
+                preferred = art
+                break
+        found[art_type] = preferred or arts[0]
     return found
 
 
@@ -210,37 +270,53 @@ def _dual_artifacts_metadata_consistent(
     *,
     run_id: str | None = None,
     report_slug: str | None = None,
-) -> bool:
+) -> tuple[bool, str | None]:
     from app.features.reports.slug_map import resolve_manual_slug
+
+    excel_meta = _parse_artifact_metadata(excel_art)
+    pdf_meta = _parse_artifact_metadata(pdf_art)
+
+    if report_slug and resolve_manual_slug(report_slug) == COMPREHENSIVE_REPORT_SLUG:
+        if excel_art is None or pdf_art is None:
+            return False, "Report 10–13: Excel or PDF artifact missing."
+        for art, meta in ((excel_art, excel_meta), (pdf_art, pdf_meta)):
+            path = Path(getattr(art, "file_path", "") or "")
+            if not path.is_file() or path.stat().st_size <= 0:
+                return False, "Report 10–13: generated artifact file is missing or empty."
+        ok, err = validate_comprehensive_artifact_metadata(
+            excel_meta,
+            pdf_meta,
+            manual_config,
+            run_id=run_id,
+        )
+        return ok, err
 
     expected = manual_config.get("column_order") or manual_config.get("selected_column_ids")
     expected_list = list(expected) if expected else None
 
-    excel_meta = _parse_artifact_metadata(excel_art)
-    pdf_meta = _parse_artifact_metadata(pdf_art)
     excel_snap = _column_snapshot(excel_meta)
     pdf_snap = _column_snapshot(pdf_meta)
 
     if excel_snap is not None or pdf_snap is not None:
         if excel_snap is None or pdf_snap is None or excel_snap != pdf_snap:
-            return False
+            return False, "Artifact column snapshot mismatch"
         if expected_list is not None and excel_snap != expected_list:
-            return False
+            return False, "Artifact column snapshot mismatch"
 
     for art, meta in ((excel_art, excel_meta), (pdf_art, pdf_meta)):
         if art is None:
             continue
         path = Path(getattr(art, "file_path", "") or "")
         if not path.is_file() or path.stat().st_size <= 0:
-            return False
+            return False, "Artifact column snapshot mismatch"
         art_slug = getattr(art, "report_slug", None) or meta.get("report_slug")
         if report_slug and art_slug:
             if resolve_manual_slug(str(art_slug)) != resolve_manual_slug(report_slug):
-                return False
+                return False, "Artifact column snapshot mismatch"
         if run_id and meta.get("run_id") and str(meta["run_id"]) != str(run_id):
-            return False
+            return False, "Artifact column snapshot mismatch"
 
-    return True
+    return True, None
 
 
 class ManualReportService:
@@ -277,6 +353,12 @@ class ManualReportService:
             keys = default_projection_keys(slug) or default_ids
             selected_keys = list(keys)
 
+        saved_sections = dict((saved or {}).get("sections") or {})
+        if slug == COMPREHENSIVE_REPORT_SLUG and not saved_sections:
+            legacy = extract_comprehensive_sections_payload(saved or {})
+            if legacy:
+                saved_sections = sanitize_comprehensive_sections(legacy)
+
         return ReportConfigResponse(
             report_slug=slug,
             available_columns=available_columns,
@@ -287,6 +369,9 @@ class ManualReportService:
             export_format=str((saved or {}).get("export_format") or "xlsx"),  # type: ignore[arg-type]
             config_overrides=dict((saved or {}).get("config_overrides") or {}),
             filter_conditions=list((saved or {}).get("filter_conditions") or []),
+            sections=saved_sections,
+            date_from=(saved or {}).get("date_from"),
+            date_to=(saved or {}).get("date_to"),
         )
 
     async def get_output_columns(self, slug_or_page_id: str) -> dict[str, Any]:
@@ -545,7 +630,12 @@ class ManualReportService:
         pdf_file_size = None
 
         if dual_mode:
-            dual_arts = _artifacts_for_slug(artifacts, slug=slug)
+            dual_arts = _artifacts_for_slug(
+                artifacts,
+                slug=slug,
+                manual_config=manual_config,
+                run_id=run_id,
+            )
             excel_art = dual_arts.get("excel")
             pdf_art = dual_arts.get("pdf")
             if excel_art:
@@ -571,7 +661,7 @@ class ManualReportService:
 
             excel_ready = _artifact_is_ready(excel_art)
             pdf_ready = _artifact_is_ready(pdf_art)
-            metadata_consistent = _dual_artifacts_metadata_consistent(
+            metadata_consistent, metadata_error = _dual_artifacts_metadata_consistent(
                 excel_art,
                 pdf_art,
                 manual_config,
@@ -680,7 +770,7 @@ class ManualReportService:
             if excel_ready and pdf_ready and not metadata_consistent:
                 if ui_status != "Failed":
                     ui_status = "Failed"
-                error = error or "Artifact column snapshot mismatch"
+                error = error or metadata_error or "Artifact column snapshot mismatch"
             elif excel_ready and not pdf_ready:
                 if ui_status != "Failed":
                     ui_status = "Generating Excel/PDF"
@@ -736,6 +826,35 @@ class ManualReportService:
         slug = resolve_manual_slug(slug_or_page_id)
         if not is_manual_report_slug(slug):
             raise HTTPException(status_code=404, detail=f"Unknown report slug: {slug_or_page_id}")
+
+        if slug == COMPREHENSIVE_REPORT_SLUG:
+            raw_sections = body.sections or extract_comprehensive_sections_payload(body.model_dump())
+            if not raw_sections:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Report 10-13 requires column selections for all four sections.",
+                )
+            try:
+                column_snapshot = build_comprehensive_column_snapshot(
+                    raw_sections,
+                    date_from=body.date_from,
+                    date_to=body.date_to,
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+            payload: dict[str, Any] = {
+                **column_snapshot,
+                "export_format": body.export_format,
+                "config_overrides": dict(body.config_overrides),
+                "filter_conditions": list(body.filter_conditions),
+            }
+            if body.date_from:
+                payload["date_from"] = body.date_from
+            if body.date_to:
+                payload["date_to"] = body.date_to
+            save_report_config(slug, payload, user_id=user_id)
+            return SaveReportConfigResponse(report_slug=slug)
 
         column_order = body.column_order or body.selected_column_ids
         try:

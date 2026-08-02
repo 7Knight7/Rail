@@ -26,6 +26,7 @@ export interface ManualGenerateRequest {
   force_fresh_extraction?: boolean;
   config_overrides?: Record<string, unknown>;
   filter_conditions?: Array<Record<string, unknown>>;
+  sections?: Record<string, { selected_column_ids: string[] }>;
 }
 
 export interface ManualGenerateResponse {
@@ -79,6 +80,9 @@ export interface SavedReportConfig {
   export_format: "xlsx" | "pdf" | "csv";
   config_overrides?: Record<string, unknown>;
   filter_conditions?: Array<Record<string, unknown>>;
+  sections?: Record<string, { selected_column_ids: string[] }>;
+  date_from?: string;
+  date_to?: string;
 }
 
 export interface OutputColumnCatalogResponse {
@@ -230,7 +234,7 @@ export const reportsApi = {
   async downloadManualExcel(
     status: ManualRunStatus,
   ): Promise<{ blob: Blob; filename: string }> {
-    if (!status.excel_download_url || !status.excel_artifact_id) {
+    if (!status.excel_download_url) {
       throw new Error("No Excel artifact for this run");
     }
     const url = automationApi.withCacheBust(
@@ -246,7 +250,7 @@ export const reportsApi = {
   async downloadManualPdf(
     status: ManualRunStatus,
   ): Promise<{ blob: Blob; filename: string }> {
-    if (!status.pdf_download_url || !status.pdf_artifact_id) {
+    if (!status.pdf_download_url) {
       throw new Error("No PDF artifact for this run");
     }
     const url = automationApi.withCacheBust(
@@ -259,7 +263,7 @@ export const reportsApi = {
   },
 
   previewManualPdf(status: ManualRunStatus): string {
-    if (!status.pdf_preview_url || !status.pdf_artifact_id) {
+    if (!status.pdf_preview_url) {
       throw new Error("No PDF preview for this run");
     }
     return automationApi.withCacheBust(
@@ -308,27 +312,15 @@ export function canDownloadManualStatus(status: ManualRunStatus): boolean {
 }
 
 export function canDownloadExcel(status: ManualRunStatus): boolean {
-  return (
-    manualRunSucceeded(status) &&
-    Boolean(status.excel_artifact_id) &&
-    Boolean(status.excel_download_url)
-  );
+  return manualRunSucceeded(status) && Boolean(status.excel_download_url);
 }
 
 export function canDownloadPdf(status: ManualRunStatus): boolean {
-  return (
-    manualRunSucceeded(status) &&
-    Boolean(status.pdf_artifact_id) &&
-    Boolean(status.pdf_download_url)
-  );
+  return manualRunSucceeded(status) && Boolean(status.pdf_download_url);
 }
 
 export function canPreviewPdf(status: ManualRunStatus): boolean {
-  return (
-    manualRunSucceeded(status) &&
-    Boolean(status.pdf_artifact_id) &&
-    Boolean(status.pdf_preview_url)
-  );
+  return manualRunSucceeded(status) && Boolean(status.pdf_preview_url);
 }
 
 export function formatFileSize(bytes: number | null | undefined): string {

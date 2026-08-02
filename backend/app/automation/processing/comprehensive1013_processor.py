@@ -65,13 +65,68 @@ from app.automation.utils import (
 )
 
 # Report 10-13 PDF only: compact margins/spacing so four sections fit one page.
-_PDF_MARGIN_PT = min(SAFE_MARGIN_PT, 14.0)
+_PDF_MARGIN_PT = min(SAFE_MARGIN_PT, 12.0)
 _PDF_SECTION_GAP_PT = 8.0
-_PDF_AFTER_HEADING_PT = 4.0
-_PDF_TITLE_AFTER_PT = 6.0
-_PDF_HEIGHT_BUFFER_PT = 12.0
+_PDF_AFTER_HEADING_PT = 3.0
+_PDF_TITLE_AFTER_PT = 5.0
+_PDF_HEIGHT_BUFFER_PT = 4.0
 _PDF_MAIN_TITLE = "Comprehensive Reports"
 _PDF_LEFT_ALIGNED_HEADERS = frozenset({"Division"})
+_DIVISION_RAW_HEADER_PRIORITY = ("Division", "Organisation")
+
+
+def _headers_for_column_ids(raw_headers: list[str]) -> dict[str, list[str]]:
+    """Map canonical column IDs to all raw CSV headers that project to them."""
+    mapping: dict[str, list[str]] = {}
+    for header in raw_headers:
+        col_id = normalize_header_to_column_id(header)
+        if col_id:
+            mapping.setdefault(col_id, []).append(header)
+    return mapping
+
+
+def _division_header_sort_key(header: str) -> tuple[int, str]:
+    if header in _DIVISION_RAW_HEADER_PRIORITY:
+        return (_DIVISION_RAW_HEADER_PRIORITY.index(header), header)
+    return (len(_DIVISION_RAW_HEADER_PRIORITY), header)
+
+
+def _raw_cell_value(row: dict[str, str], raw_header: str) -> str:
+    return str(row.get(raw_header, "") or "").strip()
+
+
+def _value_for_column_id(
+    row: dict[str, str],
+    col_id: str,
+    header_map: dict[str, list[str]],
+) -> str:
+    """Resolve a projected cell value, preferring non-empty matches."""
+    raw_headers = header_map.get(col_id, [])
+    if col_id == "division":
+        ordered = sorted(raw_headers, key=_division_header_sort_key)
+        for header in ordered:
+            value = _raw_cell_value(row, header)
+            if value:
+                return value
+        if ordered:
+            return _raw_cell_value(row, ordered[0])
+        return ""
+    for header in raw_headers:
+        value = _raw_cell_value(row, header)
+        if value:
+            return value
+    return ""
+
+
+def _col_widths_for_section_headers(
+    section_headers: list[str],
+    shared_headers: list[str],
+    shared_widths: list[float],
+) -> list[float]:
+    """Map shared width vector onto a section's header order."""
+    by_header = dict(zip(shared_headers, shared_widths))
+    fallback = (sum(shared_widths) / len(shared_widths)) if shared_widths else 40.0
+    return [by_header.get(header, fallback) for header in section_headers]
 
 
 def _escape_paragraph_xml(text: str) -> str:
@@ -126,7 +181,7 @@ def _render_section_heading(
             ]
         ],
         colWidths=[side_width, middle_width, side_width],
-        hAlign="LEFT",
+        hAlign="CENTER",
     )
     heading_table.setStyle(
         TableStyle(
@@ -184,7 +239,7 @@ def _build_section_table(
     ]
     table = Table(table_data, colWidths=list(col_widths), repeatRows=1)
     table.setStyle(TableStyle(style_commands))
-    table.hAlign = "LEFT"
+    table.hAlign = "CENTER"
     return table
 
 
@@ -252,13 +307,6 @@ def _shared_pdf_column_layout(
         headers=shared_headers,
     )
     col_widths = fit_column_widths(preferred, usable)
-    # If content is narrower than usable, stretch to full usable width so all
-    # tables share identical left/right edges.
-    total = sum(col_widths)
-    if total > 0 and total < usable - 0.5:
-        scale = usable / total
-        col_widths = [width * scale for width in col_widths]
-
     return base_pagesize, col_widths, font_size
 
 logger = logging.getLogger(__name__)
@@ -310,7 +358,14 @@ class Comprehensive1013Processor:
                 column_selection=column_selection,
             )
 
-        sections, total_input_rows = self._load_sections(source_a_path, column_selection)
+        try:
+            sections, total_input_rows = self._load_sections(source_a_path, column_selection)
+        except ValueError as exc:
+            return ProcessingResult(
+                success=False,
+                error=str(exc),
+                source_a_path=str(source_a_path),
+            )
 
         if not sections:
             return ProcessingResult(
@@ -347,9 +402,29 @@ class Comprehensive1013Processor:
         total_output_rows = sum(len(s.rows) for s in sections)
 
         section_row_counts = {s.section_config.section_id: len(s.rows) for s in sections}
-        selected_columns_per_section = {
-            s.section_config.section_id: s.column_ids for s in sections
-        }
+
+        from app.automation.processing.comprehensive_output_columns import (
+            build_comprehensive_artifact_metadata,
+            build_comprehensive_column_snapshot,
+        )
+
+        raw_sections: dict[str, dict[str, list[str]]] = {}
+        for section in sections:
+            raw_sections[section.section_config.section_id] = {
+                "selected_column_ids": list(section.column_ids),
+            }
+        date_from = (column_selection or {}).get("date_from")
+        date_to = (column_selection or {}).get("date_to")
+        column_snapshot = build_comprehensive_column_snapshot(
+            raw_sections,
+            date_from=str(date_from) if date_from else None,
+            date_to=str(date_to) if date_to else None,
+            configuration_source=str(
+                (column_selection or {}).get("configuration_source") or "manual_snapshot"
+            ),
+        )
+        union_column_ids = column_snapshot["selected_column_ids"]
+        artifact_metadata = build_comprehensive_artifact_metadata(column_snapshot)
 
         log_automation_event(
             logger,
@@ -369,11 +444,14 @@ class Comprehensive1013Processor:
             pdf_path=str(pdf_path),
             source_a_path=str(source_a_path),
             source_a_rows=total_input_rows,
-            output_columns=list(COMPREHENSIVE_COLUMN_IDS),
-            visible_columns=[COMPREHENSIVE_COLUMN_LABELS[c] for c in COMPREHENSIVE_COLUMN_IDS],
-            selected_column_ids=COMPREHENSIVE_COLUMN_IDS,
-            column_order=list(COMPREHENSIVE_COLUMN_IDS),
-            configuration_source="default",
+            output_columns=column_labels(union_column_ids),
+            visible_columns=column_labels(union_column_ids),
+            selected_column_ids=union_column_ids,
+            column_order=list(union_column_ids),
+            configuration_source=str(
+                (column_selection or {}).get("configuration_source") or "manual_snapshot"
+            ),
+            artifact_metadata=artifact_metadata,
         )
 
     def _load_sections(
@@ -511,12 +589,24 @@ class Comprehensive1013Processor:
         column_selection: dict[str, Any] | None,
     ) -> list[str]:
         """Resolve which columns to include for a section."""
+        if column_selection and isinstance(column_selection.get("sections"), dict):
+            sections = column_selection["sections"]
+            section_columns = sections.get(section_id)
+            section_config = get_section_config_by_id(section_id)
+            section_name = {
+                "report10_cw": "Report 10 — C&W",
+                "report11_security": "Report 11 — Security",
+                "report12_punctuality": "Report 12 — Punctuality",
+                "report13_electrical": "Report 13 — Electrical Equipment",
+            }.get(section_id, section_config.name if section_config else section_id)
+            if not isinstance(section_columns, dict):
+                raise ValueError(f"Select at least one column for {section_name}.")
+            selected = section_columns.get("selected_column_ids")
+            if not selected:
+                raise ValueError(f"Select at least one column for {section_name}.")
+            return list(selected)
+
         if column_selection:
-            section_columns = column_selection.get("sections", {}).get(section_id)
-            if section_columns:
-                selected = section_columns.get("selected_column_ids")
-                if selected:
-                    return list(selected)
             all_selected = column_selection.get("selected_column_ids")
             if all_selected:
                 return list(all_selected)
@@ -529,12 +619,7 @@ class Comprehensive1013Processor:
         selected_ids: list[str],
     ) -> tuple[list[str], list[list[str]]]:
         """Project rows to only selected columns, returning headers and row lists."""
-        header_to_id: dict[str, str] = {}
-        for h in raw_headers:
-            col_id = normalize_header_to_column_id(h)
-            if col_id:
-                header_to_id[h] = col_id
-
+        header_map = _headers_for_column_ids(raw_headers)
         output_headers = column_labels(selected_ids)
         output_rows: list[list[str]] = []
 
@@ -544,12 +629,7 @@ class Comprehensive1013Processor:
                 if col_id == "sno":
                     output_row.append(str(row_idx + 1))
                 else:
-                    value = ""
-                    for h, cid in header_to_id.items():
-                        if cid == col_id:
-                            value = row.get(h, "")
-                            break
-                    output_row.append(value)
+                    output_row.append(_value_for_column_id(row, col_id, header_map))
             output_rows.append(output_row)
 
         return output_headers, output_rows
@@ -563,11 +643,7 @@ class Comprehensive1013Processor:
         selected_ids: list[str],
     ) -> list[str]:
         """Compute total row for a section."""
-        header_to_id: dict[str, str] = {}
-        for h in raw_headers:
-            col_id = normalize_header_to_column_id(h)
-            if col_id:
-                header_to_id[h] = col_id
+        header_map = _headers_for_column_ids(raw_headers)
 
         total_row: list[str] = []
         for col_id in selected_ids:
@@ -579,12 +655,7 @@ class Comprehensive1013Processor:
                 total_row.append("100.00")
             elif col_id in NON_ADDITIVE_COLUMNS:
                 if portal_total_row:
-                    value = ""
-                    for h, cid in header_to_id.items():
-                        if cid == col_id:
-                            value = portal_total_row.get(h, "")
-                            break
-                    total_row.append(value)
+                    total_row.append(_value_for_column_id(portal_total_row, col_id, header_map))
                 else:
                     total_row.append("")
             elif col_id in ADDITIVE_COLUMNS:
@@ -633,9 +704,9 @@ class Comprehensive1013Processor:
         title_cell.font = Font(bold=True, size=14)
         title_cell.alignment = Alignment(horizontal="center")
 
-        current_row = 3
+        current_row = 2
 
-        for section in sections:
+        for section_idx, section in enumerate(sections):
             section_cols = max(len(section.headers), 1)
             worksheet.merge_cells(
                 start_row=current_row,
@@ -671,7 +742,8 @@ class Comprehensive1013Processor:
                 cell.fill = TOTAL_FILL
             current_row += 1
 
-            current_row += 1
+            if section_idx < len(sections) - 1:
+                current_row += 1
 
         workbook.save(temp_path)
         temp_path.replace(target_path)
@@ -703,6 +775,7 @@ class Comprehensive1013Processor:
             parent=styles["Normal"],
             fontSize=8,
             leading=10,
+            alignment=TA_CENTER,
             spaceBefore=0,
             spaceAfter=0,
         )
@@ -757,19 +830,11 @@ class Comprehensive1013Processor:
             if list(section.headers) == shared_headers:
                 col_widths = list(shared_col_widths)
             else:
-                table_data: list[list[object]] = [list(section.headers)]
-                table_data.extend(list(row) for row in section.rows)
-                table_data.append(list(section.total_row))
-                preferred = preferred_column_widths(
-                    table_data,
-                    font_size=font_size,
-                    headers=section.headers,
+                col_widths = _col_widths_for_section_headers(
+                    list(section.headers),
+                    shared_headers,
+                    shared_col_widths,
                 )
-                col_widths = fit_column_widths(preferred, usable_width)
-                total = sum(col_widths)
-                if total > 0 and abs(total - usable_width) > 0.5 and total < usable_width:
-                    scale = usable_width / total
-                    col_widths = [width * scale for width in col_widths]
 
             story.extend(
                 _render_pdf_section(
@@ -786,10 +851,8 @@ class Comprehensive1013Processor:
             _width, height = flowable.wrap(usable_width, 100000)
             content_height += float(height)
 
-        page_height = max(
-            base_pagesize[1],
-            content_height + (2 * margin) + _PDF_HEIGHT_BUFFER_PT,
-        )
+        # Fit page to content (no forced A3 minimum); slight headroom avoids wrap under-estimate splits.
+        page_height = (content_height * 1.04) + (2 * margin) + _PDF_HEIGHT_BUFFER_PT
         pagesize = (page_width, page_height)
 
         log_automation_event(

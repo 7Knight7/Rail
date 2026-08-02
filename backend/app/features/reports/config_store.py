@@ -6,7 +6,12 @@ import json
 from pathlib import Path
 from typing import Any
 
-from app.automation.processing.column_config import sanitize_projection_keys
+from app.automation.processing.column_config import (
+    COMPREHENSIVE_REPORT_SLUG,
+    sanitize_comprehensive_sections,
+    sanitize_projection_keys,
+)
+from app.automation.processing.comprehensive_output_columns import COMPREHENSIVE_COLUMN_IDS
 from app.automation.processing.output_columns import (
     NAMESPACED_REPORT_SLUGS,
     REPORT1_DEFAULT_NAMESPACED_KEYS,
@@ -33,6 +38,7 @@ _DEFAULT_PROJECTION_KEYS: dict[str, list[str]] = {
     "report3": topn_default_ids("train-no"),
     "types": topn_default_ids("types"),
     "report4": topn_default_ids("types"),
+    COMPREHENSIVE_REPORT_SLUG: list(COMPREHENSIVE_COLUMN_IDS),
 }
 
 _PER_USER_SLUGS = NAMESPACED_REPORT_SLUGS | SCR_NAMESPACED_SLUGS | TOPN_REPORT_SLUGS
@@ -62,6 +68,35 @@ def _migrate_column_keys(
     user_id: str | None = None,
 ) -> dict[str, Any]:
     slug = canonicalize_report_key(report_slug)
+    migrated = dict(payload)
+
+    if slug == COMPREHENSIVE_REPORT_SLUG:
+        sections = migrated.get("sections")
+        if isinstance(sections, dict) and sections:
+            from app.automation.processing.comprehensive_output_columns import (
+                build_comprehensive_column_snapshot,
+            )
+
+            try:
+                column_snapshot = build_comprehensive_column_snapshot(
+                    sections,
+                    date_from=str(migrated.get("date_from") or "") or None,
+                    date_to=str(migrated.get("date_to") or "") or None,
+                )
+            except ValueError:
+                column_snapshot = None
+            if column_snapshot:
+                migrated.update(
+                    {
+                        "sections": column_snapshot["sections"],
+                        "selected_column_ids": column_snapshot["selected_column_ids"],
+                        "column_order": column_snapshot["column_order"],
+                        "snapshot_hash": column_snapshot["snapshot_hash"],
+                        "version": column_snapshot["version"],
+                    }
+                )
+        return migrated
+
     defaults = _DEFAULT_PROJECTION_KEYS.get(slug)
     if defaults is None:
         return payload
