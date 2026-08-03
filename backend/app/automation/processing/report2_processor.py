@@ -49,6 +49,82 @@ PROCESSOR_NAME = "report2_division_wise_processor"
 
 TOP_N = 25
 
+# Feedback Source B uses division HQ codes; Source A uses railway zone names.
+# Used only to disambiguate when multiple Source B rows share the same base name
+# (e.g. two Lucknow divisions).
+_STATION_CODE_TO_ZONE: dict[str, str] = {
+    "lko": "northern railway",
+    "ljn": "north eastern railway",
+    "dli": "northern railway",
+    "ndls": "northern railway",
+    "mb": "northern railway",
+    "umb": "northern railway",
+    "fzr": "northern railway",
+    "jat": "northern railway",
+    "sbc": "south western railway",
+    "ubl": "south western railway",
+    "mys": "south western railway",
+    "sc": "south central railway",
+    "hyb": "south central railway",
+    "bza": "south central railway",
+    "gnt": "south central railway",
+    "gtl": "south central railway",
+    "ned": "south central railway",
+    "mas": "southern railway",
+    "tvc": "southern railway",
+    "pgt": "southern railway",
+    "mdu": "southern railway",
+    "sa": "southern railway",
+    "tpj": "southern railway",
+    "cstm": "central railway",
+    "bsl": "central railway",
+    "nag": "central railway",
+    "ngp": "central railway",
+    "pune": "central railway",
+    "sur": "central railway",
+    "kur": "east coast railway",
+    "sbp": "east coast railway",
+    "wat": "east coast railway",
+    "vskp": "east coast railway",
+    "rgda": "east coast railway",
+    "dnr": "east central railway",
+    "dhn": "east central railway",
+    "see": "east central railway",
+    "spj": "east central railway",
+    "ddu": "east central railway",
+    "kgp": "south eastern railway",
+    "ada": "south eastern railway",
+    "ckp": "south eastern railway",
+    "rnc": "south eastern railway",
+    "hwh": "eastern railway",
+    "asn": "eastern railway",
+    "mldt": "eastern railway",
+    "sdah": "eastern railway",
+    "pryj": "north central railway",
+    "jhs": "north central railway",
+    "agra": "north central railway",
+    "jbp": "west central railway",
+    "bpl": "west central railway",
+    "kota": "west central railway",
+    "rtm": "western railway",
+    "brc": "western railway",
+    "adi": "western railway",
+    "rjt": "western railway",
+    "bvp": "western railway",
+    "bct": "western railway",
+    "lmg": "northeast frontier railway",
+    "kir": "northeast frontier railway",
+    "apdj": "northeast frontier railway",
+    "rny": "northeast frontier railway",
+    "tsk": "northeast frontier railway",
+    "bsb": "north eastern railway",
+    "izn": "north eastern railway",
+    "irc": "irctc",
+}
+
+_ORG_BASE_ALIASES: dict[str, str] = {
+    "irc": "irctc",
+}
 THIN_BORDER = Border(
     left=Side(style="thin"),
     right=Side(style="thin"),
@@ -467,40 +543,34 @@ class Report2Processor:
     def _build_feedback_lookup(
         self,
         source_b_rows: list[dict[str, str]],
-    ) -> tuple[dict[str, dict[str, str]], list[str], dict[str, list[str]]]:
-        """Build feedback lookup by base division name.
+    ) -> tuple[dict[str, list[dict[str, str]]], list[str], dict[str, list[str]]]:
+        """Build feedback lookup by canonical base division name.
 
-        Ambiguous bases (multiple Source B orgs → same base) are omitted from
-        the lookup so merges leave blank feedback rather than guessing.
+        Ambiguous bases (multiple Source B orgs → same base) keep all candidates
+        so zone/code disambiguation can resolve Lucknow NR vs NER, etc.
         """
-        lookup: dict[str, dict[str, str]] = {}
+        lookup: dict[str, list[dict[str, str]]] = {}
         duplicates: list[str] = []
         base_to_orgs: dict[str, list[str]] = {}
-        ambiguous_bases: set[str] = set()
 
         for row in source_b_rows:
             org = row.get("Organisation", "") or row.get("Division", "")
-            base = self._extract_base_division(org)
-
-            if base not in base_to_orgs:
-                base_to_orgs[base] = []
-            base_to_orgs[base].append(org)
-
-            if base in lookup or base in ambiguous_bases:
-                ambiguous_bases.add(base)
+            base = self._canonical_org_base(org)
+            base_to_orgs.setdefault(base, []).append(org)
+            bucket = lookup.setdefault(base, [])
+            if bucket:
                 duplicates.append(org)
-                lookup.pop(base, None)
-                continue
-            lookup[base] = row
+            bucket.append(row)
 
+        ambiguous_bases = sorted(base for base, rows in lookup.items() if len(rows) > 1)
         if duplicates:
             log_automation_event(
                 logger,
                 "report2_feedback_duplicate_orgs",
                 duplicates=duplicates,
-                ambiguous_bases=sorted(ambiguous_bases),
+                ambiguous_bases=ambiguous_bases,
                 count=len(duplicates),
-                warning="Ambiguous Source B bases excluded from merge (blank feedback)",
+                warning="Ambiguous Source B bases retained for zone/code disambiguation",
             )
 
         log_automation_event(
@@ -517,17 +587,71 @@ class Report2Processor:
     def _feedback_values_for_row(
         self,
         org: str,
-        lookup: dict[str, dict[str, str]],
+        lookup: dict[str, list[dict[str, str]]],
     ) -> tuple[list[str], dict[str, str] | None]:
-        """Get feedback values for a division using base-name lookup.
+        """Get feedback values for a division using base-name + zone/code matching.
 
         Returns (feedback_values, matched_row).
         """
-        base = self._extract_base_division(org)
-        matched_row = lookup.get(base)
+        matched_row = self._match_feedback_row(org, lookup)
         if matched_row:
             return [matched_row.get(column, "") for column in SOURCE_B_DATA_COLUMNS], matched_row
         return [""] * len(SOURCE_B_DATA_COLUMNS), None
+
+    def _match_feedback_row(
+        self,
+        org_a: str,
+        lookup: dict[str, list[dict[str, str]]],
+    ) -> dict[str, str] | None:
+        base = self._canonical_org_base(org_a)
+        candidates = list(lookup.get(base) or [])
+        if not candidates:
+            return None
+        if len(candidates) == 1:
+            return candidates[0]
+
+        paren_a = self._extract_paren_token(org_a)
+        resolved = [
+            row
+            for row in candidates
+            if self._paren_tokens_compatible(
+                paren_a,
+                self._extract_paren_token(
+                    row.get("Organisation", "") or row.get("Division", "")
+                ),
+            )
+        ]
+        if len(resolved) == 1:
+            return resolved[0]
+        return None
+
+    @staticmethod
+    def _extract_paren_token(name: str) -> str:
+        match = re.search(r"\(([^)]*)\)\s*$", name or "")
+        return match.group(1).strip().lower() if match else ""
+
+    @staticmethod
+    def _paren_tokens_compatible(token_a: str, token_b: str) -> bool:
+        a = (token_a or "").strip().lower()
+        b = (token_b or "").strip().lower()
+        if not a or not b:
+            return False
+        if a == b:
+            return True
+        if {a, b} <= {"irc", "irctc"}:
+            return True
+        zone_b = _STATION_CODE_TO_ZONE.get(b)
+        if zone_b and zone_b == a:
+            return True
+        zone_a = _STATION_CODE_TO_ZONE.get(a)
+        if zone_a and zone_a == b:
+            return True
+        return False
+
+    @classmethod
+    def _canonical_org_base(cls, name: str) -> str:
+        base = cls._extract_base_division(name)
+        return _ORG_BASE_ALIASES.get(base, base)
 
     @staticmethod
     def _is_scr_division(division: str) -> bool:
@@ -561,7 +685,7 @@ class Report2Processor:
 
         for index, row in enumerate(source_a_rows, start=1):
             org_a = row.get("Division", "") or row.get("Organisation", "")
-            base_a = self._extract_base_division(org_a)
+            base_a = self._canonical_org_base(org_a)
 
             source_a_values = apply_serial_number(
                 source_a_headers,
@@ -590,12 +714,21 @@ class Report2Processor:
             scr_flags.append(self._is_scr_division(org_a))
 
         # Find Source B divisions not matched to any Source A
-        source_a_bases = {self._extract_base_division(r.get("Division", "") or r.get("Organisation", ""))
-                         for r in source_a_rows}
+        source_a_bases = {
+            self._canonical_org_base(r.get("Division", "") or r.get("Organisation", ""))
+            for r in source_a_rows
+        }
         unmatched_source_b = [
             row.get("Organisation", "") or row.get("Division", "")
             for row in source_b_rows
-            if self._extract_base_division(row.get("Organisation", "") or row.get("Division", "")) not in source_a_bases
+            if self._canonical_org_base(
+                row.get("Organisation", "") or row.get("Division", "")
+            )
+            not in matched_source_b_bases
+            and self._canonical_org_base(
+                row.get("Organisation", "") or row.get("Division", "")
+            )
+            not in source_a_bases
         ]
 
         # Comprehensive logging

@@ -407,7 +407,7 @@ class Report4Processor:
             for type_config in type_configs:
                 raw_rows = type_datasets.get(type_config.name, [])
                 data_rows = self._exclude_total_rows(raw_rows)
-                top_rows = data_rows[:TOP_N]
+                top_rows = self._top_n_by_received(data_rows)
                 total_input_rows += len(data_rows)
                 raw_sections.append((type_config, top_rows))
             return raw_sections, total_input_rows
@@ -425,7 +425,7 @@ class Report4Processor:
                     if csv_path.is_file():
                         raw_rows, _ = self._read_csv(csv_path)
                         data_rows = self._exclude_total_rows(raw_rows)
-                        top_rows = data_rows[:TOP_N]
+                        top_rows = self._top_n_by_received(data_rows)
                         total_input_rows += len(data_rows)
                     else:
                         log_automation_event(
@@ -445,7 +445,7 @@ class Report4Processor:
             if csv_path.exists():
                 raw_rows, _ = self._read_csv(csv_path)
                 data_rows = self._exclude_total_rows(raw_rows)
-                top_rows = data_rows[:TOP_N]
+                top_rows = self._top_n_by_received(data_rows)
                 total_input_rows += len(data_rows)
             else:
                 log_automation_event(
@@ -584,6 +584,21 @@ class Report4Processor:
         rows: list[dict[str, str]],
     ) -> list[dict[str, str]]:
         return [r for r in rows if not self._is_total_row(r)]
+
+    @staticmethod
+    def _received_sort_key(row: dict[str, str]) -> tuple[int, str]:
+        raw = str(row.get("Received") or row.get("received") or "0").replace(",", "").strip()
+        try:
+            value = int(float(raw)) if raw else 0
+        except ValueError:
+            value = 0
+        train_no = str(row.get("Train No.") or row.get("Train No") or "")
+        return (-value, train_no)
+
+    def _top_n_by_received(self, rows: list[dict[str, str]]) -> list[dict[str, str]]:
+        """Take highest-Received trains after numeric sort (do not trust CSV order)."""
+        ordered = sorted(rows, key=self._received_sort_key)
+        return ordered[:TOP_N]
 
     @staticmethod
     def _train_no_column_index(headers: list[str]) -> int | None:

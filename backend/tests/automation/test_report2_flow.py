@@ -133,7 +133,7 @@ def test_ambiguous_match_leaves_blank_not_guess(tmp_path: Path, monkeypatch: pyt
     source_a = tmp_path / "a.csv"
     source_a.write_text(
         "S.No.,Organisation,Received,% Share,Closed\n"
-        "1,Delhi Division (NR),10,50,8\n"
+        "1,Delhi Division (Northern Railway),10,50,8\n"
         "2,Alpha Division (Z),9,45,7\n",
         encoding="utf-8",
     )
@@ -149,6 +149,111 @@ def test_ambiguous_match_leaves_blank_not_guess(tmp_path: Path, monkeypatch: pyt
         source_a_path=source_a, report_slug="division", source_b_path=source_b
     )
     assert result.success is True
+
+    rows_a, hdr_a = Report2Processor._read_csv(source_a)
+    rows_b, hdr_b = Report2Processor._read_csv(source_b)
+    merged = Report2Processor().build_merged_table(rows_a, hdr_a, rows_b, hdr_b)
+    assert merged is not None
+    headers, rows, _ = merged
+    fb_idx = headers.index("Feedback Received")
+    delhi = next(r for r in rows if "DELHI" in str(r[1]).upper())
+    alpha = next(r for r in rows if "ALPHA" in str(r[1]).upper())
+    assert delhi[fb_idx] == ""  # DLI vs NDLS both NR — still ambiguous
+    assert alpha[fb_idx] == "8"
+
+
+def test_lucknow_and_irctc_disambiguated_by_zone_code():
+    """Lucknow NR/NER and IRC/IRCTC must resolve to the correct feedback rows."""
+    processor = Report2Processor()
+    source_a = [
+        {
+            "S.No.": "1",
+            "Division": "LUCKNOW DIVISION (North Eastern Railway)",
+            "Received": "100",
+            "% Share": "10",
+            "Closed": "90",
+        },
+        {
+            "S.No.": "2",
+            "Division": "LUCKNOW DIVISION (Northern Railway)",
+            "Received": "90",
+            "% Share": "9",
+            "Closed": "80",
+        },
+        {
+            "S.No.": "3",
+            "Division": "IRC (IRCTC)",
+            "Received": "80",
+            "% Share": "8",
+            "Closed": "70",
+        },
+        {
+            "S.No.": "4",
+            "Division": "DELHI DIVISION (Northern Railway)",
+            "Received": "70",
+            "% Share": "7",
+            "Closed": "60",
+        },
+    ]
+    source_b = [
+        {
+            "Organisation": "LUCKNOW DIVISION (LJN)",
+            "Feedback Received": "93",
+            "% Feedback": "3.53",
+            "Excellent": "53",
+            "Satisfactory": "23",
+            "Unsatisfactory": "17",
+            "% Unsatisfactory": "18.28",
+        },
+        {
+            "Organisation": "LUCKNOW DIVISION (LKO)",
+            "Feedback Received": "52",
+            "% Feedback": "1.98",
+            "Excellent": "29",
+            "Satisfactory": "15",
+            "Unsatisfactory": "8",
+            "% Unsatisfactory": "15.38",
+        },
+        {
+            "Organisation": "IRCTC (IRC)",
+            "Feedback Received": "42",
+            "% Feedback": "1.60",
+            "Excellent": "2",
+            "Satisfactory": "12",
+            "Unsatisfactory": "28",
+            "% Unsatisfactory": "66.67",
+        },
+        {
+            "Organisation": "DELHI DIVISION (DLI)",
+            "Feedback Received": "88",
+            "% Feedback": "3.00",
+            "Excellent": "40",
+            "Satisfactory": "30",
+            "Unsatisfactory": "18",
+            "% Unsatisfactory": "20.45",
+        },
+    ]
+    headers_a = ["S.No.", "Division", "Received", "% Share", "Closed"]
+    headers_b = [
+        "Organisation",
+        "Feedback Received",
+        "% Feedback",
+        "Excellent",
+        "Satisfactory",
+        "Unsatisfactory",
+        "% Unsatisfactory",
+    ]
+    merged = processor.build_merged_table(source_a, headers_a, source_b, headers_b)
+    assert merged is not None
+    headers, rows, _ = merged
+    fb_idx = headers.index("Feedback Received")
+    by_div = {r[1]: r[fb_idx] for r in rows[:-1]}
+    assert by_div["LUCKNOW DIVISION (North Eastern Railway)"] == "93"
+    assert by_div["LUCKNOW DIVISION (Northern Railway)"] == "52"
+    assert by_div["IRC (IRCTC)"] == "42"
+    assert by_div["DELHI DIVISION (Northern Railway)"] == "88"
+    total = rows[-1]
+    assert total[fb_idx] == "275"  # 93+52+42+88
 
 
 def test_sort_skips_total_row_when_verifying_descending():

@@ -299,3 +299,30 @@ def test_complaint_types_ordering():
         "Coach Maintenance",
     ]
     assert COMPLAINT_TYPES_ORDERED == expected_order
+
+
+def test_top_n_re_sorts_by_received_numeric():
+    """Unsorted CSV must still yield the 10 highest Received trains."""
+    processor = Report4Processor()
+    rows = [
+        {"Train No.": "100", "Train Name": "Low", "Owning Zone": "Z", "Received": "2"},
+        {"Train No.": "07091", "Train Name": "Mid", "Owning Zone": "South Central Railway", "Received": "4"},
+        {"Train No.": "999", "Train Name": "High", "Owning Zone": "Z", "Received": "11"},
+        {"Train No.": "888", "Train Name": "AlsoHigh", "Owning Zone": "Z", "Received": "9"},
+    ]
+    for i in range(12):
+        rows.append(
+            {
+                "Train No.": str(200 + i),
+                "Train Name": f"Pad {i}",
+                "Owning Zone": "Z",
+                "Received": "3",
+            }
+        )
+    top = processor._top_n_by_received(rows)
+    assert len(top) == TOP_N
+    assert top[0]["Train No."] == "999"
+    assert top[1]["Train No."] == "888"
+    assert top[2]["Train No."] == "07091"
+    received = [int(r["Received"]) for r in top]
+    assert received == sorted(received, reverse=True)
