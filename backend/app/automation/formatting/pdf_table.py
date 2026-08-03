@@ -281,6 +281,7 @@ def _table_style_commands(
     font_size: float,
     *,
     valign: str = "MIDDLE",
+    bold_row_indices: frozenset[int] | None = None,
 ) -> list[tuple]:
     commands = list(style_commands)
     commands.extend(
@@ -296,6 +297,9 @@ def _table_style_commands(
             ("FONTNAME", (0, 0), (-1, 0), pdf_font_bold()),
         ]
     )
+    if bold_row_indices:
+        for row_idx in sorted(bold_row_indices):
+            commands.append(("FONTNAME", (0, row_idx), (-1, row_idx), pdf_font_bold()))
     return commands
 
 
@@ -328,6 +332,7 @@ def build_fitted_table(
     style_commands: list[tuple],
     *,
     margin: float = SAFE_MARGIN_PT,
+    bold_row_indices: frozenset[int] | None = None,
 ) -> tuple[Table, tuple[float, float], float]:
     """
     Build a Table that fits landscape A4 or A3 without horizontal clipping.
@@ -339,7 +344,12 @@ def build_fitted_table(
         margin=margin,
     )
     table = _build_table(table_data, col_widths, splittable=False, repeat_rows=1)
-    commands = _table_style_commands(style_commands, font_size, valign="MIDDLE")
+    commands = _table_style_commands(
+        style_commands,
+        font_size,
+        valign="MIDDLE",
+        bold_row_indices=bold_row_indices,
+    )
     table.setStyle(TableStyle(commands))
     table = _rescale_if_overflow(
         table_data, table, col_widths, commands, pagesize, used_margin, splittable=False

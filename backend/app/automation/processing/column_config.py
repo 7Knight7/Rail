@@ -37,6 +37,7 @@ from app.automation.processing.scr_output_columns import (
 )
 from app.automation.processing.topn_output_columns import (
     TOPN_REPORT_SLUGS,
+    ensure_report3_train_no_after_sno,
     migrate_topn_to_namespaced_ids,
     project_topn_canonical_rows,
     topn_allowed_ids,
@@ -383,6 +384,8 @@ def resolve_projection_column_keys(
     if received:
         keys = _keys_from_manual_config(received, slug, user_id=effective_user_id)
         if keys:
+            if slug == "train-no":
+                keys = ensure_report3_train_no_after_sno(keys, slug)
             _log_projection(run_id, slug, keys, "manual_snapshot", received_from_frontend=keys)
             return keys, "manual_snapshot"
 
@@ -392,10 +395,14 @@ def resolve_projection_column_keys(
         if order:
             keys = sanitize_projection_keys(order, slug, user_id=effective_user_id)
             if keys:
+                if slug == "train-no":
+                    keys = ensure_report3_train_no_after_sno(keys, slug)
                 _log_projection(run_id, slug, keys, "saved_user_config")
                 return keys, "saved_user_config"
 
     keys = list(defaults)
+    if slug == "train-no":
+        keys = ensure_report3_train_no_after_sno(keys, slug)
     _log_projection(run_id, slug, keys, "report_default")
     return keys, "report_default"
 
@@ -643,6 +650,7 @@ def project_topn_for_output(
         out_headers, out_rows = project_topn_canonical_rows(canonical_rows, keys, slug)
     except ValueError as exc:
         raise ValueError(f"COLUMN_PROJECTION_FAILED: {exc}") from exc
+    keys = ensure_report3_train_no_after_sno(keys, slug)
     labels = topn_labels(keys, slug)
     return out_headers, out_rows, labels, keys, source
 

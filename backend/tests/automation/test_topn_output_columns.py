@@ -67,5 +67,49 @@ def test_labels_match_catalog():
     defaults = topn_default_ids("train-no")
     labels = topn_labels(defaults, "train-no")
     assert labels[0] == "S.No."
-    assert "Train Name" in labels
+    assert labels[1] == "Train No."
+    assert labels[2] == "Train Name"
     assert "Average Rating" in labels
+
+
+def test_report3_catalog_places_train_no_after_sno():
+    entries = topn_catalog_entries("train-no")
+    ids = [entry["id"] for entry in entries]
+    assert ids.index("train-no.sno") == 0
+    assert ids.index("train-no.train_no") == 1
+    assert ids.index("train-no.train_name") == 2
+
+
+def test_types_catalog_keeps_train_no_after_owning_division():
+    entries = topn_catalog_entries("types")
+    ids = [entry["id"] for entry in entries]
+    assert ids.index("types.train_name") < ids.index("types.train_no")
+    assert ids.index("types.owning_division") < ids.index("types.train_no")
+
+
+def test_ensure_report3_train_no_after_sno_reorders_selection():
+    from app.automation.processing.topn_output_columns import ensure_report3_train_no_after_sno
+
+    selected = [
+        "train-no.sno",
+        "train-no.train_name",
+        "train-no.owning_zone",
+        "train-no.owning_division",
+        "train-no.train_no",
+    ]
+    assert ensure_report3_train_no_after_sno(selected, "train-no") == [
+        "train-no.sno",
+        "train-no.train_no",
+        "train-no.train_name",
+        "train-no.owning_zone",
+        "train-no.owning_division",
+    ]
+    # Report 5 / types must not be reordered by this helper
+    types_selected = [
+        "types.sno",
+        "types.train_name",
+        "types.owning_zone",
+        "types.owning_division",
+        "types.train_no",
+    ]
+    assert ensure_report3_train_no_after_sno(types_selected, "types") == types_selected

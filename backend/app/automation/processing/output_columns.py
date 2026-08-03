@@ -1311,6 +1311,25 @@ def _org_header(headers: list[str]) -> str:
     return "Organisation"
 
 
+def is_total_output_row(headers: list[str], row: list[str]) -> bool:
+    """True when the row's organisation/division label is Total."""
+    org_header = _org_header(headers)
+    idx = _header_index(headers, org_header)
+    if idx is None or idx >= len(row):
+        return False
+    return "total" in str(row[idx]).strip().lower()
+
+
+def total_output_row_indices(headers: list[str], rows: list[list[str]]) -> set[int]:
+    """Zero-based indices into ``rows`` for total footer rows."""
+    return {idx for idx, row in enumerate(rows) if is_total_output_row(headers, row)}
+
+
+def pdf_table_bold_row_indices(headers: list[str], rows: list[list[str]]) -> frozenset[int]:
+    """Table row indices (header is row 0) that should use bold body font."""
+    return frozenset(idx + 1 for idx in total_output_row_indices(headers, rows))
+
+
 def build_merged_total_row(
     *,
     merged_headers: list[str],

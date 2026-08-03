@@ -11,8 +11,14 @@ from openpyxl import load_workbook
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A2, A3, A4, landscape
 
-from app.automation.formatting.pdf_table import build_fitted_table, choose_landscape_layout
+from app.automation.formatting.pdf_fonts import pdf_font_bold
+from app.automation.formatting.pdf_table import _table_style_commands, build_fitted_table, choose_landscape_layout
 from app.automation.formatting.serial import apply_serial_number, renumber_data_rows
+from app.automation.processing.output_columns import (
+    is_total_output_row,
+    pdf_table_bold_row_indices,
+    total_output_row_indices,
+)
 from app.automation.processing.report1_processor import Report1Processor
 from app.automation.processing.report2_processor import Report2Processor
 from app.automation.utils import artifact_filename_timestamp, previous_day_report_date
@@ -380,6 +386,9 @@ def test_report1_pdf_totals_match_excel(
     closed_total = str(ws.cell(row=ws.max_row, column=closed_col).value or "")
     assert closed_total == "30"
     assert str(ws.cell(row=ws.max_row, column=2).value or "") == "Total"
+    for col_idx in range(1, ws.max_column + 1):
+        cell = ws.cell(row=ws.max_row, column=col_idx)
+        assert cell.font.bold is True
     pdf_bytes = Path(result.pdf_path).read_bytes()
     assert pdf_bytes[:5] == b"%PDF-"
     assert len(pdf_bytes) > 100
@@ -405,9 +414,30 @@ def test_report2_pdf_totals_match_excel(
     assert received_total == "24700"
     assert "% Disposal" not in headers
     assert "Total" in str(ws.cell(row=ws.max_row, column=2).value or "")
+    for col_idx in range(1, ws.max_column + 1):
+        cell = ws.cell(row=ws.max_row, column=col_idx)
+        assert cell.font.bold is True
     pdf_bytes = Path(result.pdf_path).read_bytes()
     assert pdf_bytes[:5] == b"%PDF-"
     assert len(pdf_bytes) > 100
+
+
+def test_total_output_row_detection_uses_org_marker():
+    headers = ["S.No.", "Organisation", "Received"]
+    rows = [["1", "East Central Railway", "10"], ["", "Total", "30"]]
+    assert total_output_row_indices(headers, rows) == {1}
+    assert pdf_table_bold_row_indices(headers, rows) == frozenset({2})
+    assert is_total_output_row(headers, rows[0]) is False
+    assert is_total_output_row(headers, rows[1]) is True
+
+
+def test_pdf_table_bold_total_row_overrides_regular_body_font():
+    commands = _table_style_commands([], 9.0, bold_row_indices=frozenset({3}))
+    bold_total = [
+        cmd for cmd in commands if cmd[0] == "FONTNAME" and cmd[1] == (0, 3)
+    ]
+    assert bold_total
+    assert bold_total[-1][3] == pdf_font_bold()
 
 
 FIXTURES_R5 = Path(__file__).resolve().parent.parent / "fixtures" / "report5"

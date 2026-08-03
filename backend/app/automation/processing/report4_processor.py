@@ -11,8 +11,9 @@ from typing import Any
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, Side
 from reportlab.lib import colors
+from reportlab.lib.pagesizes import A3, landscape
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.platypus import Flowable, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
 from app.automation.formatting.artifact_titles import build_artifact_main_title
@@ -29,13 +30,6 @@ from app.automation.formatting.topn_pdf import (
     choose_topn_landscape_layout,
 )
 from app.automation.processing.base import ProcessingResult
-
-# Report 4 PDF: two section tables per page on A3 landscape.
-_REPORT4_PDF_MARGIN_PT = 12.0
-_REPORT4_TITLE_AFTER_PT = 5.0
-_REPORT4_SECTION_GAP_PT = 8.0
-_REPORT4_BEFORE_TABLE_PT = 3.0
-_REPORT4_TABLE_CELL_PADDING_PT = 2.0
 from app.automation.processing.column_config import project_topn_for_output, resolve_projection_column_keys
 from app.automation.processing.report3_processor import Report3Processor
 from app.automation.processing.topn_output_columns import topn_default_ids, topn_labels
@@ -46,6 +40,198 @@ from app.automation.utils import (
     log_automation_event,
     resolve_report_dir,
 )
+
+# Report 4 PDF (Report 5 Cause Wise): height-based section packing on A3 landscape.
+_REPORT4_PDF_MARGIN_PT = 12.0
+_REPORT4_TITLE_AFTER_PT = 5.0
+_REPORT4_SECTION_GAP_PT = 8.0
+_REPORT4_BEFORE_TABLE_PT = 3.0
+_REPORT4_TABLE_CELL_PADDING_PT = 2.0
+
+
+def _measure_flowable_height(flowable: Flowable, width: float) -> float:
+    """Return wrapped height for a single flowable at the given frame width."""
+    _unused_width, height = flowable.wrap(width, 1_000_000)
+    return float(height)
+
+
+def _measure_flowables_height(flowables: list[Flowable], width: float) -> float:
+    return sum(_measure_flowable_height(flowable, width) for flowable in flowables)
+
+
+def _report4_page_title_flowables(main_title: str, table_width: float) -> list[Flowable]:
+    return [
+        build_topn_title_block(main_title, table_width),
+        Spacer(1, _REPORT4_TITLE_AFTER_PT),
+    ]
+
+
+def _build_report4_section_table(
+    section: TypeDataset,
+    *,
+    splittable: bool,
+) -> tuple[Flowable, tuple[float, float], float, list[float]]:
+    """Build the data table (or empty placeholder) for one grievance section."""
+    styles = getSampleStyleSheet()
+    if not section.rows:
+        placeholder = Paragraph("No data available for this type.", styles["Normal"])
+        return placeholder, landscape(A3), _REPORT4_PDF_MARGIN_PT, []
+
+    table_data: list[list[object]] = [list(section.headers)]
+    scr_row_indices: set[int] = set()
+    for row_values in section.rows:
+        table_data.append(list(row_values))
+        if row_contains_scr(row_values):
+            scr_row_indices.add(len(table_data) - 1)
+
+    style_commands: list[tuple] = [
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+    ]
+    for row_idx in scr_row_indices:
+        style_commands.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.yellow))
+        style_commands.append(("TEXTCOLOR", (0, row_idx), (-1, row_idx), colors.black))
+
+    table, pagesize, margin, col_widths = build_topn_fitted_table(
+        table_data,
+        style_commands,
+        margin=_REPORT4_PDF_MARGIN_PT,
+        splittable=splittable,
+        cell_padding=_REPORT4_TABLE_CELL_PADDING_PT,
+    )
+    return table, pagesize, margin, col_widths
+
+
+def _build_report4_section_pack(
+    section: TypeDataset,
+    *,
+    table_width: float,
+    usable_width: float,
+    usable_height: float,
+    title_height: float,
+) -> tuple[list[Flowable], float, tuple[float, float], float, list[float]]:
+    """
+    Build flowables for one complete section and its measured pack height.
+
+    Uses KeepTogether(heading + table) when the section fits on a page with the
+    report title; otherwise keeps the heading with the table header and allows
+    the table body to split across pages.
+    """
+    heading = build_topn_section_heading_block(
+        section.type_config.section_title,
+        table_width,
+    )
+    before_table = Spacer(1, _REPORT4_BEFORE_TABLE_PT)
+    table, section_pagesize, section_margin, section_col_widths = _build_report4_section_table(
+        section,
+        splittable=False,
+    )
+
+    inner: list[Flowable] = [heading, before_table, table]
+    inner_height = _measure_flowables_height(inner, usable_width)
+    max_with_title = usable_height - title_height
+
+    if inner_height <= max_with_title:
+        block = KeepTogether(inner)
+        return (
+            [block],
+            inner_height,
+            section_pagesize,
+            section_margin,
+            section_col_widths,
+        )
+
+    table, section_pagesize, section_margin, section_col_widths = _build_report4_section_table(
+        section,
+        splittable=True,
+    )
+    heading_block = KeepTogether([heading, before_table])
+    heading_height = _measure_flowables_height([heading, before_table], usable_width)
+    table_height = _measure_flowable_height(table, usable_width)
+    return (
+        [heading_block, table],
+        heading_height + table_height,
+        section_pagesize,
+        section_margin,
+        section_col_widths,
+    )
+
+
+def _pack_report5_pdf_story(
+    sections: list[TypeDataset],
+    *,
+    main_title: str,
+    pagesize: tuple[float, float],
+    margin: float,
+    table_width: float,
+) -> tuple[list[Flowable], tuple[float, float], float, float]:
+    """Height-based pagination: up to three sections per page when they fit."""
+    usable_width = pagesize[0] - (2 * margin)
+    usable_height = pagesize[1] - (2 * margin)
+
+    title_flowables = _report4_page_title_flowables(main_title, table_width)
+    title_height = _measure_flowables_height(title_flowables, usable_width)
+
+    story: list[Flowable] = []
+    remaining = 0.0
+    sections_on_page = 0
+
+    for section in sections:
+        pack_flowables, pack_height, new_pagesize, new_margin, new_col_widths = (
+            _build_report4_section_pack(
+                section,
+                table_width=table_width,
+                usable_width=usable_width,
+                usable_height=usable_height,
+                title_height=title_height,
+            )
+        )
+        if new_col_widths and new_pagesize[0] > pagesize[0]:
+            pagesize = new_pagesize
+            margin = new_margin
+            table_width = float(sum(new_col_widths))
+            usable_width = pagesize[0] - (2 * margin)
+            usable_height = pagesize[1] - (2 * margin)
+            title_flowables = _report4_page_title_flowables(main_title, table_width)
+            title_height = _measure_flowables_height(title_flowables, usable_width)
+            pack_flowables, pack_height, _, _, _ = _build_report4_section_pack(
+                section,
+                table_width=table_width,
+                usable_width=usable_width,
+                usable_height=usable_height,
+                title_height=title_height,
+            )
+
+        gap_height = _REPORT4_SECTION_GAP_PT if sections_on_page > 0 else 0.0
+        needed = gap_height + pack_height
+
+        def _start_new_page() -> None:
+            nonlocal remaining, sections_on_page
+            if story:
+                story.append(PageBreak())
+            story.extend(title_flowables)
+            remaining = usable_height - title_height
+            sections_on_page = 0
+
+        if sections_on_page == 0:
+            if title_height + pack_height > usable_height and story:
+                _start_new_page()
+            elif not story:
+                story.extend(title_flowables)
+                remaining = usable_height - title_height
+        elif needed > remaining:
+            _start_new_page()
+
+        if sections_on_page > 0:
+            story.append(Spacer(1, _REPORT4_SECTION_GAP_PT))
+            remaining -= gap_height
+
+        story.extend(pack_flowables)
+        remaining -= pack_height
+        sections_on_page += 1
+
+    return story, pagesize, margin, table_width
+
 
 logger = logging.getLogger(__name__)
 
@@ -490,7 +676,6 @@ class Report4Processor:
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
 
-        # Shared landscape page: A3 default (A2 only if a section needs it).
         sample_headers = next(
             (list(section.headers) for section in sections if section.headers),
             ["Train Name"],
@@ -499,69 +684,16 @@ class Report4Processor:
             sample_headers,
             margin=_REPORT4_PDF_MARGIN_PT,
         )
-        table_width = sum(col_widths)
-        styles = getSampleStyleSheet()
-
+        table_width = float(sum(col_widths))
         main_title = normalize_report_title(main_title, report_slug="types")
-        story: list = []
 
-        for section_idx, section in enumerate(sections):
-            if section_idx % 2 == 0:
-                if section_idx > 0:
-                    story.append(PageBreak())
-                story.append(build_topn_title_block(main_title, table_width))
-                story.append(Spacer(1, _REPORT4_TITLE_AFTER_PT))
-            else:
-                story.append(Spacer(1, _REPORT4_SECTION_GAP_PT))
-
-            story.append(
-                KeepTogether(
-                    [
-                        build_topn_section_heading_block(
-                            section.type_config.section_title,
-                            table_width,
-                        ),
-                        Spacer(1, _REPORT4_BEFORE_TABLE_PT),
-                    ]
-                )
-            )
-
-            if section.rows:
-                table_data: list[list[object]] = [list(section.headers)]
-                scr_row_indices: set[int] = set()
-                for row_values in section.rows:
-                    table_data.append(list(row_values))
-                    if row_contains_scr(row_values):
-                        scr_row_indices.add(len(table_data) - 1)
-
-                style_commands: list[tuple] = [
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                ]
-                for row_idx in scr_row_indices:
-                    style_commands.append(
-                        ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.yellow)
-                    )
-                    style_commands.append(
-                        ("TEXTCOLOR", (0, row_idx), (-1, row_idx), colors.black)
-                    )
-
-                table, section_pagesize, section_margin, section_widths = build_topn_fitted_table(
-                    table_data,
-                    style_commands,
-                    margin=_REPORT4_PDF_MARGIN_PT,
-                    splittable=True,
-                    cell_padding=_REPORT4_TABLE_CELL_PADDING_PT,
-                )
-                if section_pagesize[0] > pagesize[0]:
-                    pagesize = section_pagesize
-                    margin = section_margin
-                    table_width = sum(section_widths)
-                story.append(table)
-            else:
-                story.append(
-                    Paragraph("No data available for this type.", styles["Normal"])
-                )
+        story, pagesize, margin, _table_width = _pack_report5_pdf_story(
+            sections,
+            main_title=main_title,
+            pagesize=pagesize,
+            margin=margin,
+            table_width=table_width,
+        )
 
         doc = SimpleDocTemplate(
             str(temp_path),

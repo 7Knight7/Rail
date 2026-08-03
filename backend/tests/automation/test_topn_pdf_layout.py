@@ -132,7 +132,7 @@ def test_report3_pdf_layout_valid_and_has_20_rows(
     assert abs(sum(table._colWidths) - usable) < 1.0
 
 
-def test_report4_pdf_seven_sections_two_tables_per_page(
+def test_report4_pdf_seven_sections_height_packed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -153,7 +153,7 @@ def test_report4_pdf_seven_sections_two_tables_per_page(
     datasets = {}
     for idx, type_name in enumerate(COMPLAINT_TYPES_ORDERED):
         rows = []
-        for row_idx in range(12):
+        for row_idx in range(TOP_N):
             rows.append(
                 {
                     "S.No.": str(row_idx + 1),
@@ -185,7 +185,7 @@ def test_report4_pdf_seven_sections_two_tables_per_page(
     assert pdf_bytes.startswith(b"%PDF")
 
     page_count = len(__import__("re").findall(rb"/Type\s*/Page(?!s)\b", pdf_bytes))
-    assert page_count == 4
+    assert page_count == 2
 
     configs = get_type_configs()
     assert len(configs) == 7

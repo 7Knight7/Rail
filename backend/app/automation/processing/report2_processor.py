@@ -31,6 +31,8 @@ from app.automation.processing.output_columns import (
     REPORT2_HIDDEN_COLUMNS,
     SOURCE_B_DATA_COLUMNS,
     build_report2_display_total_row,
+    pdf_table_bold_row_indices,
+    total_output_row_indices,
 )
 
 HIDDEN_COLUMNS = REPORT2_HIDDEN_COLUMNS
@@ -661,6 +663,7 @@ class Report2Processor:
             cell.border = THIN_BORDER
 
         data_start = 3
+        total_row_indices = total_output_row_indices(headers, rows)
         for row_offset, row_values in enumerate(rows):
             row_idx = data_start + row_offset
             for col_idx, value in enumerate(row_values, start=1):
@@ -682,21 +685,16 @@ class Report2Processor:
         else:
             from app.automation.formatting.scr import highlight_south_central_railway_rows
 
+            scr_end_row = worksheet.max_row
+            if total_row_indices and (len(rows) - 1) in total_row_indices:
+                scr_end_row = data_start + len(rows) - 2
             highlight_south_central_railway_rows(
                 worksheet,
                 start_row=data_start,
-                end_row=worksheet.max_row,
+                end_row=scr_end_row,
                 start_col=1,
                 end_col=len(headers),
             )
-
-        if rows:
-            totals_row = worksheet.max_row
-            totals_fill = PatternFill(fill_type="solid", fgColor="E8E8E8")
-            for col_idx in range(1, len(headers) + 1):
-                cell = worksheet.cell(row=totals_row, column=col_idx)
-                cell.font = Font(bold=True)
-                cell.fill = totals_fill
 
         apply_column_formatting(
             worksheet,
@@ -704,6 +702,15 @@ class Report2Processor:
             header_row=header_row,
             data_start_row=data_start,
         )
+
+        totals_fill = PatternFill(fill_type="solid", fgColor="E8E8E8")
+        for row_offset in total_row_indices:
+            row_idx = data_start + row_offset
+            for col_idx in range(1, len(headers) + 1):
+                cell = worksheet.cell(row=row_idx, column=col_idx)
+                cell.font = Font(bold=True)
+                cell.fill = totals_fill
+
         apply_report_print_setup(worksheet, col_count=len(headers))
 
         workbook.save(temp_path)
@@ -741,15 +748,17 @@ class Report2Processor:
         for row_idx in pdf_scr_indices:
             style_commands.append(("BACKGROUND", (0, row_idx), (-1, row_idx), colors.yellow))
             style_commands.append(("TEXTCOLOR", (0, row_idx), (-1, row_idx), colors.black))
-        if rows:
+        bold_pdf_rows = pdf_table_bold_row_indices(headers, rows)
+        for row_idx in bold_pdf_rows:
             style_commands.append(
-                ("FONTNAME", (0, len(table_data) - 1), (-1, len(table_data) - 1), pdf_font_bold())
-            )
-            style_commands.append(
-                ("BACKGROUND", (0, len(table_data) - 1), (-1, len(table_data) - 1), colors.HexColor("#E8E8E8"))
+                ("BACKGROUND", (0, row_idx), (-1, row_idx), colors.HexColor("#E8E8E8"))
             )
 
-        table, pagesize, margin = build_fitted_table(table_data, style_commands)
+        table, pagesize, margin = build_fitted_table(
+            table_data,
+            style_commands,
+            bold_row_indices=bold_pdf_rows,
+        )
         doc = SimpleDocTemplate(
             str(temp_path),
             pagesize=pagesize,

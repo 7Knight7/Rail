@@ -52,17 +52,25 @@ from app.automation.processing.base import ProcessingResult
 from app.automation.processing.comprehensive_output_columns import (
     ADDITIVE_COLUMNS,
     COMPREHENSIVE_COLUMN_IDS,
-    COMPREHENSIVE_COLUMN_LABELS,
     NON_ADDITIVE_COLUMNS,
     column_labels,
     default_column_ids,
     normalize_header_to_column_id,
+    sanitize_comprehensive_section_columns,
+    sanitize_comprehensive_sections,
 )
 from app.automation.utils import (
     ensure_directory,
     log_automation_event,
-    resolve_report_dir,
+    resolve_run_scoped_dir,
 )
+
+_SECTION_VALIDATION_NAMES: dict[str, str] = {
+    "report10_cw": "Report 10 — C&W",
+    "report11_security": "Report 11 — Security",
+    "report12_punctuality": "Report 12 — Punctuality",
+    "report13_electrical": "Report 13 — Electrical Equipment",
+}
 
 # Report 10-13 PDF only: compact margins/spacing so four sections fit one page.
 _PDF_MARGIN_PT = min(SAFE_MARGIN_PT, 12.0)
@@ -351,12 +359,23 @@ class Comprehensive1013Processor:
         if source_a_path.suffix.lower() == ".pdf":
             return ProcessingResult(success=False, error="PDF cannot be used as processing input")
 
-        if column_selection:
-            log_automation_event(
-                logger,
-                "comprehensive1013_column_selection_received",
-                column_selection=column_selection,
-            )
+        column_selection = self._resolve_effective_column_selection(column_selection)
+        log_automation_event(
+            logger,
+            "comprehensive1013_column_selection_received",
+            run_id=column_selection.get("run_id"),
+            configuration_source=column_selection.get("configuration_source"),
+            snapshot_hash=column_selection.get("snapshot_hash"),
+            sections={
+                section_id: list(
+                    (column_selection.get("sections") or {})
+                    .get(section_id, {})
+                    .get("selected_column_ids")
+                    or []
+                )
+                for section_id in COMPREHENSIVE_1013_SECTION_IDS
+            },
+        )
 
         try:
             sections, total_input_rows = self._load_sections(source_a_path, column_selection)
@@ -379,8 +398,23 @@ class Comprehensive1013Processor:
         section_date = _section_date_text(date_range)
         filename_suffix = date_range.filename_suffix()
 
-        excel_dir = ensure_directory(resolve_report_dir(config.output_excel_dir, report_slug))
-        pdf_dir = ensure_directory(resolve_report_dir(config.output_pdf_dir, report_slug))
+        run_id = column_selection.get("run_id")
+        if run_id:
+            excel_dir = ensure_directory(
+                resolve_run_scoped_dir(config.output_excel_dir, report_slug, str(run_id))
+            )
+            pdf_dir = ensure_directory(
+                resolve_run_scoped_dir(config.output_pdf_dir, report_slug, str(run_id))
+            )
+        else:
+            parent = source_a_path.parent
+            scope = parent.name if parent.name else "shared"
+            excel_dir = ensure_directory(
+                resolve_run_scoped_dir(config.output_excel_dir, report_slug, scope)
+            )
+            pdf_dir = ensure_directory(
+                resolve_run_scoped_dir(config.output_pdf_dir, report_slug, scope)
+            )
         base_name = f"Rail_Madad_Report_10_13_Comprehensive_{filename_suffix}"
         excel_path = excel_dir / f"{base_name}.xlsx"
         pdf_path = pdf_dir / f"{base_name}.pdf"
@@ -408,23 +442,59 @@ class Comprehensive1013Processor:
             build_comprehensive_column_snapshot,
         )
 
-        raw_sections: dict[str, dict[str, list[str]]] = {}
-        for section in sections:
-            raw_sections[section.section_config.section_id] = {
-                "selected_column_ids": list(section.column_ids),
+        # Snapshot must come from the resolved filter config (all four sections),
+        # not only from sections that extracted successfully. Otherwise a single
+        # failed portal section aborts PDF/Excel even when other sections are ready.
+        selection_sections = (column_selection or {}).get("sections")
+        if isinstance(selection_sections, dict) and len(selection_sections) == len(
+            COMPREHENSIVE_1013_SECTION_IDS
+        ):
+            sections_for_snapshot = selection_sections
+        else:
+            sections_for_snapshot = {
+                section_id: {
+                    "selected_column_ids": list(
+                        next(
+                            (
+                                s.column_ids
+                                for s in sections
+                                if s.section_config.section_id == section_id
+                            ),
+                            default_column_ids(),
+                        )
+                    )
+                }
+                for section_id in COMPREHENSIVE_1013_SECTION_IDS
             }
+
         date_from = (column_selection or {}).get("date_from")
         date_to = (column_selection or {}).get("date_to")
-        column_snapshot = build_comprehensive_column_snapshot(
-            raw_sections,
-            date_from=str(date_from) if date_from else None,
-            date_to=str(date_to) if date_to else None,
-            configuration_source=str(
-                (column_selection or {}).get("configuration_source") or "manual_snapshot"
-            ),
-        )
+        try:
+            column_snapshot = build_comprehensive_column_snapshot(
+                sections_for_snapshot,
+                date_from=str(date_from) if date_from else None,
+                date_to=str(date_to) if date_to else None,
+                configuration_source=str(
+                    (column_selection or {}).get("configuration_source") or "manual_snapshot"
+                ),
+            )
+        except ValueError as exc:
+            return ProcessingResult(
+                success=False,
+                error=str(exc),
+                input_row_count=total_input_rows,
+                processed_row_count=total_output_rows,
+                excel_path=str(excel_path),
+                pdf_path=str(pdf_path),
+                source_a_path=str(source_a_path),
+                source_a_rows=total_input_rows,
+            )
         union_column_ids = column_snapshot["selected_column_ids"]
         artifact_metadata = build_comprehensive_artifact_metadata(column_snapshot)
+        # Record which sections were actually rendered (extraction may be partial).
+        artifact_metadata["rendered_section_ids"] = [
+            s.section_config.section_id for s in sections
+        ]
 
         log_automation_event(
             logger,
@@ -434,6 +504,9 @@ class Comprehensive1013Processor:
             section_count=len(sections),
             total_output_rows=total_output_rows,
             section_row_counts=section_row_counts,
+            snapshot_hash=column_snapshot.get("snapshot_hash"),
+            configuration_source=column_selection.get("configuration_source"),
+            rendered_section_ids=artifact_metadata["rendered_section_ids"],
         )
 
         return ProcessingResult(
@@ -518,6 +591,20 @@ class Comprehensive1013Processor:
                 projected_headers, projected_rows, portal_total_row, raw_headers, selected_ids
             )
 
+            default_ids = default_column_ids()
+            log_automation_event(
+                logger,
+                "comprehensive1013_section_column_filter",
+                run_id=(column_selection or {}).get("run_id"),
+                section_id=section_id,
+                selected_column_ids=selected_ids,
+                renderer_column_keys=selected_ids,
+                missing_vs_default=[col for col in default_ids if col not in selected_ids],
+                unexpected_columns=[
+                    col for col in selected_ids if col not in COMPREHENSIVE_COLUMN_IDS
+                ],
+            )
+
             sections.append(
                 SectionDataset(
                     section_config=section_config,
@@ -583,33 +670,118 @@ class Comprehensive1013Processor:
             return rows[:-1], last_row
         return rows, None
 
+    def _resolve_effective_column_selection(
+        self,
+        column_selection: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Normalize selection: run snapshot → saved config → legacy union → defaults."""
+        selection = dict(column_selection or {})
+
+        try:
+            from app.automation.run_context import get_run_context
+
+            ctx = get_run_context()
+            if ctx is not None:
+                if not selection.get("run_id") and ctx.run_id:
+                    selection["run_id"] = ctx.run_id
+                user_id = ctx.user_id
+            else:
+                user_id = None
+        except Exception:
+            user_id = None
+
+        sections_raw = selection.get("sections")
+        if isinstance(sections_raw, dict) and sections_raw:
+            sanitized = sanitize_comprehensive_sections(sections_raw)
+            if len(sanitized) == len(COMPREHENSIVE_1013_SECTION_IDS):
+                selection["sections"] = sanitized
+                selection.setdefault("configuration_source", "manual_snapshot")
+                self._log_column_selection_diagnostics(selection, source="run_snapshot")
+                return selection
+
+        from app.features.reports.config_store import load_report_config
+
+        saved = load_report_config("comprehensive-10-13", user_id=user_id) or {}
+        saved_sections = saved.get("sections")
+        if isinstance(saved_sections, dict) and saved_sections:
+            sanitized = sanitize_comprehensive_sections(saved_sections)
+            if len(sanitized) == len(COMPREHENSIVE_1013_SECTION_IDS):
+                selection["sections"] = sanitized
+                selection["configuration_source"] = "saved_user_config"
+                if not selection.get("selected_column_ids") and saved.get("selected_column_ids"):
+                    selection["selected_column_ids"] = list(saved["selected_column_ids"])
+                if not selection.get("snapshot_hash") and saved.get("snapshot_hash"):
+                    selection["snapshot_hash"] = saved["snapshot_hash"]
+                self._log_column_selection_diagnostics(selection, source="saved_user_config")
+                return selection
+
+        union_ids = selection.get("selected_column_ids") or saved.get("selected_column_ids")
+        sanitized_union = sanitize_comprehensive_section_columns(union_ids or [])
+        if sanitized_union:
+            selection["sections"] = {
+                section_id: {"selected_column_ids": list(sanitized_union)}
+                for section_id in COMPREHENSIVE_1013_SECTION_IDS
+            }
+            selection["configuration_source"] = (
+                selection.get("configuration_source") or "legacy_union"
+            )
+            self._log_column_selection_diagnostics(selection, source="legacy_union")
+            return selection
+
+        defaults = default_column_ids()
+        selection["sections"] = {
+            section_id: {"selected_column_ids": list(defaults)}
+            for section_id in COMPREHENSIVE_1013_SECTION_IDS
+        }
+        selection["configuration_source"] = "report_default"
+        self._log_column_selection_diagnostics(selection, source="report_default")
+        return selection
+
+    @staticmethod
+    def _log_column_selection_diagnostics(
+        selection: dict[str, Any],
+        *,
+        source: str,
+    ) -> None:
+        sections = selection.get("sections") or {}
+        for section_id in COMPREHENSIVE_1013_SECTION_IDS:
+            selected = list((sections.get(section_id) or {}).get("selected_column_ids") or [])
+            log_automation_event(
+                logger,
+                "comprehensive1013_column_selection_resolved",
+                run_id=selection.get("run_id"),
+                section_id=section_id,
+                configuration_source=source,
+                selected_column_ids=selected,
+                selected_column_count=len(selected),
+                missing_vs_default=[col for col in default_column_ids() if col not in selected],
+            )
+
     def _resolve_column_ids(
         self,
         section_id: str,
         column_selection: dict[str, Any] | None,
     ) -> list[str]:
         """Resolve which columns to include for a section."""
+        section_name = _SECTION_VALIDATION_NAMES.get(section_id, section_id)
         if column_selection and isinstance(column_selection.get("sections"), dict):
             sections = column_selection["sections"]
             section_columns = sections.get(section_id)
-            section_config = get_section_config_by_id(section_id)
-            section_name = {
-                "report10_cw": "Report 10 — C&W",
-                "report11_security": "Report 11 — Security",
-                "report12_punctuality": "Report 12 — Punctuality",
-                "report13_electrical": "Report 13 — Electrical Equipment",
-            }.get(section_id, section_config.name if section_config else section_id)
             if not isinstance(section_columns, dict):
                 raise ValueError(f"Select at least one column for {section_name}.")
-            selected = section_columns.get("selected_column_ids")
+            selected = sanitize_comprehensive_section_columns(
+                section_columns.get("selected_column_ids") or []
+            )
             if not selected:
                 raise ValueError(f"Select at least one column for {section_name}.")
-            return list(selected)
+            return selected
 
         if column_selection:
-            all_selected = column_selection.get("selected_column_ids")
+            all_selected = sanitize_comprehensive_section_columns(
+                column_selection.get("selected_column_ids") or []
+            )
             if all_selected:
-                return list(all_selected)
+                return all_selected
         return default_column_ids()
 
     def _project_columns(

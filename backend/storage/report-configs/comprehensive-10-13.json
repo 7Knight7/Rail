@@ -5,7 +5,6 @@
       "selected_column_ids": [
         "sno",
         "division",
-        "opening_balance",
         "received",
         "share_percent",
         "closed",
@@ -20,7 +19,6 @@
       "selected_column_ids": [
         "sno",
         "division",
-        "opening_balance",
         "received",
         "share_percent",
         "closed",
@@ -35,7 +33,6 @@
       "selected_column_ids": [
         "sno",
         "division",
-        "opening_balance",
         "received",
         "share_percent",
         "closed",
@@ -50,7 +47,6 @@
       "selected_column_ids": [
         "sno",
         "division",
-        "opening_balance",
         "received",
         "share_percent",
         "closed",
@@ -65,7 +61,6 @@
   "selected_column_ids": [
     "sno",
     "division",
-    "opening_balance",
     "received",
     "share_percent",
     "closed",
@@ -78,7 +73,6 @@
   "column_order": [
     "sno",
     "division",
-    "opening_balance",
     "received",
     "share_percent",
     "closed",
@@ -91,7 +85,7 @@
   "configuration_source": "manual_snapshot",
   "date_from": "2026-08-01",
   "date_to": "2026-08-01",
-  "snapshot_hash": "10c4aa6ad1454e08",
+  "snapshot_hash": "5a32d70aae1c716c",
   "export_format": "xlsx",
   "config_overrides": {
     "requested_formats": [

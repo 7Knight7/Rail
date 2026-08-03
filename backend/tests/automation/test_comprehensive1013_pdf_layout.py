@@ -140,6 +140,10 @@ def test_comprehensive1013_pdf_is_single_page_with_section_order(
         "app.automation.processing.comprehensive1013_processor.config.output_pdf_dir",
         str(pdf_dir),
     )
+    monkeypatch.setattr(
+        "app.features.reports.config_store.load_report_config",
+        lambda *_args, **_kwargs: None,
+    )
 
     captured: dict[str, object] = {}
     original_build = SimpleDocTemplate.build

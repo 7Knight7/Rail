@@ -39,19 +39,28 @@ def _topn_col(
     )
 
 
-def _build_topn_catalog(prefix: str) -> tuple[TopnOutputColumn, ...]:
-    return (
-        _topn_col(prefix, "sno", "S.No.", "serialNo", "S.No", "Sl No", computed=True),
-        _topn_col(prefix, "train_name", "Train Name", "trainName", "Train Name"),
-        _topn_col(prefix, "owning_zone", "Owning Zone", "owningZone", "Owning Zone"),
-        _topn_col(
-            prefix,
-            "owning_division",
-            "Owning Division",
-            "owningDivision",
-            "Owning Division",
-        ),
-        _topn_col(prefix, "train_no", "Train No.", "trainNo", "Train No", "Train No."),
+def _build_topn_catalog(
+    prefix: str,
+    *,
+    train_no_after_sno: bool = False,
+) -> tuple[TopnOutputColumn, ...]:
+    """Build Top-N column catalog.
+
+    Report 3 (train-no): Train No. immediately after S.No.
+    Report 5 / types: keep Train No. after Owning Division (unchanged).
+    """
+    sno = _topn_col(prefix, "sno", "S.No.", "serialNo", "S.No", "Sl No", computed=True)
+    train_no = _topn_col(prefix, "train_no", "Train No.", "trainNo", "Train No", "Train No.")
+    train_name = _topn_col(prefix, "train_name", "Train Name", "trainName", "Train Name")
+    owning_zone = _topn_col(prefix, "owning_zone", "Owning Zone", "owningZone", "Owning Zone")
+    owning_division = _topn_col(
+        prefix,
+        "owning_division",
+        "Owning Division",
+        "owningDivision",
+        "Owning Division",
+    )
+    rest = (
         _topn_col(prefix, "received", "Received", "received", "Received"),
         _topn_col(
             prefix,
@@ -77,9 +86,15 @@ def _build_topn_catalog(prefix: str) -> tuple[TopnOutputColumn, ...]:
             "Avg. Rating",
         ),
     )
+    if train_no_after_sno:
+        return (sno, train_no, train_name, owning_zone, owning_division, *rest)
+    return (sno, train_name, owning_zone, owning_division, train_no, *rest)
 
 
-TRAIN_NO_COLUMNS: tuple[TopnOutputColumn, ...] = _build_topn_catalog("train-no")
+TRAIN_NO_COLUMNS: tuple[TopnOutputColumn, ...] = _build_topn_catalog(
+    "train-no",
+    train_no_after_sno=True,
+)
 TYPES_COLUMNS: tuple[TopnOutputColumn, ...] = _build_topn_catalog("types")
 
 TRAIN_NO_IDS: frozenset[str] = frozenset(c.id for c in TRAIN_NO_COLUMNS)
@@ -87,10 +102,10 @@ TYPES_IDS: frozenset[str] = frozenset(c.id for c in TYPES_COLUMNS)
 
 DEFAULT_TOPN_IDS: list[str] = [
     "train-no.sno",
+    "train-no.train_no",
     "train-no.train_name",
     "train-no.owning_zone",
     "train-no.owning_division",
-    "train-no.train_no",
     "train-no.received",
     "train-no.percent_share",
     "train-no.closed",
@@ -99,7 +114,19 @@ DEFAULT_TOPN_IDS: list[str] = [
     "train-no.average_rating",
 ]
 
-DEFAULT_TYPES_IDS: list[str] = [key.replace("train-no.", "types.") for key in DEFAULT_TOPN_IDS]
+DEFAULT_TYPES_IDS: list[str] = [
+    "types.sno",
+    "types.train_name",
+    "types.owning_zone",
+    "types.owning_division",
+    "types.train_no",
+    "types.received",
+    "types.percent_share",
+    "types.closed",
+    "types.percent_closed",
+    "types.pending",
+    "types.average_rating",
+]
 
 # Legacy flat labels / camelCase → namespaced ID
 TOPN_LEGACY_TO_NAMESPACED: dict[str, dict[str, str]] = {
@@ -218,9 +245,28 @@ def migrate_topn_to_namespaced_ids(report_slug: str, selected: Iterable[str]) ->
     return migrated
 
 
+def ensure_report3_train_no_after_sno(selected_ids: Iterable[str], report_slug: str) -> list[str]:
+    """Report 3 only: place Train No. immediately after S.No. when both are selected."""
+    keys = list(selected_ids)
+    if _canonical_topn_slug(report_slug) != "train-no":
+        return keys
+    sno_id = "train-no.sno"
+    train_no_id = "train-no.train_no"
+    if sno_id not in keys or train_no_id not in keys:
+        return keys
+    without_train_no = [key for key in keys if key != train_no_id]
+    sno_index = without_train_no.index(sno_id)
+    return (
+        without_train_no[: sno_index + 1]
+        + [train_no_id]
+        + without_train_no[sno_index + 1 :]
+    )
+
+
 def topn_labels(selected_ids: Iterable[str], report_slug: str) -> list[str]:
     catalog = {col.id: col for col in topn_catalog_for_slug(report_slug)}
-    return [catalog[col_id].label for col_id in selected_ids if col_id in catalog]
+    ordered = ensure_report3_train_no_after_sno(selected_ids, report_slug)
+    return [catalog[col_id].label for col_id in ordered if col_id in catalog]
 
 
 def resolve_topn_row_value(row: dict[str, str], column: TopnOutputColumn) -> str:
@@ -274,7 +320,7 @@ def project_topn_dict_rows(
     report_slug: str,
 ) -> tuple[list[str], list[list[str]]]:
     catalog = {col.id: col for col in topn_catalog_for_slug(report_slug)}
-    key_list = list(selected_ids)
+    key_list = ensure_report3_train_no_after_sno(selected_ids, report_slug)
     out_headers: list[str] = []
     columns: list[TopnOutputColumn] = []
     for col_id in key_list:
@@ -303,7 +349,7 @@ def project_topn_canonical_rows(
 ) -> tuple[list[str], list[list[str]]]:
     """Project from canonical internal dict rows (field keys like trainNo, trainName)."""
     catalog = {col.id: col for col in topn_catalog_for_slug(report_slug)}
-    key_list = list(selected_ids)
+    key_list = ensure_report3_train_no_after_sno(selected_ids, report_slug)
     out_headers: list[str] = []
     columns: list[TopnOutputColumn] = []
     for col_id in key_list:
