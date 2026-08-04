@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Iterable
 
 from app.automation.formatting.serial import apply_serial_number
@@ -22,6 +24,24 @@ SOURCE_B_DATA_COLUMNS = [
     "Unsatisfactory",
     "% Unsatisfactory",
 ]
+
+REPORT1_OUTPUT_TOTAL_SIDECAR_FILENAME = "report1_output_total_row.json"
+
+# Report 2 total row: copy these column totals from Report 1 when both schemas include them.
+REPORT2_TOTALS_FROM_REPORT1_COLUMNS = frozenset(
+    {
+        "Received",
+        "% Share",
+        "Closed",
+        "Avg. Disposal Time",
+        "Feedback Received",
+        "% Feedback",
+        "Excellent",
+        "Satisfactory",
+        "Unsatisfactory",
+        "% Unsatisfactory",
+    }
+)
 
 # --- Report 1 / 2 namespaced output column IDs (Source A + Source B) ---
 
@@ -1414,6 +1434,94 @@ def build_merged_total_row(
     return a_values + ["", feedback_org] + b_values
 
 
+def report2_columns_to_copy_from_report1(
+    report2_headers: list[str],
+    report1_totals: dict[str, str],
+) -> list[str]:
+    """Column names in Report 2 that should receive Report 1 total values."""
+    return [
+        header
+        for header in report2_headers
+        if header in report1_totals and header in REPORT2_TOTALS_FROM_REPORT1_COLUMNS
+    ]
+
+
+def save_report1_output_total_row(
+    headers: list[str],
+    rows: list[list[str]],
+    dest_dir: Path,
+) -> Path | None:
+    """Persist Report 1 projected total row for Report 2 to consume (by column name)."""
+    if not rows or not is_total_output_row(headers, rows[-1]):
+        return None
+    payload = {
+        header: (rows[-1][idx] if idx < len(rows[-1]) else "")
+        for idx, header in enumerate(headers)
+    }
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    path = dest_dir / REPORT1_OUTPUT_TOTAL_SIDECAR_FILENAME
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def load_report1_output_total_row(extracted_report1_dir: Path) -> dict[str, str] | None:
+    """Load Report 1 total row sidecar written during the same automation run."""
+    path = extracted_report1_dir / REPORT1_OUTPUT_TOTAL_SIDECAR_FILENAME
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return {str(key): str(value) for key, value in payload.items()}
+
+
+def apply_report1_totals_to_report2_row(
+    total_row: list[str],
+    report2_headers: list[str],
+    report1_totals: dict[str, str],
+) -> list[str]:
+    """Overlay Report 1 totals onto Report 2 total row for shared column names only."""
+    updated = list(total_row)
+    copied: list[str] = []
+    for header in report2_columns_to_copy_from_report1(report2_headers, report1_totals):
+        idx = report2_headers.index(header)
+        if idx < len(updated):
+            updated[idx] = report1_totals[header]
+            copied.append(header)
+    if copied:
+        logger.info(
+            "report2_totals_copied_from_report1",
+            extra={"columns_copied": copied},
+        )
+    return updated
+
+
+def validate_report2_common_totals_match_report1(
+    total_row: list[str],
+    report2_headers: list[str],
+    report1_totals: dict[str, str],
+) -> None:
+    """Ensure every shared-column total in Report 2 exactly matches Report 1."""
+    mismatches: list[tuple[str, str, str]] = []
+    for header in report2_columns_to_copy_from_report1(report2_headers, report1_totals):
+        idx = report2_headers.index(header)
+        report2_value = str(total_row[idx] if idx < len(total_row) else "").strip()
+        report1_value = str(report1_totals.get(header, "")).strip()
+        if report2_value != report1_value:
+            mismatches.append((header, report1_value, report2_value))
+    if mismatches:
+        details = ", ".join(
+            f"{header} (report1={expected}, report2={actual})"
+            for header, expected, actual in mismatches
+        )
+        raise ValueError(
+            f"Report 2 total row does not match Report 1 for shared columns: {details}"
+        )
+
+
 def build_report2_display_total_row(
     *,
     merged_headers: list[str],
@@ -1422,7 +1530,7 @@ def build_report2_display_total_row(
     source_b_headers: list[str],
     source_b_columns: list[str],
 ) -> list[str]:
-    """Totals from displayed Top-N rows only (never portal all-division totals)."""
+    """Totals from displayed Top-N rows (Report 1 overlays applied after projection)."""
     return build_merged_total_row(
         merged_headers=merged_headers,
         data_rows=data_rows,

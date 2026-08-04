@@ -1,4 +1,4 @@
-"""Output column catalog for Report 14 Watering Complaints."""
+"""Output column catalog for Report 14 Watering Complaints (merged layout)."""
 
 from __future__ import annotations
 
@@ -19,85 +19,49 @@ class Report14Column:
 REPORT14_OUTPUT_COLUMNS: tuple[Report14Column, ...] = (
     Report14Column("sno", "S.No.", required=True, group="shared", group_title="Shared"),
     Report14Column(
-        "station",
-        "Station",
+        "division",
+        "Division",
         required=True,
         group="shared",
         group_title="Shared",
     ),
     Report14Column(
-        "prev_opening_balance",
-        "Prev Opening Balance",
-        group="previous",
-        group_title="Previous Watering Point",
-    ),
-    Report14Column(
         "prev_received",
-        "Prev Received",
+        "Previous Received",
         required=True,
         group="previous",
-        group_title="Previous Watering Point",
+        group_title="W.r.to Previous Watering Point",
     ),
     Report14Column(
         "prev_pct_share",
-        "Prev % Share",
+        "Previous % Share",
         group="previous",
-        group_title="Previous Watering Point",
+        group_title="W.r.to Previous Watering Point",
     ),
     Report14Column(
-        "prev_closed",
-        "Prev Closed",
+        "prev_avg_rating",
+        "Previous Average Rating",
         group="previous",
-        group_title="Previous Watering Point",
-    ),
-    Report14Column(
-        "prev_closing_balance",
-        "Prev Closing Balance",
-        group="previous",
-        group_title="Previous Watering Point",
-    ),
-    Report14Column(
-        "prev_pct_disposal",
-        "Prev % Disposal",
-        group="previous",
-        group_title="Previous Watering Point",
-    ),
-    Report14Column(
-        "up_opening_balance",
-        "Up Opening Balance",
-        group="upcoming",
-        group_title="Upcoming Watering Point",
+        group_title="W.r.to Previous Watering Point",
     ),
     Report14Column(
         "up_received",
-        "Up Received",
+        "Upcoming Received",
         required=True,
         group="upcoming",
-        group_title="Upcoming Watering Point",
+        group_title="W.r.to Upcoming Watering Point",
     ),
     Report14Column(
         "up_pct_share",
-        "Up % Share",
+        "Upcoming % Share",
         group="upcoming",
-        group_title="Upcoming Watering Point",
+        group_title="W.r.to Upcoming Watering Point",
     ),
     Report14Column(
-        "up_closed",
-        "Up Closed",
+        "up_avg_rating",
+        "Upcoming Average Rating",
         group="upcoming",
-        group_title="Upcoming Watering Point",
-    ),
-    Report14Column(
-        "up_closing_balance",
-        "Up Closing Balance",
-        group="upcoming",
-        group_title="Upcoming Watering Point",
-    ),
-    Report14Column(
-        "up_pct_disposal",
-        "Up % Disposal",
-        group="upcoming",
-        group_title="Upcoming Watering Point",
+        group_title="W.r.to Upcoming Watering Point",
     ),
 )
 
@@ -106,6 +70,11 @@ REPORT14_COLUMN_BY_ID: dict[str, Report14Column] = {
 }
 REPORT14_LABEL_BY_ID: dict[str, str] = {c.id: c.label for c in REPORT14_OUTPUT_COLUMNS}
 REPORT14_ID_BY_LABEL: dict[str, str] = {c.label: c.id for c in REPORT14_OUTPUT_COLUMNS}
+
+# Sub-column headers under each grouped section (official Railway layout).
+REPORT14_SUB_HEADERS = ("Received", "% Share", "Average Rating")
+REPORT14_PREV_GROUP_TITLE = "W.r.to Previous Watering Point"
+REPORT14_UP_GROUP_TITLE = "W.r.to Upcoming Watering Point"
 
 
 def report14_default_ids() -> list[str]:
@@ -144,17 +113,15 @@ def validate_selected_report14_fields(selected: Iterable[str]) -> list[str]:
             continue
         seen.add(key)
         ordered.append(key)
-    # Always include required columns even if omitted.
     for col in REPORT14_OUTPUT_COLUMNS:
         if col.required and col.id not in seen:
             ordered.insert(0 if col.id == "sno" else len(ordered), col.id)
             seen.add(col.id)
-    # Keep sno first, station second when present.
     fixed: list[str] = []
     if "sno" in seen:
         fixed.append("sno")
-    if "station" in seen:
-        fixed.append("station")
+    if "division" in seen:
+        fixed.append("division")
     for key in ordered:
         if key not in fixed:
             fixed.append(key)

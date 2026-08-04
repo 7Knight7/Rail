@@ -57,7 +57,7 @@ async def main() -> int:
             return 1
         print(f"Attached: {page.url}")
 
-        print("Navigating MIS Reports -> 11) Train Watering Complaint ...")
+        print("Navigating MIS Reports -> 11) Train Watering Complaints ...")
         await navigate_report14_via_menu(page, run_id="live-filter-test")
         print(f"Form ready. URL={page.url}")
 

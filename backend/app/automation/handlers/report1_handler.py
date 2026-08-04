@@ -103,33 +103,18 @@ class Report1Handler(BaseReportHandler):
             except Exception:
                 pass
 
-            report_root = await self.filter_service.get_report_root(page)
-
-            applied_values = await self._apply_filters_fast(report_root, page)
+            report_root, applied_values, row_count = await self.apply_filters_and_submit(
+                page,
+                report,
+                filters=REPORT_1_FILTERS,
+                session=session,
+                source_name="comprehensive",
+            )
             log_automation_event(
                 logger,
-                "report1_filters_applied_fast",
+                "report1_filters_applied",
                 applied_values=applied_values,
             )
-
-            run_id = ctx.run_id if ctx is not None else ""
-            from app.automation.portal_from_date import apply_previous_from_date, log_phase1_submit_clicked
-            await apply_previous_from_date(
-                page, run_id, report.slug, "comprehensive",
-                filter_service=self.filter_service,
-            )
-            log_phase1_submit_clicked(run_id, report.slug, "comprehensive")
-
-            await self.generator.generate_report(report_root, page)
-
-            await page.wait_for_timeout(500)
-
-            row_count = await self.generator.count_rows(report_root)
-
-            if not await self.generator.verify_report_displayed(report_root):
-                await page.wait_for_timeout(1000)
-                if not await self.generator.verify_report_displayed(report_root):
-                    raise Exception("Report 1 table did not display after generate")
 
             await self.click_received_twice(report_root, page, report_slug=report.slug)
 
@@ -145,7 +130,7 @@ class Report1Handler(BaseReportHandler):
                 self.discovery_service,
                 self.generator,
                 session,
-                max_retries=1,
+                max_retries=2,
             )
             extraction_seconds = round(time.perf_counter() - t_extract, 3)
             if ctx is not None:
@@ -212,7 +197,7 @@ class Report1Handler(BaseReportHandler):
                     self.discovery_service,
                     self.generator,
                     session,
-                    max_retries=1,
+                    max_retries=2,
                 )
 
             if feedback_cm is not None:
@@ -529,10 +514,11 @@ class Report1Handler(BaseReportHandler):
             results.excluding_assistance_cases = selectByLabel('#assistanceInput', ['Yes', 'YES']);
             results.excluding_refund_cases = selectByLabel('#refundInput', ['YES', 'Yes']);
             results.excluding_inquiry_cases = selectByLabel('#inquiryInput', ['Yes', 'YES']);
-            results.channel_type = selectByLabel('#channelTypeInput', ['ALL', 'All']);
-            results.train_type = selectByLabel('#trainTypeInput', ['ALL', 'All']);
+        results.channel_type = selectByLabel('#channelTypeInput', ['ALL', 'All']);
+        results.train_type = selectByLabel('#trainTypeInput', ['ALL', 'All']);
+        results.date_range = selectByLabel('#dateRange, select[name*="dateRange"], select[id*="dateRange"]', ['Previous Day', 'Previous day']);
 
-            return results;
+        return results;
         }"""
 
         applied_values = await report_root.evaluate(js_code)

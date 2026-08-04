@@ -83,9 +83,9 @@
     "avg_pendency_time"
   ],
   "configuration_source": "manual_snapshot",
-  "date_from": "2026-08-01",
-  "date_to": "2026-08-01",
-  "snapshot_hash": "5a32d70aae1c716c",
+  "date_from": "2026-08-02",
+  "date_to": "2026-08-02",
+  "snapshot_hash": "d55182d37aa8c2dd",
   "export_format": "xlsx",
   "config_overrides": {
     "requested_formats": [

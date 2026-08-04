@@ -25,7 +25,7 @@ FIXTURE_HTML = """<!DOCTYPE html>
     <div id="submenu" style="display:none">
       <a href="#" id="tab10">10) Zone/Train Type wise Report</a>
       <a href="#" id="tab11">11) Train Watering
-Complaint</a>
+Complaints</a>
       <a href="#" id="tab12">12) Suggestion Comprehensive</a>
     </div>
   </div>
@@ -105,7 +105,7 @@ async def test_report14_filters_applied_and_verified_on_fixture(tmp_path: Path):
 
         # Expand and open tab 11 via the UI sequence
         await page.get_by_text("MIS Reports", exact=True).click()
-        await page.get_by_text("11) Train Watering Complaint").click()
+        await page.get_by_text("11) Train Watering Complaints").click()
         form_ctx = await wait_for_report14_form(page, timeout_ms=5_000)
         assert form_ctx is not None
 
@@ -167,7 +167,7 @@ async def test_apply_rejects_default_train_type_view_without_change(tmp_path: Pa
         page = await browser.new_page()
         await page.goto(html_path.as_uri())
         await page.get_by_text("MIS Reports", exact=True).click()
-        await page.get_by_text("11) Train Watering Complaint").click()
+        await page.get_by_text("11) Train Watering Complaints").click()
 
         handler = Report14Handler()
         with pytest.raises(FilterError, match="VIEW_FILTER|ZONE_FILTER"):

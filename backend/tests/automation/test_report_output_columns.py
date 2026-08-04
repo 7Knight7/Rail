@@ -259,17 +259,35 @@ def test_report2_visible_columns_include_disposal(
     assert_column_order_contains(["Closed", "Avg. Disposal Time"], headers)
 
 
+def _run_report1_for_sidecar(
+    r1_paths: tuple[Path, Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    comprehensive, feedback = r1_paths
+    _patch_outputs(monkeypatch, "app.automation.processing.report1_processor", tmp_path)
+    result = Report1Processor().process(
+        source_a_path=comprehensive,
+        report_slug="report1",
+        source_b_path=feedback,
+    )
+    assert result.success is True
+
+
 def test_report2_totals_row(
+    r1_paths: tuple[Path, Path],
     r2_paths: tuple[Path, Path],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    _run_report1_for_sidecar(r1_paths, tmp_path, monkeypatch)
     comprehensive, feedback = r2_paths
     _patch_outputs(monkeypatch, "app.automation.processing.report2_processor", tmp_path)
     result = Report2Processor().process(
         source_a_path=comprehensive,
         report_slug="report2",
         source_b_path=feedback,
+        column_selection={"date_from": "2026-07-01", "date_to": "2026-07-02"},
     )
     assert result.success is True
     ws = load_workbook(result.excel_path).active
@@ -281,7 +299,8 @@ def test_report2_totals_row(
         str(ws.cell(row=ws.max_row, column=headers.index(h) + 1).value or "")
         for h in headers
     ]
-    assert total_visible[headers.index("Received")] == "9750"
+    # Shared totals must match Report 1 (not Top-25 sums).
+    assert total_visible[headers.index("Received")] == "9321"
 
 
 def test_report5_columns_and_data(

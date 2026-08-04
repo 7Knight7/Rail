@@ -16,7 +16,11 @@ from app.automation.formatting.pdf_fonts import pdf_title_style
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
-from app.automation.formatting.excel_print import apply_column_formatting, apply_report_print_setup
+from app.automation.formatting.excel_print import (
+    apply_column_formatting,
+    apply_report_print_setup,
+    apply_uniform_center_alignment,
+)
 from app.automation.formatting.pdf_table import build_fitted_table
 from app.automation.formatting.text_pipeline import (
     normalize_report_title,
@@ -33,6 +37,7 @@ from app.automation.processing.output_columns import (
     build_merged_total_row,
     fill_report1_avg_disposal_time_total,
     pdf_table_bold_row_indices,
+    save_report1_output_total_row,
     total_output_row_indices,
 )
 
@@ -154,6 +159,21 @@ class Report1Processor:
             output_headers,
             output_rows,
         )
+
+        extracted_report1_dir = ensure_directory(
+            resolve_report_dir(config.extracted_data_dir, report_slug)
+        )
+        sidecar_path = save_report1_output_total_row(
+            output_headers,
+            output_rows,
+            extracted_report1_dir,
+        )
+        if sidecar_path is not None:
+            log_automation_event(
+                logger,
+                "report1_output_total_row_saved",
+                path=str(sidecar_path),
+            )
 
         report_date = previous_day_report_date()
         run_timestamp = datetime.now().strftime("%H%M%S")
@@ -453,6 +473,7 @@ class Report1Processor:
                 cell.fill = totals_fill
 
         apply_report_print_setup(worksheet, col_count=len(headers))
+        apply_uniform_center_alignment(worksheet)
 
         workbook.save(temp_path)
         temp_path.replace(target_path)

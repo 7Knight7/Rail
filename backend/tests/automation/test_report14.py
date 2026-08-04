@@ -137,7 +137,7 @@ class TestReport14Processor:
         with path.open("w", encoding="utf-8", newline="") as handle:
             csv.writer(handle).writerows(rows)
 
-    def test_side_by_side_merge(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    def test_side_by_side_merge_by_division(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         from app.automation.processing import report14_processor as r14mod
 
         monkeypatch.setattr(r14mod.config, "output_excel_dir", str(tmp_path / "excel"))
@@ -151,19 +151,21 @@ class TestReport14Processor:
         self._write_source_csv(
             prev_csv,
             [
-                ["Division", "Opening Balance", "Received", "% Share", "Closed", "Closing Balance", "% Disposal"],
-                ["SC", "1", "10", "50.00", "8", "3", "72.73"],
-                ["GNT", "0", "5", "25.00", "4", "1", "80.00"],
-                ["Total", "1", "15", "100.00", "12", "4", "75.00"],
+                ["Division", "Received", "% Share", "Average Rating"],
+                ["SECUNDERABAD DIVISION", "4", "57.14", "Satisfactory"],
+                ["HYDERABAD DIVISION", "2", "28.57", "UnSatisfactory"],
+                ["NANDED DIVISION", "1", "14.29", "Nil"],
+                ["Total", "7", "100", "Satisfactory"],
             ],
         )
         self._write_source_csv(
             up_csv,
             [
-                ["Division", "Opening Balance", "Received", "% Share", "Closed", "Closing Balance", "% Disposal"],
-                ["SC", "2", "7", "70.00", "5", "4", "55.56"],
-                ["BZA", "0", "3", "30.00", "2", "1", "66.67"],
-                ["Total", "2", "10", "100.00", "7", "5", "58.33"],
+                ["Division", "Received", "% Share", "Average Rating"],
+                ["SECUNDERABAD DIVISION", "5", "71.43", "UnSatisfactory"],
+                ["HYDERABAD DIVISION", "1", "14.29", "Nil"],
+                ["NANDED DIVISION", "1", "14.29", "Nil"],
+                ["Total", "7", "100", "UnSatisfactory"],
             ],
         )
 
@@ -209,7 +211,28 @@ class TestReport14Processor:
         assert result.success is True
         assert result.excel_path and Path(result.excel_path).is_file()
         assert result.pdf_path and Path(result.pdf_path).is_file()
-        assert result.processed_row_count == 3  # SC + GNT + BZA (outer join)
+        assert result.processed_row_count == 3  # three divisions aligned by key
+
+        processor = Report14Processor()
+        prev_data, prev_headers = processor._read_csv(prev_csv)
+        up_data, up_headers = processor._read_csv(up_csv)
+        prev_data, prev_total = processor._split_total_row(prev_data)
+        up_data, up_total = processor._split_total_row(up_data)
+        headers, rows = processor._merge_by_division(
+            prev_data,
+            prev_headers,
+            up_data,
+            up_headers,
+            prev_total=prev_total,
+            up_total=up_total,
+        )
+        assert headers[1] == "Division"
+        assert rows[0][1] == "SECUNDERABAD DIVISION"
+        assert rows[0][2] == "4"
+        assert rows[0][5] == "5"
+        assert rows[-1][1] == "Total"
+        assert rows[-1][2] == "7"
+        assert rows[-1][5] == "7"
 
     def test_missing_source_fails(self, tmp_path: Path):
         index_path = tmp_path / "report14_combined_index.csv"

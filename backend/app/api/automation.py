@@ -16,10 +16,17 @@ from app.automation.browser import BrowserConnectionError, probe_cdp_reachable
 from app.automation.config import config
 from app.automation.dependencies import get_automation_service
 from app.automation.report_keys import canonicalize_report_key
+from app.automation.merged_downloads import (
+    MergedDownloadError,
+    build_merged_excel,
+    build_merged_pdf,
+    merged_excel_filename,
+    merged_pdf_filename,
+)
+from app.automation.merged_report_catalog import merged_download_urls
 from app.automation.run_registry import (
     ArtifactPathError,
     artifact_public_dict,
-    build_download_all_zip,
     get_artifact,
     list_run_artifacts,
     public_report_dict,
@@ -77,7 +84,8 @@ class RunDetailResponse(BaseModel):
     total_duration_seconds: float | None = None
     reports_successful: int = 0
     reports_failed: int = 0
-    download_all_url: str | None = None
+    download_pdf_all_url: str | None = None
+    download_excel_all_url: str | None = None
     reports: list[dict[str, Any]] = Field(default_factory=list)
     result: MultiReportResult | None = None
 
@@ -335,7 +343,7 @@ async def get_run(
         total_duration_seconds=total_duration,
         reports_successful=result.reports_successful if result else run.success_count,
         reports_failed=result.reports_failed if result else run.failure_count,
-        download_all_url=f"/api/v1/automation/runs/{run.id}/download-all",
+        **merged_download_urls(run.id),
         reports=reports,
         result=result,
     )
@@ -544,10 +552,10 @@ async def download_artifact(
 
 
 @router.get(
-    "/runs/{run_id}/download-all",
+    "/runs/{run_id}/download/pdf/all",
     dependencies=[Depends(require_admin)],
 )
-async def download_all_artifacts(
+async def download_merged_pdf_all(
     run_id: str,
     db: Annotated[AsyncSession, Depends(get_db_session)],
     _user: Annotated[User, Depends(require_admin)],
@@ -556,31 +564,89 @@ async def download_all_artifacts(
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     artifacts = await list_run_artifacts(db, run_id)
-    payload = build_download_all_zip(artifacts)
-    if not payload:
-        raise HTTPException(status_code=404, detail="No downloadable artifacts for this run")
+    generated_at = run.completed_at or run.started_at
+    try:
+        payload = build_merged_pdf(
+            artifacts,
+            run_id=run_id,
+            generated_at=generated_at,
+        )
+    except MergedDownloadError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Merged PDF build failed for run %s", run_id)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to build merged PDF: {exc}"
+        ) from exc
     try:
         from app.features.activity.emit import emit_activity
 
         await emit_activity(
             user_id=_user.id,
-            action="ZIP_DOWNLOADED",
-            message=f"Downloaded ZIP for run {run_id}",
+            action="PDF_DOWNLOADED",
+            message=f"Downloaded merged PDF for run {run_id}",
             status="success",
             run_id=run_id,
-            dedupe_key=f"zip_downloaded:{run_id}",
+            dedupe_key=f"merged_pdf_downloaded:{run_id}",
             metadata={"artifact_count": len(artifacts)},
         )
     except Exception:
         pass
-    from app.automation.utils import previous_day_report_date
-
-    zip_name = f"Rail_Madad_Reports_{previous_day_report_date()}.zip"
+    filename = merged_pdf_filename(now=generated_at)
     return Response(
         content=payload,
-        media_type="application/zip",
+        media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="{zip_name}"'
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+    )
+
+
+@router.get(
+    "/runs/{run_id}/download/excel/all",
+    dependencies=[Depends(require_admin)],
+)
+async def download_merged_excel_all(
+    run_id: str,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _user: Annotated[User, Depends(require_admin)],
+) -> Response:
+    run = await db.get(AutomationRunModel, run_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found")
+    artifacts = await list_run_artifacts(db, run_id)
+    generated_at = run.completed_at or run.started_at
+    try:
+        payload = build_merged_excel(artifacts)
+    except MergedDownloadError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Merged Excel build failed for run %s", run_id)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to build merged Excel: {exc}"
+        ) from exc
+    try:
+        from app.features.activity.emit import emit_activity
+
+        await emit_activity(
+            user_id=_user.id,
+            action="EXCEL_DOWNLOADED",
+            message=f"Downloaded merged Excel for run {run_id}",
+            status="success",
+            run_id=run_id,
+            dedupe_key=f"merged_excel_downloaded:{run_id}",
+            metadata={"artifact_count": len(artifacts)},
+        )
+    except Exception:
+        pass
+    filename = merged_excel_filename(now=generated_at)
+    return Response(
+        content=payload,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store, no-cache, must-revalidate",
         },
     )
 
@@ -610,7 +676,7 @@ async def list_cdp_runs(
             "completed_at": r.completed_at.isoformat() if r.completed_at else None,
             "success_count": r.success_count,
             "failure_count": r.failure_count,
-            "download_all_url": f"/api/v1/automation/runs/{r.id}/download-all",
+            **merged_download_urls(r.id),
         }
         for r in runs
     ]

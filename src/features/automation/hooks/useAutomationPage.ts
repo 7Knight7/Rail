@@ -168,7 +168,8 @@ function applyRunDetailToEvents(
           pdfsGenerated: downloads.length,
           executionTimeMs: Math.round((detail.total_duration_seconds ?? 0) * 1000),
           runId: detail.run_id,
-          downloadAllUrl: detail.download_all_url ?? undefined,
+          downloadPdfAllUrl: detail.download_pdf_all_url ?? undefined,
+          downloadExcelAllUrl: detail.download_excel_all_url ?? undefined,
           reportDownloads: downloads,
         },
       });
@@ -541,7 +542,8 @@ export function useAutomationPage(): UseAutomationPageReturn {
           pdfsGenerated: downloads.length,
           executionTimeMs: Math.round((result.total_duration_seconds ?? 0) * 1000),
           runId: result.run_id ?? undefined,
-          downloadAllUrl: result.download_all_url ?? undefined,
+          downloadPdfAllUrl: result.download_pdf_all_url ?? undefined,
+          downloadExcelAllUrl: result.download_excel_all_url ?? undefined,
           reportDownloads: downloads,
         },
       });

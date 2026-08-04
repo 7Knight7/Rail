@@ -71,3 +71,29 @@ def apply_column_formatting(
                     cell.alignment = wrap_align
                 else:
                     cell.alignment = cell_align
+
+
+def apply_uniform_center_alignment(
+    worksheet: Worksheet,
+    *,
+    max_row: int | None = None,
+    max_col: int | None = None,
+    wrap_text: bool = True,
+) -> None:
+    """Force horizontal+vertical center alignment on every cell in the used range.
+
+    Applied as the final styling pass (right before saving) so it overrides any
+    earlier left/top alignment set by title, header, or column-formatting helpers.
+    Only ``alignment`` is touched — fonts, borders, fills, and number formats are
+    left exactly as previously set. Covers text, numbers, percentages, time
+    values, totals rows, S.No., names, and blank cells that are part of a merge
+    (e.g. the collapsed cells of a merged title/header range).
+    """
+    last_row = max_row or worksheet.max_row
+    last_col = max_col or worksheet.max_column
+    if last_row < 1 or last_col < 1:
+        return
+    centered = Alignment(horizontal="center", vertical="center", wrap_text=wrap_text)
+    for row in worksheet.iter_rows(min_row=1, max_row=last_row, min_col=1, max_col=last_col):
+        for cell in row:
+            cell.alignment = centered

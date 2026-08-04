@@ -389,21 +389,19 @@ class BaseReportHandler(ABC):
         from app.automation.run_context import get_run_context
         from app.automation.report_keys import canonicalize_report_key
 
-        selection = column_selection
-        if selection is None:
-            ctx = get_run_context()
-            if ctx and ctx.manual_config:
+        selection = dict(column_selection) if column_selection else {}
+        ctx = get_run_context()
+        if ctx is not None:
+            if ctx.manual_config:
                 manual = ctx.manual_config
                 slug = canonicalize_report_key(report_slug)
                 manual_slug = canonicalize_report_key(str(manual.get("report_slug") or slug))
                 if manual_slug == slug:
-                    selection = dict(manual)
-                    selection["run_id"] = ctx.run_id
-        elif selection is not None:
-            ctx = get_run_context()
-            if ctx and "run_id" not in selection:
-                selection = dict(selection)
-                selection["run_id"] = ctx.run_id
+                    selection.update(manual)
+            if ctx.run_id:
+                selection.setdefault("run_id", ctx.run_id)
+        if not selection:
+            selection = None
         return await process_report(
             canonicalize_report_key(report_slug),
             ingestion_success,

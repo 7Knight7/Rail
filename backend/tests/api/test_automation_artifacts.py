@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import io
-import zipfile
 from datetime import UTC, datetime
+from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
+from pypdf import PdfReader
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.automation.config import config
@@ -85,8 +87,18 @@ def test_validate_artifact_blocks_traversal(tmp_path, monkeypatch):
         validate_artifact_file(evil)
 
 
+def _write_minimal_pdf(path: Path, title: str) -> None:
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    pdf.setFont("Helvetica", 12)
+    pdf.drawString(72, 800, title)
+    pdf.showPage()
+    pdf.save()
+    path.write_bytes(buffer.getvalue())
+
+
 @pytest.mark.asyncio
-async def test_artifact_preview_download_and_zip(
+async def test_artifact_preview_download_and_merged_outputs(
     tmp_path, monkeypatch, api_client, test_session: AsyncSession
 ):
     pdf_dir = tmp_path / "pdf" / "division"
@@ -95,7 +107,7 @@ async def test_artifact_preview_download_and_zip(
     excel_dir.mkdir(parents=True)
     pdf_path = pdf_dir / "sample.pdf"
     excel_path = excel_dir / "sample.xlsx"
-    pdf_path.write_bytes(b"%PDF-1.4 sample")
+    _write_minimal_pdf(pdf_path, "Division Report")
     workbook = Workbook()
     workbook.active["A1"] = "sample"
     workbook.save(excel_path)
@@ -142,20 +154,38 @@ async def test_artifact_preview_download_and_zip(
 
     run_resp = await api_client.get(f"/api/v1/automation/runs/{run.id}")
     assert run_resp.status_code == 200
-    assert run_resp.json()["run_id"] == run.id
+    body = run_resp.json()
+    assert body["run_id"] == run.id
+    assert body["download_pdf_all_url"].endswith("/download/pdf/all")
+    assert body["download_excel_all_url"].endswith("/download/excel/all")
 
     arts = await api_client.get(f"/api/v1/automation/runs/{run.id}/artifacts")
     assert arts.status_code == 200
     assert len(arts.json()) == 2
     assert all("file_path" not in a for a in arts.json())
 
-    zipped = await api_client.get(f"/api/v1/automation/runs/{run.id}/download-all")
-    assert zipped.status_code == 200
-    assert zipped.headers["content-type"].startswith("application/zip")
-    with zipfile.ZipFile(io.BytesIO(zipped.content)) as zf:
-        names = zf.namelist()
-        assert any(n.endswith(".pdf") for n in names)
-        assert any(n.endswith(".xlsx") for n in names)
+    merged_pdf = await api_client.get(f"/api/v1/automation/runs/{run.id}/download/pdf/all")
+    assert merged_pdf.status_code == 200
+    assert merged_pdf.headers["content-type"].startswith("application/pdf")
+    assert "RailMadad_Report_" in merged_pdf.headers.get("content-disposition", "")
+    pdf_reader = PdfReader(BytesIO(merged_pdf.content))
+    merged_text = "".join(page.extract_text() or "" for page in pdf_reader.pages)
+    assert "CRB RM Reports as on" in merged_text
+    assert "TABLE OF CONTENTS" in merged_text
+    assert "Division Report" in merged_text
+    # Cover + TOC + report content (no divider pages)
+    assert len(pdf_reader.pages) == 3
+
+    merged_excel = await api_client.get(f"/api/v1/automation/runs/{run.id}/download/excel/all")
+    assert merged_excel.status_code == 200
+    assert merged_excel.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    assert "CRB_RM_Reports_" in merged_excel.headers.get("content-disposition", "")
+    merged_wb = load_workbook(BytesIO(merged_excel.content), data_only=True)
+    assert "Report 2 - Division" in merged_wb.sheetnames
+    assert merged_wb["Report 2 - Division"]["A1"].value == "sample"
+    merged_wb.close()
 
 
 def test_validate_artifact_rejects_invalid_excel(tmp_path, monkeypatch):

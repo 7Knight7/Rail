@@ -16,7 +16,11 @@ from app.automation.formatting.pdf_fonts import pdf_font_bold, pdf_title_style
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
-from app.automation.formatting.excel_print import apply_column_formatting, apply_report_print_setup
+from app.automation.formatting.excel_print import (
+    apply_column_formatting,
+    apply_report_print_setup,
+    apply_uniform_center_alignment,
+)
 from app.automation.formatting.pdf_table import build_fitted_table
 from app.automation.formatting.text_pipeline import (
     normalize_report_title,
@@ -30,9 +34,14 @@ from app.automation.processing.column_config import project_for_output, resolve_
 from app.automation.processing.output_columns import (
     REPORT2_HIDDEN_COLUMNS,
     SOURCE_B_DATA_COLUMNS,
+    apply_report1_totals_to_report2_row,
     build_report2_display_total_row,
+    is_total_output_row,
+    load_report1_output_total_row,
     pdf_table_bold_row_indices,
+    report2_columns_to_copy_from_report1,
     total_output_row_indices,
+    validate_report2_common_totals_match_report1,
 )
 
 HIDDEN_COLUMNS = REPORT2_HIDDEN_COLUMNS
@@ -322,6 +331,33 @@ class Report2Processor:
             output_headers,
             output_rows,
         )
+
+        report1_totals = load_report1_output_total_row(
+            resolve_report_dir(config.extracted_data_dir, "report1")
+        )
+        if (
+            report1_totals
+            and output_rows
+            and is_total_output_row(output_headers, output_rows[-1])
+        ):
+            output_rows[-1] = apply_report1_totals_to_report2_row(
+                output_rows[-1],
+                output_headers,
+                report1_totals,
+            )
+            validate_report2_common_totals_match_report1(
+                output_rows[-1],
+                output_headers,
+                report1_totals,
+            )
+            log_automation_event(
+                logger,
+                "report2_totals_synced_from_report1",
+                columns_copied=report2_columns_to_copy_from_report1(
+                    output_headers,
+                    report1_totals,
+                ),
+            )
 
         date_range = date_range_for_processing(column_selection)
 
@@ -845,6 +881,7 @@ class Report2Processor:
                 cell.fill = totals_fill
 
         apply_report_print_setup(worksheet, col_count=len(headers))
+        apply_uniform_center_alignment(worksheet)
 
         workbook.save(temp_path)
         temp_path.replace(target_path)

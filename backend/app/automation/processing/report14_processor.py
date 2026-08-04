@@ -22,19 +22,21 @@ from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, Spacer, 
 
 from app.automation.config import config
 from app.automation.date_range import date_range_for_processing
-from app.automation.formatting.artifact_titles import build_artifact_main_title
+from app.automation.formatting.excel_print import apply_uniform_center_alignment
 from app.automation.formatting.pdf_fonts import ensure_pdf_unicode_fonts, pdf_font_bold, pdf_font_regular
 from app.automation.formatting.pdf_table import SAFE_MARGIN_PT, fit_column_widths
 from app.automation.formatting.text_pipeline import normalize_report_title
 from app.automation.processing.base import ProcessingResult
 from app.automation.processing.report14_output_columns import (
     REPORT14_LABEL_BY_ID,
+    REPORT14_PREV_GROUP_TITLE,
+    REPORT14_SUB_HEADERS,
+    REPORT14_UP_GROUP_TITLE,
     report14_default_ids,
     report14_labels,
     validate_selected_report14_fields,
 )
 from app.automation.report14_filters import (
-    METRIC_COLUMNS,
     OUTPUT_HEADERS,
     SOURCE_PREVIOUS,
     SOURCE_UPCOMING,
@@ -62,6 +64,10 @@ HEADER_FILL = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="s
 HEADER_FONT = Font(bold=True, color="FFFFFF", size=9)
 
 _PDF_MARGIN_PT = min(SAFE_MARGIN_PT, 12.0)
+
+# Official merged-table metrics (horizontal Division join).
+_MERGE_METRICS = ("Received", "% Share", "Average Rating")
+_MERGE_KEY = "Division"
 
 
 def _escape_paragraph_xml(text: str) -> str:
@@ -106,8 +112,8 @@ class Report14Processor:
         if source_a_path.suffix.lower() == ".pdf":
             return ProcessingResult(success=False, error="PDF cannot be used as processing input")
 
-        prev_rows, prev_headers, up_rows, up_headers, total_input = self._load_sources(
-            source_a_path
+        prev_rows, prev_headers, up_rows, up_headers, total_input, prev_total, up_total = (
+            self._load_sources(source_a_path)
         )
         if prev_rows is None or up_rows is None:
             return ProcessingResult(
@@ -127,9 +133,23 @@ class Report14Processor:
             if raw:
                 selected_ids = validate_selected_report14_fields(raw)
 
-        merged_headers, merged_rows = self._merge_side_by_side(
-            prev_rows, prev_headers or [], up_rows, up_headers or []
-        )
+        try:
+            merged_headers, merged_rows = self._merge_by_division(
+                prev_rows,
+                prev_headers or [],
+                up_rows,
+                up_headers or [],
+                prev_total=prev_total,
+                up_total=up_total,
+            )
+        except ValueError as exc:
+            return ProcessingResult(
+                success=False,
+                error=f"REPORT14_MERGE_FAILED: {exc}",
+                source_a_path=str(source_a_path),
+                input_row_count=total_input,
+            )
+
         visible_headers = report14_labels(selected_ids)
         id_to_label = REPORT14_LABEL_BY_ID
         col_indexes = [
@@ -147,12 +167,11 @@ class Report14Processor:
         ]
 
         date_range = date_range_for_processing(column_selection)
-        main_title = build_artifact_main_title("report14", date_range)
+        main_title = "WATERING COMPLAINTS"
         title_suffix = date_range.title_suffix()
         filename_suffix = date_range.filename_suffix()
-        subtitle = (
-            f"Previous & Upcoming Watering Point — SCR Division Wise {title_suffix}"
-        )
+        subtitle = f"South Central Railway — Division Wise {title_suffix}"
+        report_date = date_range.display_to() or date_range.display_from() or title_suffix.strip("()")
 
         run_id = (column_selection or {}).get("run_id") if column_selection else None
         if run_id:
@@ -182,6 +201,7 @@ class Report14Processor:
                 projected_rows,
                 main_title=main_title,
                 subtitle=subtitle,
+                report_date=report_date,
             )
             log_automation_event(logger, "report14_excel_generated", excel_path=str(excel_path))
         except Exception as exc:
@@ -199,6 +219,7 @@ class Report14Processor:
                 projected_rows,
                 main_title=main_title,
                 subtitle=subtitle,
+                report_date=report_date,
             )
             log_automation_event(logger, "report14_pdf_generated", pdf_path=str(pdf_path))
         except Exception as exc:
@@ -245,6 +266,8 @@ class Report14Processor:
         list[dict[str, str]] | None,
         list[str] | None,
         int,
+        dict[str, str] | None,
+        dict[str, str] | None,
     ]:
         index_entries = self._read_combined_index(source_a_path)
         base_dir = source_a_path.parent
@@ -261,14 +284,14 @@ class Report14Processor:
         prev_path = resolve_csv(SOURCE_PREVIOUS.source_id, SOURCE_PREVIOUS.filename)
         up_path = resolve_csv(SOURCE_UPCOMING.source_id, SOURCE_UPCOMING.filename)
         if prev_path is None or up_path is None:
-            return None, None, None, None, 0
+            return None, None, None, None, 0, None, None
 
         prev_rows, prev_headers = self._read_csv(prev_path)
         up_rows, up_headers = self._read_csv(up_path)
-        prev_data, _ = self._split_total_row(prev_rows)
-        up_data, _ = self._split_total_row(up_rows)
+        prev_data, prev_total = self._split_total_row(prev_rows)
+        up_data, up_total = self._split_total_row(up_rows)
         total_input = len(prev_data) + len(up_data)
-        return prev_data, prev_headers, up_data, up_headers, total_input
+        return prev_data, prev_headers, up_data, up_headers, total_input, prev_total, up_total
 
     def _read_combined_index(self, source_a_path: Path) -> dict[str, dict[str, str]]:
         if source_a_path.name != "report14_combined_index.csv":
@@ -309,154 +332,160 @@ class Report14Processor:
         return rows, None
 
     @staticmethod
-    def _normalize_key(name: str) -> str:
-        return re.sub(r"\s+", " ", name.strip()).lower()
+    def _division_key(name: str) -> str:
+        compact = re.sub(r"\s+", " ", (name or "").strip()).upper()
+        compact = re.sub(r"\s+DIVISION$", "", compact)
+        return compact
 
-    def _station_key_for_row(self, row: dict[str, str], headers: list[str]) -> str:
-        for candidate in (
-            "Station",
-            "Division",
-            "Organisation",
-            "Organization",
-            "Watering Point",
-            "Name",
-        ):
-            for h in headers:
-                if h.strip().lower() == candidate.lower():
-                    val = str(row.get(h, "")).strip()
-                    if val and val.lower() != "total":
-                        return self._normalize_key(val)
-        # First non-metric, non-serial column with content.
+    @staticmethod
+    def _pick_display_division(*names: str) -> str:
+        cleaned = [re.sub(r"\s+", " ", n.strip()) for n in names if n and n.strip()]
+        if not cleaned:
+            return ""
+        return max(cleaned, key=len)
+
+    def _header_lookup(self, headers: list[str]) -> dict[str, str]:
+        lookup: dict[str, str] = {}
         for h in headers:
             hl = h.strip().lower()
-            if hl in {"s.no.", "s.no", "sno", "sr.no.", "sr no"}:
-                continue
-            if any(hl == m.lower() for m in METRIC_COLUMNS):
-                continue
-            val = str(row.get(h, "")).strip()
-            if val and val.lower() != "total":
-                return self._normalize_key(val)
-        return ""
+            lookup[hl] = h
+            if hl in {"avg. rating", "avg rating", "average rating"}:
+                lookup["average rating"] = h
+            if hl in {"% share", "share %", "share"}:
+                lookup["% share"] = h
+        return lookup
 
-    def _metric_map(self, row: dict[str, str], headers: list[str]) -> dict[str, str]:
-        header_map = {h.strip().lower(): h for h in headers}
+    def _division_for_row(self, row: dict[str, str], headers: list[str]) -> tuple[str, str]:
+        header_map = self._header_lookup(headers)
+        div_col = header_map.get("division")
+        if not div_col:
+            raise ValueError("Division column missing from extracted CSV")
+        display = str(row.get(div_col, "")).strip()
+        if not display or display.lower() == "total":
+            return "", ""
+        return self._division_key(display), display
+
+    def _metric_triplet(
+        self, row: dict[str, str], headers: list[str]
+    ) -> dict[str, str]:
+        header_map = self._header_lookup(headers)
         out: dict[str, str] = {}
-        for metric in METRIC_COLUMNS:
-            key = header_map.get(metric.lower())
-            out[metric] = str(row.get(key, "")).strip() if key else ""
+        aliases = {
+            "Received": ("received",),
+            "% Share": ("% share", "share %", "share"),
+            "Average Rating": ("average rating", "avg. rating", "avg rating"),
+        }
+        for metric, keys in aliases.items():
+            col = None
+            for key in keys:
+                if key in header_map:
+                    col = header_map[key]
+                    break
+            out[metric] = str(row.get(col, "")).strip() if col else ""
         return out
 
-    def _display_station(self, row: dict[str, str], headers: list[str]) -> str:
-        for candidate in (
-            "Station",
-            "Division",
-            "Organisation",
-            "Organization",
-            "Watering Point",
-            "Name",
-        ):
-            for h in headers:
-                if h.strip().lower() == candidate.lower():
-                    val = str(row.get(h, "")).strip()
-                    if val:
-                        return val
-        for h in headers:
-            hl = h.strip().lower()
-            if hl in {"s.no.", "s.no", "sno"} or any(hl == m.lower() for m in METRIC_COLUMNS):
-                continue
-            val = str(row.get(h, "")).strip()
-            if val:
-                return val
-        return ""
+    def _metric_from_total(
+        self, total_row: dict[str, str] | None, headers: list[str], metric: str
+    ) -> str:
+        if not total_row:
+            return ""
+        return self._metric_triplet(total_row, headers).get(metric, "")
 
-    def _merge_side_by_side(
+    def _merge_by_division(
         self,
         prev_rows: list[dict[str, str]],
         prev_headers: list[str],
         up_rows: list[dict[str, str]],
         up_headers: list[str],
+        *,
+        prev_total: dict[str, str] | None,
+        up_total: dict[str, str] | None,
     ) -> tuple[list[str], list[list[str]]]:
         prev_by_key: dict[str, dict[str, str]] = {}
         prev_display: dict[str, str] = {}
         for row in prev_rows:
-            key = self._station_key_for_row(row, prev_headers)
+            key, display = self._division_for_row(row, prev_headers)
             if not key:
                 continue
-            prev_by_key[key] = self._metric_map(row, prev_headers)
-            prev_display[key] = self._display_station(row, prev_headers)
+            if key in prev_by_key:
+                raise ValueError(f"Duplicate Division in Previous extract: {display}")
+            prev_by_key[key] = self._metric_triplet(row, prev_headers)
+            prev_display[key] = display
 
         up_by_key: dict[str, dict[str, str]] = {}
         up_display: dict[str, str] = {}
         for row in up_rows:
-            key = self._station_key_for_row(row, up_headers)
+            key, display = self._division_for_row(row, up_headers)
             if not key:
                 continue
-            up_by_key[key] = self._metric_map(row, up_headers)
-            up_display[key] = self._display_station(row, up_headers)
+            if key in up_by_key:
+                raise ValueError(f"Duplicate Division in Upcoming extract: {display}")
+            up_by_key[key] = self._metric_triplet(row, up_headers)
+            up_display[key] = display
 
         all_keys = list(dict.fromkeys([*prev_by_key.keys(), *up_by_key.keys()]))
+        if not all_keys:
+            raise ValueError("No Division rows found in Previous or Upcoming extracts")
 
-        def sort_key(k: str) -> tuple[float, str]:
-            recv = _parse_num(prev_by_key.get(k, {}).get("Received", "0"))
-            recv_up = _parse_num(up_by_key.get(k, {}).get("Received", "0"))
-            return (-max(recv, recv_up), k)
+        all_keys.sort(
+            key=lambda k: (
+                -max(
+                    _parse_num(prev_by_key.get(k, {}).get("Received", "0")),
+                    _parse_num(up_by_key.get(k, {}).get("Received", "0")),
+                ),
+                k,
+            )
+        )
 
-        all_keys.sort(key=sort_key)
-
-        blank_metrics = {m: "" for m in METRIC_COLUMNS}
+        blank = {m: "" for m in _MERGE_METRICS}
         data_rows: list[list[str]] = []
+        seen_divisions: set[str] = set()
         for idx, key in enumerate(all_keys, start=1):
-            station = prev_display.get(key) or up_display.get(key) or key
-            prev = prev_by_key.get(key, blank_metrics)
-            up = up_by_key.get(key, blank_metrics)
+            if key in seen_divisions:
+                raise ValueError(f"Duplicate Division after merge: {key}")
+            seen_divisions.add(key)
+            division = self._pick_display_division(
+                prev_display.get(key, ""), up_display.get(key, "")
+            )
+            prev = prev_by_key.get(key, blank)
+            up = up_by_key.get(key, blank)
             data_rows.append(
                 [
                     str(idx),
-                    station,
-                    prev.get("Opening Balance", ""),
+                    division,
                     prev.get("Received", ""),
                     prev.get("% Share", ""),
-                    prev.get("Closed", ""),
-                    prev.get("Closing Balance", ""),
-                    prev.get("% Disposal", ""),
-                    up.get("Opening Balance", ""),
+                    prev.get("Average Rating", ""),
                     up.get("Received", ""),
                     up.get("% Share", ""),
-                    up.get("Closed", ""),
-                    up.get("Closing Balance", ""),
-                    up.get("% Disposal", ""),
+                    up.get("Average Rating", ""),
                 ]
             )
 
-        # Total row — sum numeric metric columns.
-        total = [""] * len(OUTPUT_HEADERS)
-        total[0] = ""
-        total[1] = "Total"
-        for col_idx in (2, 3, 5, 6, 8, 9, 11, 12):
-            s = sum(_parse_num(r[col_idx]) for r in data_rows)
-            total[col_idx] = _format_num(s)
-        # % columns recompute from totals when possible.
-        for share_idx, recv_idx in ((4, 3), (10, 9)):
-            total_recv = _parse_num(total[recv_idx])
-            if total_recv > 0:
-                total[share_idx] = "100.00"
-            else:
-                total[share_idx] = ""
-        for disp_idx, closed_idx, recv_idx, open_idx in (
-            (7, 5, 3, 2),
-            (13, 11, 9, 8),
-        ):
-            closed = _parse_num(total[closed_idx])
-            received = _parse_num(total[recv_idx])
-            opening = _parse_num(total[open_idx])
-            denom = opening + received
-            if denom > 0:
-                total[disp_idx] = f"{(closed / denom) * 100.0:.2f}"
-            else:
-                total[disp_idx] = ""
+        self._validate_merged_rows(data_rows)
 
+        total = [""] * len(OUTPUT_HEADERS)
+        total[1] = "Total"
+        total[2] = _format_num(sum(_parse_num(r[2]) for r in data_rows))
+        total[3] = "100" if _parse_num(total[2]) > 0 else ""
+        total[4] = self._metric_from_total(prev_total, prev_headers, "Average Rating")
+        total[5] = _format_num(sum(_parse_num(r[5]) for r in data_rows))
+        total[6] = "100" if _parse_num(total[5]) > 0 else ""
+        total[7] = self._metric_from_total(up_total, up_headers, "Average Rating")
         data_rows.append(total)
         return list(OUTPUT_HEADERS), data_rows
+
+    @staticmethod
+    def _validate_merged_rows(rows: list[list[str]]) -> None:
+        divisions: set[str] = set()
+        for row in rows:
+            division = str(row[1] if len(row) > 1 else "").strip()
+            key = Report14Processor._division_key(division)
+            if not key:
+                continue
+            if key in divisions:
+                raise ValueError(f"Merged output has duplicate Division: {division}")
+            divisions.add(key)
 
     @staticmethod
     def _is_total_row(row: list[str]) -> bool:
@@ -470,18 +499,25 @@ class Report14Processor:
         *,
         main_title: str,
         subtitle: str,
+        report_date: str = "",
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
         workbook = Workbook()
         worksheet = workbook.active
         worksheet.title = REPORT14_SHEET_TITLE
 
-        col_count = max(len(headers), 1)
+        col_count = max(len(headers), len(OUTPUT_HEADERS))
         main_title = normalize_report_title(main_title, report_slug="report14")
-        worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=col_count)
+
+        worksheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=col_count - 1)
         title_cell = worksheet.cell(row=1, column=1, value=main_title)
-        title_cell.font = Font(bold=True, size=13)
-        title_cell.alignment = Alignment(horizontal="center")
+        title_cell.font = Font(bold=True, size=14)
+        title_cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        if report_date:
+            date_cell = worksheet.cell(row=1, column=col_count, value=report_date)
+            date_cell.font = Font(bold=True, size=10)
+            date_cell.alignment = Alignment(horizontal="right", vertical="center")
 
         worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=col_count)
         sub_cell = worksheet.cell(
@@ -492,16 +528,63 @@ class Report14Processor:
         sub_cell.font = Font(bold=True, size=10)
         sub_cell.alignment = Alignment(horizontal="center")
 
-        for col_idx, header in enumerate(headers, start=1):
-            cell = worksheet.cell(row=3, column=col_idx, value=header)
+        header_row_group = 3
+        header_row_cols = 4
+
+        worksheet.merge_cells(
+            start_row=header_row_group,
+            start_column=1,
+            end_row=header_row_cols,
+            end_column=1,
+        )
+        worksheet.merge_cells(
+            start_row=header_row_group,
+            start_column=2,
+            end_row=header_row_cols,
+            end_column=2,
+        )
+        sno_cell = worksheet.cell(row=header_row_group, column=1, value="S.No.")
+        div_cell = worksheet.cell(row=header_row_group, column=2, value="Division")
+        for cell in (sno_cell, div_cell):
+            cell.font = HEADER_FONT
+            cell.fill = HEADER_FILL
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        worksheet.merge_cells(
+            start_row=header_row_group,
+            start_column=3,
+            end_row=header_row_group,
+            end_column=5,
+        )
+        worksheet.merge_cells(
+            start_row=header_row_group,
+            start_column=6,
+            end_row=header_row_group,
+            end_column=8,
+        )
+        prev_group = worksheet.cell(row=header_row_group, column=3, value=REPORT14_PREV_GROUP_TITLE)
+        up_group = worksheet.cell(row=header_row_group, column=6, value=REPORT14_UP_GROUP_TITLE)
+        for cell in (prev_group, up_group):
+            cell.font = HEADER_FONT
+            cell.fill = HEADER_FILL
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        sub_headers = ["S.No.", "Division", *REPORT14_SUB_HEADERS, *REPORT14_SUB_HEADERS]
+        for col_idx, label in enumerate(sub_headers[:col_count], start=1):
+            if col_idx <= 2:
+                continue
+            cell = worksheet.cell(row=header_row_cols, column=col_idx, value=label)
             cell.font = HEADER_FONT
             cell.fill = HEADER_FILL
             cell.border = THIN_BORDER
             cell.alignment = Alignment(horizontal="center", wrap_text=True)
 
-        for row_idx, row_values in enumerate(rows, start=4):
+        data_start = header_row_cols + 1
+        for row_idx, row_values in enumerate(rows, start=data_start):
             is_total = self._is_total_row(row_values)
-            for col_idx, value in enumerate(row_values, start=1):
+            for col_idx, value in enumerate(row_values[:col_count], start=1):
                 cell = worksheet.cell(row=row_idx, column=col_idx, value=value)
                 cell.border = THIN_BORDER
                 cell.alignment = Alignment(
@@ -513,10 +596,12 @@ class Report14Processor:
                     cell.fill = TOTAL_FILL
 
         worksheet.column_dimensions["A"].width = 6
-        worksheet.column_dimensions["B"].width = 22
+        worksheet.column_dimensions["B"].width = 28
         for col_idx in range(3, col_count + 1):
-            letter = worksheet.cell(row=3, column=col_idx).column_letter
-            worksheet.column_dimensions[letter].width = 11
+            letter = worksheet.cell(row=header_row_cols, column=col_idx).column_letter
+            worksheet.column_dimensions[letter].width = 14
+
+        apply_uniform_center_alignment(worksheet)
 
         workbook.save(temp_path)
         temp_path.replace(target_path)
@@ -529,6 +614,7 @@ class Report14Processor:
         *,
         main_title: str,
         subtitle: str,
+        report_date: str = "",
     ) -> None:
         ensure_pdf_unicode_fonts()
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
@@ -558,6 +644,7 @@ class Report14Processor:
             fontSize=7,
             leading=8,
             fontName=pdf_font_regular(),
+            alignment=TA_CENTER,
         )
         header_style = ParagraphStyle(
             "Report14Header",
@@ -571,29 +658,47 @@ class Report14Processor:
 
         page_width, _ = landscape(A4)
         usable = page_width - 2 * margin
-        n_cols = max(len(headers), 1)
-        raw_widths = [22.0] + [48.0] + [36.0] * max(n_cols - 2, 0)
+        n_cols = max(len(headers), len(OUTPUT_HEADERS))
+        raw_widths = [24.0, 72.0] + [40.0] * max(n_cols - 2, 0)
         col_widths = fit_column_widths(raw_widths[:n_cols], usable)
 
-        table_data: list[list[Any]] = [
-            [Paragraph(_escape_paragraph_xml(h), header_style) for h in headers]
-        ]
-        for row in rows:
-            cells: list[Any] = []
-            for i, val in enumerate(row):
-                cells.append(Paragraph(_escape_paragraph_xml(val), cell_style))
-            # Pad short rows
-            while len(cells) < n_cols:
-                cells.append(Paragraph("", cell_style))
-            table_data.append(cells[:n_cols])
+        def _p(text: str, style: ParagraphStyle) -> Paragraph:
+            return Paragraph(_escape_paragraph_xml(text), style)
 
-        table = LongTable(table_data, colWidths=col_widths, repeatRows=1)
+        group_row: list[Any] = [
+            _p("S.No.", header_style),
+            _p("Division", header_style),
+            _p(REPORT14_PREV_GROUP_TITLE, header_style),
+            "",
+            "",
+            _p(REPORT14_UP_GROUP_TITLE, header_style),
+            "",
+            "",
+        ]
+        sub_row: list[Any] = [
+            _p("S.No.", header_style),
+            _p("Division", header_style),
+            *[_p(h, header_style) for h in REPORT14_SUB_HEADERS],
+            *[_p(h, header_style) for h in REPORT14_SUB_HEADERS],
+        ]
+        table_data: list[list[Any]] = [group_row[:n_cols], sub_row[:n_cols]]
+        for row in rows:
+            cells = [_p(str(val), cell_style) for val in row[:n_cols]]
+            while len(cells) < n_cols:
+                cells.append(_p("", cell_style))
+            table_data.append(cells)
+
+        table = LongTable(table_data, colWidths=col_widths, repeatRows=2)
         style_cmds: list[tuple] = [
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F4E79")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), pdf_font_bold()),
+            ("BACKGROUND", (0, 0), (-1, 1), colors.HexColor("#1F4E79")),
+            ("TEXTCOLOR", (0, 0), (-1, 1), colors.white),
+            ("FONTNAME", (0, 0), (-1, 1), pdf_font_bold()),
+            ("SPAN", (0, 0), (0, 1)),
+            ("SPAN", (1, 0), (1, 1)),
+            ("SPAN", (2, 0), (4, 0)),
+            ("SPAN", (5, 0), (7, 0)),
             ("FONTSIZE", (0, 0), (-1, -1), 7),
-            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#666666")),
             ("LEFTPADDING", (0, 0), (-1, -1), 2),
@@ -601,7 +706,7 @@ class Report14Processor:
             ("TOPPADDING", (0, 0), (-1, -1), 2),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
         ]
-        for r_idx, row in enumerate(rows, start=1):
+        for r_idx, row in enumerate(rows, start=2):
             if self._is_total_row(row):
                 style_cmds.append(
                     ("BACKGROUND", (0, r_idx), (-1, r_idx), colors.HexColor("#D9D9D9"))
@@ -617,8 +722,11 @@ class Report14Processor:
             topMargin=margin,
             bottomMargin=margin,
         )
+        title_line = main_title
+        if report_date:
+            title_line = f"{main_title} — {report_date}"
         story = [
-            Paragraph(_escape_paragraph_xml(main_title), title_style),
+            Paragraph(_escape_paragraph_xml(title_line), title_style),
             Paragraph(_escape_paragraph_xml(subtitle), subtitle_style),
             Spacer(1, 4),
             table,

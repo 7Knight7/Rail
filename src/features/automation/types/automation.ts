@@ -44,7 +44,8 @@ export interface AutomationCompletionSummary {
   pdfsGenerated: number;
   executionTimeMs: number;
   runId?: string;
-  downloadAllUrl?: string;
+  downloadPdfAllUrl?: string;
+  downloadExcelAllUrl?: string;
   /** Successful reports with downloadable PDFs */
   reportDownloads?: Array<{
     slug: string;

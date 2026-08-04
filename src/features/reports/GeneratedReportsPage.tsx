@@ -5,7 +5,6 @@ import {
   Eye,
   FileSpreadsheet,
   RefreshCw,
-  Archive,
   FileText,
 } from "lucide-react";
 import {
@@ -248,22 +247,46 @@ export function GeneratedReportsPage() {
                         : ""}
                     </CardDescription>
                   </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    disabled={!run.download_all_url || busy === "zip"}
-                    onClick={() =>
-                      void onDownload(
-                        run.download_all_url || automationApi.downloadAllUrl(run.run_id),
-                        `Rail_Madad_Reports.zip`,
-                        "zip",
-                      )
-                    }
-                  >
-                    <Archive className="mr-1 h-3.5 w-3.5" />
-                    Download All
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={
+                        !(run.download_pdf_all_url || run.run_id) || busy === "pdf-all"
+                      }
+                      onClick={() =>
+                        void onDownload(
+                          run.download_pdf_all_url ||
+                            automationApi.downloadPdfAllUrl(run.run_id),
+                          "RailMadad_Report.pdf",
+                          "pdf-all",
+                        )
+                      }
+                    >
+                      <FileText className="mr-1 h-3.5 w-3.5" />
+                      {busy === "pdf-all" ? "…" : "Download Complete PDF"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={
+                        !(run.download_excel_all_url || run.run_id) || busy === "excel-all"
+                      }
+                      onClick={() =>
+                        void onDownload(
+                          run.download_excel_all_url ||
+                            automationApi.downloadExcelAllUrl(run.run_id),
+                          "RailMadad_Report.xlsx",
+                          "excel-all",
+                        )
+                      }
+                    >
+                      <FileSpreadsheet className="mr-1 h-3.5 w-3.5" />
+                      {busy === "excel-all" ? "…" : "Download Complete Excel"}
+                    </Button>
+                  </div>
                 </CardHeader>
               </Card>
 

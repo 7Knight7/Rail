@@ -89,7 +89,8 @@ export interface AutomationStartResult {
   total_duration_seconds?: number | null;
   reports_successful?: number;
   reports_failed?: number;
-  download_all_url?: string | null;
+  download_pdf_all_url?: string | null;
+  download_excel_all_url?: string | null;
   report_reached?: boolean;
   report_name?: string | null;
   screenshot_path?: string | null;
@@ -154,7 +155,8 @@ export interface AutomationRunDetail {
   total_duration_seconds?: number | null;
   reports_successful: number;
   reports_failed: number;
-  download_all_url?: string | null;
+  download_pdf_all_url?: string | null;
+  download_excel_all_url?: string | null;
   reports: ReportResult[];
   result?: AutomationStartResult | null;
 }
@@ -166,7 +168,8 @@ export interface CdpRunSummary {
   completed_at?: string | null;
   success_count: number;
   failure_count: number;
-  download_all_url?: string | null;
+  download_pdf_all_url?: string | null;
+  download_excel_all_url?: string | null;
 }
 
 export const automationApi = {
@@ -242,8 +245,12 @@ export const automationApi = {
     return `${API_BASE}/automation/artifacts/${encodeURIComponent(artifactId)}/download`;
   },
 
-  downloadAllUrl(runId: string): string {
-    return `${API_BASE}/automation/runs/${encodeURIComponent(runId)}/download-all`;
+  downloadPdfAllUrl(runId: string): string {
+    return `${API_BASE}/automation/runs/${encodeURIComponent(runId)}/download/pdf/all`;
+  },
+
+  downloadExcelAllUrl(runId: string): string {
+    return `${API_BASE}/automation/runs/${encodeURIComponent(runId)}/download/excel/all`;
   },
 
   pdfDownloadUrl(reportKey: string): string {

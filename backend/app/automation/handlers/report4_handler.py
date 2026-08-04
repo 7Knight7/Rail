@@ -361,6 +361,8 @@ class Report4Handler(BaseReportHandler):
 
         await self.generator.generate_report(report_root, page)
 
+        await tracked_sleep(0.4, reason="report4_post_submit_settle")
+
         new_fp = await table_fingerprint(report_root)
         if old_fp and new_fp == old_fp:
             raise ReportGenerationError(

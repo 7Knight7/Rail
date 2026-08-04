@@ -17,6 +17,7 @@ from reportlab.platypus import Flowable, KeepTogether, PageBreak, Paragraph, Sim
 
 from app.automation.config import config
 from app.automation.formatting.artifact_titles import build_artifact_main_title
+from app.automation.formatting.excel_print import apply_uniform_center_alignment
 from app.automation.formatting.scr import highlight_south_central_railway_rows, row_contains_scr
 from app.automation.formatting.text_pipeline import (
     normalize_report_title,
@@ -678,6 +679,8 @@ class Report4Processor:
 
             if section_idx < len(sections) - 1:
                 current_row += 1
+
+        apply_uniform_center_alignment(worksheet)
 
         workbook.save(temp_path)
         temp_path.replace(target_path)

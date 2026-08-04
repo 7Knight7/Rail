@@ -376,6 +376,8 @@ class Comprehensive1013Handler(BaseReportHandler):
 
         await self.generator.generate_report(report_root, page)
 
+        await tracked_sleep(0.4, reason="comprehensive1013_post_submit_settle")
+
         await page.wait_for_timeout(500)
 
         new_fp = await table_fingerprint(report_root)

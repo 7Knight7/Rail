@@ -350,7 +350,8 @@ def _finalize_multi_result(
         total_duration_seconds=timing_payload.get("total_duration_seconds"),
         reports_successful=successful,
         reports_failed=failed,
-        download_all_url=f"/api/v1/automation/runs/{ctx.run_id}/download-all",
+        download_pdf_all_url=f"/api/v1/automation/runs/{ctx.run_id}/download/pdf/all",
+        download_excel_all_url=f"/api/v1/automation/runs/{ctx.run_id}/download/excel/all",
     )
 
 

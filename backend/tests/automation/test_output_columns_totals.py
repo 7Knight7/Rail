@@ -5,8 +5,11 @@ from __future__ import annotations
 from app.automation.processing.output_columns import (
     AGGREGATE_HEADERS,
     SOURCE_B_DATA_COLUMNS,
+    apply_report1_totals_to_report2_row,
     build_merged_total_row,
     fill_report1_avg_disposal_time_total,
+    report2_columns_to_copy_from_report1,
+    validate_report2_common_totals_match_report1,
     _parse_time_to_minutes,
     _weighted_time_average_with_stats,
 )
@@ -298,3 +301,46 @@ def test_report1_avg_disposal_survives_column_projection():
     )
     avg_idx = output_headers.index("Avg. Disposal Time")
     assert output_rows[-1][avg_idx] == "0:30"
+
+
+def test_apply_report1_totals_only_copies_shared_column_names():
+    headers = [
+        "Organisation",
+        "Received",
+        "% Share",
+        "Closed",
+        "Opening Balance",
+        "Feedback Received",
+    ]
+    calculated = ["Total", "100", "50.00", "80", "999", "40"]
+    report1_totals = {
+        "Received": "9321",
+        "% Share": "100.00",
+        "Closed": "8660",
+        "Opening Balance": "0",
+        "Feedback Received": "1800",
+    }
+    result = apply_report1_totals_to_report2_row(calculated, headers, report1_totals)
+    assert result[headers.index("Received")] == "9321"
+    assert result[headers.index("% Share")] == "100.00"
+    assert result[headers.index("Closed")] == "8660"
+    assert result[headers.index("Feedback Received")] == "1800"
+    assert result[headers.index("Opening Balance")] == "999"
+
+
+def test_report2_columns_to_copy_is_name_based_not_positional():
+    report2_headers = ["Division", "Closed", "Received"]
+    report1_totals = {"Received": "1", "Closed": "2", "Extra": "9"}
+    copied = report2_columns_to_copy_from_report1(report2_headers, report1_totals)
+    assert copied == ["Closed", "Received"]
+
+
+def test_validate_report2_common_totals_match_report1_raises_on_mismatch():
+    headers = ["Organisation", "Received"]
+    row = ["Total", "100"]
+    report1 = {"Received": "9321"}
+    try:
+        validate_report2_common_totals_match_report1(row, headers, report1)
+        raise AssertionError("expected ValueError")
+    except ValueError as exc:
+        assert "Received" in str(exc)

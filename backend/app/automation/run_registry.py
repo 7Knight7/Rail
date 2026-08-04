@@ -6,7 +6,6 @@ import json
 import logging
 import zipfile
 from datetime import UTC, datetime
-from io import BytesIO
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -15,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.automation.config import config
+from app.automation.merged_report_catalog import merged_download_urls
 from app.automation.report_keys import canonicalize_report_key
 from app.automation.schemas import MultiReportResult, ReportResult
 from app.automation.utils import log_automation_event
@@ -284,7 +284,7 @@ async def persist_run_progress(
                 run_id=run_id,
                 reports_successful=success,
                 reports_failed=failed,
-                download_all_url=f"/api/v1/automation/runs/{run_id}/download-all",
+                **merged_download_urls(run_id),
             )
             manual_config = None
             if run.result_json:
@@ -645,26 +645,6 @@ def scrub_multi_result(result: MultiReportResult) -> MultiReportResult:
     ]
     return scrubbed
 
-
-def build_download_all_zip(artifacts: list[AutomationArtifactModel]) -> bytes:
-    buffer = BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for artifact in artifacts:
-            if (artifact.status or "ready") != "ready":
-                continue
-            if artifact.artifact_type not in {"pdf", "excel"}:
-                continue
-            try:
-                path = validate_artifact_file(
-                    Path(artifact.file_path),
-                    require_pdf_header=artifact.artifact_type == "pdf",
-                    file_type=artifact.artifact_type,
-                )
-            except ArtifactPathError:
-                continue
-            arcname = f"{artifact.report_slug or 'report'}/{path.name}"
-            zf.write(path, arcname=arcname)
-    return buffer.getvalue()
 
 
 def enrich_report_urls(result: ReportResult, artifact_ids: dict[str, str]) -> ReportResult:

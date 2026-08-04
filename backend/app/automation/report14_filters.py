@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 from app.automation.report1_filters import FilterFieldDefinition
 
-REPORT14_TAB_LABEL = "11) Train Watering Complaint"
+REPORT14_TAB_LABEL = "11) Train Watering Complaints"
 # Report 14 always opens portal tab 11 (Train Watering), never Inquiry Wise 2 / tab 14.
 # page path is post-menu identity only; handler never URL-goto for form load.
 REPORT14_PAGE_PATH = "/mis_reports/report22"
@@ -42,22 +42,16 @@ METRIC_COLUMNS = (
     "% Disposal",
 )
 
-# Side-by-side output headers (processor).
+# Side-by-side merged output (processor) — Division-keyed horizontal merge.
 OUTPUT_HEADERS = [
     "S.No.",
-    "Station",
-    "Prev Opening Balance",
-    "Prev Received",
-    "Prev % Share",
-    "Prev Closed",
-    "Prev Closing Balance",
-    "Prev % Disposal",
-    "Up Opening Balance",
-    "Up Received",
-    "Up % Share",
-    "Up Closed",
-    "Up Closing Balance",
-    "Up % Disposal",
+    "Division",
+    "Previous Received",
+    "Previous % Share",
+    "Previous Average Rating",
+    "Upcoming Received",
+    "Upcoming % Share",
+    "Upcoming Average Rating",
 ]
 
 

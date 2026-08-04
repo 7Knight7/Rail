@@ -40,6 +40,7 @@ from app.automation.comprehensive1013_filters import (
     get_section_config_by_id,
 )
 from app.automation.date_range import date_range_for_processing
+from app.automation.formatting.excel_print import apply_uniform_center_alignment
 from app.automation.formatting.pdf_fonts import pdf_font_bold, pdf_font_regular
 from app.automation.formatting.pdf_table import (
     MAX_FONT_SIZE,
@@ -79,7 +80,6 @@ _PDF_AFTER_HEADING_PT = 3.0
 _PDF_TITLE_AFTER_PT = 5.0
 _PDF_HEIGHT_BUFFER_PT = 4.0
 _PDF_MAIN_TITLE = "Comprehensive Reports"
-_PDF_LEFT_ALIGNED_HEADERS = frozenset({"Division"})
 _DIVISION_RAW_HEADER_PRIORITY = ("Division", "Organisation")
 
 
@@ -209,12 +209,8 @@ def _render_section_heading(
 
 
 def _column_align_commands(headers: list[str]) -> list[tuple]:
-    """ALIGN commands: Division left; all other columns centered."""
-    commands: list[tuple] = []
-    for col_idx, header in enumerate(headers):
-        align = "LEFT" if header in _PDF_LEFT_ALIGNED_HEADERS else "CENTER"
-        commands.append(("ALIGN", (col_idx, 0), (col_idx, -1), align))
-    return commands
+    """ALIGN commands: every column (including Division/Zone/Train names) centered."""
+    return [("ALIGN", (col_idx, 0), (col_idx, -1), "CENTER") for col_idx in range(len(headers))]
 
 
 def _build_section_table(
@@ -916,6 +912,8 @@ class Comprehensive1013Processor:
 
             if section_idx < len(sections) - 1:
                 current_row += 1
+
+        apply_uniform_center_alignment(worksheet)
 
         workbook.save(temp_path)
         temp_path.replace(target_path)

@@ -114,4 +114,5 @@ class MultiReportResult(BaseModel):
     total_duration_seconds: float | None = None
     reports_successful: int = 0
     reports_failed: int = 0
-    download_all_url: str | None = None
+    download_pdf_all_url: str | None = None
+    download_excel_all_url: str | None = None

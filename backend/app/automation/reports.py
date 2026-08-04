@@ -97,7 +97,7 @@ REPORT_10_13_COMPREHENSIVE = ReportDefinition(
 REPORT_14 = ReportDefinition(
     name="Report 14: Watering Complaints",
     slug="report14",
-    # Navigation is menu-only: MIS Reports → 11) Train Watering Complaint (not tab 14).
+    # Navigation is menu-only: MIS Reports → 11) Train Watering Complaints (not tab 14).
     # URL fragment is optional post-menu identity only; never use URL-only success.
     page_path="/mis_reports/report22",
     screenshot_filename="report14.png",

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CheckCircle2, Download, Eye } from "lucide-react";
+import { CheckCircle2, Download, Eye, FileSpreadsheet, FileText } from "lucide-react";
 import { useCallback, useState } from "react";
 import { automationApi } from "@/api/automation";
 import { Button } from "@/components/ui/Button";
@@ -139,23 +139,45 @@ export function AutomationCompletionSummaryCard({ summary }: AutomationCompletio
           </div>
         ) : null}
 
-        {summary.downloadAllUrl ? (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={downloading === "zip"}
-            onClick={() =>
-              void onDownload(
-                "zip",
-                summary.downloadAllUrl!,
-                `Rail_Madad_Reports.zip`,
-              )
-            }
-          >
-            <Download className="mr-1 h-3.5 w-3.5" />
-            {downloading === "zip" ? "…" : "Download All ZIP"}
-          </Button>
+        {summary.downloadPdfAllUrl || summary.downloadExcelAllUrl ? (
+          <div className="flex flex-wrap gap-2">
+            {summary.downloadPdfAllUrl ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={downloading === "pdf-all"}
+                onClick={() =>
+                  void onDownload(
+                    "pdf-all",
+                    summary.downloadPdfAllUrl!,
+                    "RailMadad_Report.pdf",
+                  )
+                }
+              >
+                <FileText className="mr-1 h-3.5 w-3.5" />
+                {downloading === "pdf-all" ? "…" : "Download Complete PDF"}
+              </Button>
+            ) : null}
+            {summary.downloadExcelAllUrl ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={downloading === "excel-all"}
+                onClick={() =>
+                  void onDownload(
+                    "excel-all",
+                    summary.downloadExcelAllUrl!,
+                    "RailMadad_Report.xlsx",
+                  )
+                }
+              >
+                <FileSpreadsheet className="mr-1 h-3.5 w-3.5" />
+                {downloading === "excel-all" ? "…" : "Download Complete Excel"}
+              </Button>
+            ) : null}
+          </div>
         ) : null}
 
         <p className="text-xs text-slate-500">

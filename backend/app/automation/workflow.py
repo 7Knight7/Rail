@@ -441,6 +441,7 @@ async def _apply_feedback_filters_fast(report_root) -> dict[str, str]:
         results.excluding_assistance_cases = selectByLabel('#assistanceInput, select[name*="assistance"]', ['Yes', 'YES']);
         results.excluding_refund_cases = selectByLabel('#refundInput, select[name*="refund"]', ['YES', 'Yes']);
         results.excluding_inquiry_cases = selectByLabel('#inquiryInput, select[name*="inquiry"]', ['Yes', 'YES']);
+        results.date_range = selectByLabel('#dateRange, select[name*="dateRange"], select[id*="dateRange"]', ['Previous Day', 'Previous day']);
 
         return results;
     }"""
@@ -457,21 +458,40 @@ async def attempt_feedback_extract(
     discovery_service: FilterDiscoveryService,
     generator: ReportGeneratorService,
 ) -> ExtractionResult:
-    """Single Feedback Tab 6 pass: Previous Day → Submit → sort → validate → save."""
+    """Single Feedback Tab 6 pass: filters → Previous Day → Submit → sort → validate → save."""
+    from app.automation.report1_filters import REPORT_6_FILTERS
+
     log_automation_event(logger, "feedback_extraction_started")
 
     await navigation.navigate_to_report(page, REPORT_6_FEEDBACK)
 
     report_root = await filter_service.get_report_root(page)
 
-    applied_values = await _apply_feedback_filters_fast(report_root)
+    applied_values = await filter_service.apply_filters(
+        report_root,
+        REPORT_6_FILTERS,
+        page=page,
+    )
+    await filter_service.validate_mandatory(
+        report_root,
+        REPORT_6_FILTERS,
+        applied_values,
+    )
 
-    from app.automation.wait_utils import tracked_sleep
-    await tracked_sleep(0.05, reason="feedback_fast_filters_settle")
+    date_applied = applied_values.get("dateRange") or ""
+    for name, value in applied_values.items():
+        if "date" in name.lower() and "range" in name.lower():
+            date_applied = value
+            break
+    if date_applied and "previous day" not in str(date_applied).lower():
+        return ExtractionResult(
+            success=False,
+            error=f"Feedback Date Range must be Previous Day before Submit, got: {date_applied}",
+        )
 
     log_automation_event(
         logger,
-        "feedback_filters_applied_fast",
+        "feedback_filters_applied",
         applied_values=applied_values,
     )
 
@@ -691,6 +711,7 @@ async def _apply_report1_filters_fast(report_root) -> dict[str, str]:
         results.excluding_inquiry_cases = selectByLabel('#inquiryInput', ['Yes', 'YES']);
         results.channel_type = selectByLabel('#channelTypeInput', ['ALL', 'All']);
         results.train_type = selectByLabel('#trainTypeInput', ['ALL', 'All']);
+        results.date_range = selectByLabel('#dateRange, select[name*="dateRange"], select[id*="dateRange"]', ['Previous Day', 'Previous day']);
 
         return results;
     }"""

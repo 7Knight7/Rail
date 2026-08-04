@@ -6,6 +6,7 @@ columns stay fully visible within the printable width.
 
 from __future__ import annotations
 
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A2, A3, landscape
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import Paragraph, Table, TableStyle
@@ -252,6 +253,7 @@ def build_topn_fitted_table(
         wrap_headers,
         body_font_size,
         wrap_all=True,
+        paragraph_alignment=TA_CENTER,
     )
     ensure_pdf_unicode_fonts()
     header_style = ParagraphStyle(
@@ -260,6 +262,7 @@ def build_topn_fitted_table(
         fontSize=header_font_size,
         leading=header_font_size + 1.5,
         wordWrap="CJK",
+        alignment=TA_CENTER,
     )
     wrapped[0] = [
         Paragraph(_escape_paragraph_text(_cell_text(cell)), header_style)
@@ -276,10 +279,11 @@ def build_topn_fitted_table(
             ("RIGHTPADDING", (0, 0), (-1, -1), cell_padding),
             ("TOPPADDING", (0, 0), (-1, -1), cell_padding),
             ("BOTTOMPADDING", (0, 0), (-1, -1), cell_padding),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ("FONTNAME", (0, 1), (-1, -1), pdf_font_regular()),
             ("FONTNAME", (0, 0), (-1, 0), pdf_font_bold()),
-            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            # All cells centered both ways (overrides any earlier ALIGN/VALIGN).
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ]
     )
     table.setStyle(TableStyle(commands))

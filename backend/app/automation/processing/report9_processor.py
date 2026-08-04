@@ -29,6 +29,7 @@ from reportlab.platypus import KeepTogether, LongTable, Paragraph, SimpleDocTemp
 from app.automation.config import config
 from app.automation.date_range import date_range_for_processing
 from app.automation.formatting.artifact_titles import build_artifact_main_title
+from app.automation.formatting.excel_print import apply_uniform_center_alignment
 from app.automation.formatting.pdf_fonts import ensure_pdf_unicode_fonts, pdf_font_bold, pdf_font_regular
 from app.automation.formatting.pdf_table import SAFE_MARGIN_PT, fit_column_widths, preferred_column_widths
 from app.automation.formatting.text_pipeline import normalize_report_title
@@ -130,9 +131,7 @@ class Report9Processor:
 
         date_range = date_range_for_processing(column_selection)
         main_title = build_artifact_main_title("report9", date_range)
-        title_suffix = date_range.title_suffix()
         filename_suffix = date_range.filename_suffix()
-        subtitle = f"All Zones and SCR Train/Station Cause Wise Grievances {title_suffix}"
 
         run_id = (column_selection or {}).get("run_id") if column_selection else None
         if run_id:
@@ -157,7 +156,7 @@ class Report9Processor:
         pdf_path = pdf_dir / f"{base_name}.pdf"
 
         try:
-            self._write_excel(excel_path, sections, main_title=main_title, subtitle=subtitle)
+            self._write_excel(excel_path, sections, main_title=main_title)
             log_automation_event(logger, "report9_excel_generated", excel_path=str(excel_path))
         except Exception as exc:
             return ProcessingResult(
@@ -168,7 +167,7 @@ class Report9Processor:
             )
 
         try:
-            self._write_pdf(pdf_path, sections, main_title=main_title, subtitle=subtitle)
+            self._write_pdf(pdf_path, sections, main_title=main_title)
             log_automation_event(logger, "report9_pdf_generated", pdf_path=str(pdf_path))
         except Exception as exc:
             return ProcessingResult(
@@ -377,7 +376,6 @@ class Report9Processor:
         sections: list[Report9Section],
         *,
         main_title: str,
-        subtitle: str,
     ) -> None:
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
         workbook = Workbook()
@@ -391,16 +389,7 @@ class Report9Processor:
         title_cell.font = Font(bold=True, size=14)
         title_cell.alignment = Alignment(horizontal="center")
 
-        worksheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=col_count)
-        sub_cell = worksheet.cell(
-            row=2,
-            column=1,
-            value=normalize_report_title(subtitle, report_slug="report9"),
-        )
-        sub_cell.font = Font(bold=True, size=11)
-        sub_cell.alignment = Alignment(horizontal="center")
-
-        current_row = 3
+        current_row = 2
         for section_idx, section in enumerate(sections):
             worksheet.merge_cells(
                 start_row=current_row,
@@ -446,6 +435,8 @@ class Report9Processor:
         for col_idx, width in enumerate([8, 22, 12, 12], start=1):
             worksheet.column_dimensions[chr(64 + col_idx)].width = width
 
+        apply_uniform_center_alignment(worksheet)
+
         workbook.save(temp_path)
         temp_path.replace(target_path)
 
@@ -455,7 +446,6 @@ class Report9Processor:
         sections: list[Report9Section],
         *,
         main_title: str,
-        subtitle: str,
     ) -> None:
         ensure_pdf_unicode_fonts()
         temp_path = target_path.with_suffix(target_path.suffix + ".tmp")
@@ -468,15 +458,6 @@ class Report9Processor:
             leading=16,
             alignment=TA_CENTER,
             spaceAfter=4,
-            fontName=pdf_font_bold(),
-        )
-        subtitle_style = ParagraphStyle(
-            "Report9Subtitle",
-            parent=styles["Normal"],
-            fontSize=10,
-            leading=12,
-            alignment=TA_CENTER,
-            spaceAfter=5,
             fontName=pdf_font_bold(),
         )
         section_style = ParagraphStyle(
@@ -494,7 +475,6 @@ class Report9Processor:
 
         story: list[Any] = [
             Paragraph(_escape_paragraph_xml(normalized_main_title), title_style),
-            Paragraph(_escape_paragraph_xml(subtitle), subtitle_style),
         ]
 
         page_width, _page_height = landscape(A4)
@@ -526,9 +506,8 @@ class Report9Processor:
                         ("FONTSIZE", (0, 0), (-1, -1), 8),
                         ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#D9D9D9")),
                         ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
-                        ("ALIGN", (0, 0), (0, -1), "CENTER"),
-                        ("ALIGN", (2, 0), (-1, -1), "CENTER"),
-                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                         ("LEFTPADDING", (0, 0), (-1, -1), 3),
                         ("RIGHTPADDING", (0, 0), (-1, -1), 3),
                         ("TOPPADDING", (0, 0), (-1, -1), 2),

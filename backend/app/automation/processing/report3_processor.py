@@ -13,6 +13,7 @@ from reportlab.lib import colors
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from app.automation.config import config
+from app.automation.formatting.excel_print import apply_uniform_center_alignment
 from app.automation.formatting.pdf_fonts import pdf_font_bold, pdf_title_style
 from app.automation.formatting.pdf_table import build_fitted_table
 from app.automation.formatting.scr import highlight_south_central_railway_rows, row_contains_scr
@@ -274,6 +275,8 @@ class Report3Processor:
             start_col=1,
             end_col=len(headers),
         )
+
+        apply_uniform_center_alignment(worksheet)
 
         workbook.save(temp_path)
         temp_path.replace(target_path)

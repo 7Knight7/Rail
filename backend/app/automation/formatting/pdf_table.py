@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from xml.sax.saxutils import escape
 
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A2, A3, A4, landscape
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -282,6 +283,7 @@ def _table_style_commands(
     *,
     valign: str = "MIDDLE",
     bold_row_indices: frozenset[int] | None = None,
+    force_center: bool = False,
 ) -> list[tuple]:
     commands = list(style_commands)
     commands.extend(
@@ -300,6 +302,13 @@ def _table_style_commands(
     if bold_row_indices:
         for row_idx in sorted(bold_row_indices):
             commands.append(("FONTNAME", (0, row_idx), (-1, row_idx), pdf_font_bold()))
+    if force_center:
+        # Final override: every cell (headers, sub-headers, S.No., names, numbers,
+        # percentages, totals, blank merged cells) is centered both ways. Placed
+        # last so it wins over any earlier per-column ALIGN/VALIGN commands from
+        # callers — fonts, borders, colors, and fills are untouched by this.
+        commands.append(("ALIGN", (0, 0), (-1, -1), "CENTER"))
+        commands.append(("VALIGN", (0, 0), (-1, -1), "MIDDLE"))
     return commands
 
 
@@ -349,6 +358,7 @@ def build_fitted_table(
         font_size,
         valign="MIDDLE",
         bold_row_indices=bold_row_indices,
+        force_center=True,
     )
     table.setStyle(TableStyle(commands))
     table = _rescale_if_overflow(
@@ -364,8 +374,14 @@ def prepare_wrapped_table_data(
     font_size: float,
     *,
     wrap_all: bool = False,
+    paragraph_alignment: int = TA_LEFT,
 ) -> list[list[object]]:
-    """Convert designated columns to Paragraph objects for in-cell wrapping."""
+    """Convert designated columns to Paragraph objects for in-cell wrapping.
+
+    ``paragraph_alignment`` defaults to left (legacy behaviour for callers that
+    don't request centering, e.g. Report 5/6). Callers that must center every
+    cell (e.g. Report 4's Top-N table) pass ``TA_CENTER`` explicitly.
+    """
     ensure_pdf_unicode_fonts()
     body_style = ParagraphStyle(
         name="PdfCell",
@@ -373,6 +389,7 @@ def prepare_wrapped_table_data(
         fontSize=font_size,
         leading=font_size + 1.5,
         wordWrap="CJK",
+        alignment=paragraph_alignment,
     )
     header_style = ParagraphStyle(
         name="PdfHeader",
@@ -380,6 +397,7 @@ def prepare_wrapped_table_data(
         fontSize=max(font_size, MIN_FONT_SIZE),
         leading=max(font_size, MIN_FONT_SIZE) + 1.5,
         wordWrap="CJK",
+        alignment=paragraph_alignment,
     )
     wrapped: list[list[object]] = []
     header_kinds = [field_kind_for_header(header) for header in headers]

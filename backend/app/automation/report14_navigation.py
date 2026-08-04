@@ -15,26 +15,48 @@ from typing import Any
 from playwright.async_api import FrameLocator, Page, TimeoutError as PlaywrightTimeoutError
 
 from app.automation.config import config
+from app.automation.navigation import url_matches_report_fragment
+from app.automation.report14_filters import REPORT14_URL_FRAGMENT
 from app.automation.utils import ensure_directory, log_automation_event
 from app.core.exceptions import AppException
 
 logger = logging.getLogger(__name__)
 
 MIS_REPORTS_LABEL = "MIS Reports"
-TAB11_MENU_LABEL = "11) Train Watering Complaint"
+# Portal sidebar uses plural "Complaints"; accept singular as fallback.
+TAB11_MENU_LABEL = "11) Train Watering Complaints"
+TAB11_MENU_LABEL_VARIANTS = (
+    TAB11_MENU_LABEL,
+    "11) Train Watering Complaint",
+    "11. Train Watering Complaints",
+    "11. Train Watering Complaint",
+)
 # Wrapped sidebar text may split across lines; normalized match still finds it.
 TAB11_MENU_PATTERN = re.compile(
-    r"^11\)\s*Train\s*Watering\s*Complaint$",
+    r"^11[\).]\s*Train\s*Watering\s*Complaints?$",
     re.IGNORECASE,
 )
 # Reject multi-row sidebar blobs / wrong numbered tabs.
-_TAB11_MAX_LABEL_LEN = 48
+_TAB11_MAX_LABEL_LEN = 52
+
+LOG_PREFIX = "[Report14]"
 
 FORM_HEADING_MARKERS = (
     "Train Watering Wise Report",
     "Train Watering Wise",
-    "Train Watering Complaint",
     "Watering Wise Report",
+)
+
+# Sidebar always shows "11) Train Watering Complaint" — never treat menu text as form proof.
+SIDEBAR_EXCLUDE_SELECTORS = (
+    "nav",
+    ".sidebar",
+    ".nav",
+    ".navbar",
+    "#sidebar",
+    "[class*='sidebar']",
+    "[class*='nav-item']",
+    "[class*='nav-link']",
 )
 
 # Watering-specific markers so other MIS forms (Inquiry Wise, Comprehensive, …)
@@ -60,8 +82,8 @@ FORM_CONTROL_LABELS = (
 
 NAV_STAGE = "report14_tab11_navigation"
 NAV_ERROR_MESSAGE = (
-    "Report 14 failed: Train Watering Complaint form did not load after selecting "
-    "MIS Reports → 11) Train Watering Complaint."
+    "Report 14 failed: Train Watering Complaints form did not load after selecting "
+    "MIS Reports → 11) Train Watering Complaints."
 )
 
 
@@ -79,7 +101,7 @@ def normalize_menu_text(text: str) -> str:
 
 
 def menu_text_matches_tab11(text: str) -> bool:
-    """True only for the leaf sidebar row 11) Train Watering Complaint.
+    """True only for the leaf sidebar row 11) Train Watering Complaint(s).
 
     Rejects parent containers that include other tabs and never matches
     14) Inquiry Wise 2 or other numbered MIS items.
@@ -90,11 +112,23 @@ def menu_text_matches_tab11(text: str) -> bool:
     if len(compact) > _TAB11_MAX_LABEL_LEN:
         return False
     # Multi-item blobs include neighboring numbers.
-    if re.search(r"(?<!\d)(?:10|12|13|14|15)\)", compact):
+    if re.search(r"(?<!\d)(?:10|12|13|14|15)[\).]", compact):
         return False
-    if normalize_menu_text(TAB11_MENU_LABEL).lower() == compact.lower():
-        return True
+    compact_lower = compact.lower()
+    for variant in TAB11_MENU_LABEL_VARIANTS:
+        if normalize_menu_text(variant).lower() == compact_lower:
+            return True
     return bool(TAB11_MENU_PATTERN.match(compact))
+
+
+def _log_report14_step(message: str, **fields: Any) -> None:
+    """Structured console log with [Report14] prefix for live debugging."""
+    extra = " ".join(f"{k}={v}" for k, v in fields.items() if v is not None and v != "")
+    line = f"{LOG_PREFIX} {message}"
+    if extra:
+        line = f"{line} {extra}"
+    logger.info(line)
+    log_automation_event(logger, "report14_step", message=message, **fields)
 
 
 async def _locator_visible_count(locator: Any) -> int:
@@ -178,24 +212,39 @@ async def _is_tab11_visible(page: Page) -> bool:
 
 
 async def _find_tab11_control(page: Page) -> Any:
-    """Locate only 11) Train Watering Complaint (leaf row; handles wrapped text)."""
-    # Exact single-line first
-    for ctor in (
-        lambda: page.get_by_role("link", name=TAB11_MENU_LABEL, exact=True),
-        lambda: page.get_by_role("button", name=TAB11_MENU_LABEL, exact=True),
-        lambda: page.get_by_role("menuitem", name=TAB11_MENU_LABEL, exact=True),
-        lambda: page.get_by_text(TAB11_MENU_LABEL, exact=True),
-    ):
+    """Locate only 11) Train Watering Complaints (leaf row; handles wrapped text)."""
+    tab11_name_pattern = re.compile(
+        r"11[\).]\s*Train\s*Watering\s*Complaints?",
+        re.I,
+    )
+    # Exact single-line first (plural + singular + dot/paren variants).
+    for label in TAB11_MENU_LABEL_VARIANTS:
+        for ctor in (
+            lambda l=label: page.get_by_role("link", name=l, exact=True),
+            lambda l=label: page.get_by_role("button", name=l, exact=True),
+            lambda l=label: page.get_by_role("menuitem", name=l, exact=True),
+            lambda l=label: page.get_by_text(l, exact=True),
+        ):
+            try:
+                loc = ctor().first
+                if await loc.count() > 0 and await loc.is_visible():
+                    return loc
+            except Exception:
+                continue
+
+    for role in ("link", "button", "menuitem"):
         try:
-            loc = ctor().first
+            loc = page.get_by_role(role, name=tab11_name_pattern).first
             if await loc.count() > 0 and await loc.is_visible():
-                return loc
+                text = normalize_menu_text(await loc.inner_text(timeout=500))
+                if menu_text_matches_tab11(text):
+                    return loc
         except Exception:
             continue
 
     # Pattern match on leaf text nodes (handles wrapping / double spaces).
     # Prefer the shortest matching locator later if scan is needed.
-    pattern_loc = page.get_by_text(re.compile(r"11\)\s*Train\s*Watering\s*Complaint", re.I))
+    pattern_loc = page.get_by_text(tab11_name_pattern)
     try:
         pcount = min(await pattern_loc.count(), 20)
     except Exception:
@@ -214,6 +263,23 @@ async def _find_tab11_control(page: Page) -> Any:
     if pattern_hits:
         pattern_hits.sort(key=lambda t: t[0])
         return pattern_hits[0][1]
+
+    # Prefer the clickable sidebar anchor (portal uses .nav-link.navigate_to_link).
+    try:
+        nav_link = page.locator("a.nav-link.navigate_to_link").filter(
+            has_text=tab11_name_pattern
+        )
+        ncount = min(await nav_link.count(), 5)
+        for i in range(ncount):
+            item = nav_link.nth(i)
+            try:
+                text = normalize_menu_text(await item.inner_text(timeout=500))
+                if menu_text_matches_tab11(text) and await item.is_visible():
+                    return item
+            except Exception:
+                continue
+    except Exception:
+        pass
 
     # Scan candidate menu items; pick shortest leaf match only
     candidates = page.locator(
@@ -280,18 +346,104 @@ async def ensure_mis_reports_expanded(page: Page) -> bool:
     return await _is_tab11_visible(page)
 
 
-async def click_tab11_train_watering(page: Page) -> bool:
-    """Scroll to and click only 11) Train Watering Complaint once."""
+async def click_tab11_train_watering(page: Page) -> tuple[bool, str]:
+    """Scroll to and click only 11) Train Watering Complaints once."""
     loc = await _find_tab11_control(page)
     if loc is None:
-        return False
+        _log_report14_step("Tab not found", tab=TAB11_MENU_LABEL)
+        return False, ""
+    try:
+        label = normalize_menu_text(await loc.inner_text(timeout=1_000))
+    except Exception:
+        label = TAB11_MENU_LABEL
     try:
         await loc.scroll_into_view_if_needed(timeout=5_000)
     except Exception:
         pass
-    log_automation_event(logger, "report14_tab11_click", label=TAB11_MENU_LABEL)
+    _log_report14_step("Tab found", label=label)
+    log_automation_event(logger, "report14_tab11_click", label=label or TAB11_MENU_LABEL)
+    # Portal tab loads via delegated handler on .navigate_to_link anchors.
+    try:
+        tag = await loc.evaluate("el => el.tagName")
+    except Exception:
+        tag = ""
+    if tag and tag.upper() != "A":
+        try:
+            anchor = loc.locator("xpath=ancestor-or-self::a[contains(@class,'nav-link')]").first
+            if await anchor.count() > 0:
+                loc = anchor
+        except Exception:
+            pass
     await loc.click(timeout=8_000)
-    return True
+    _log_report14_step("Tab clicked", label=label)
+    return True, label
+
+
+async def _capture_tab11_loaded_screenshot(page: Page, *, run_id: str) -> str | None:
+    """Screenshot after tab 11 content is confirmed."""
+    dest = ensure_directory(Path(config.debug_screenshots_dir) / "report14_nav")
+    stem = f"report14_tab11_loaded_{run_id[:8] if run_id else 'na'}"
+    path = dest / f"{stem}.png"
+    try:
+        await page.screenshot(path=str(path), full_page=True)
+        _log_report14_step("Page screenshot saved", path=str(path))
+        return str(path)
+    except Exception as exc:
+        logger.warning("report14 tab11 screenshot failed: %s", exc)
+        return None
+
+
+async def _verify_tab11_page_loaded(page: Page, *, run_id: str) -> None:
+    """Mandatory gate: URL/title/form must confirm Train Watering Complaints loaded."""
+    current_url = page.url
+    try:
+        title = await page.title()
+    except Exception:
+        title = ""
+    _log_report14_step("Current URL", url=current_url)
+    _log_report14_step("Current page title", title=title)
+
+    if not url_matches_report_fragment(current_url, REPORT14_URL_FRAGMENT):
+        await _save_nav_diagnostics(page, run_id=run_id or "na", reason="url_not_report22")
+        raise Report14NavigationError(
+            f"{NAV_ERROR_MESSAGE} (page.url expected '{REPORT14_URL_FRAGMENT}', got '{current_url}')."
+        )
+
+    selectors = (
+        "#complaintZoneInput",
+        "#viewType",
+        "#outputTypeInput",
+        "#outputInput",
+        "text=Previous Watering Point",
+        "text=Upcoming Watering Point",
+    )
+    found_selector = None
+    for sel in selectors:
+        try:
+            await page.wait_for_selector(sel, state="attached", timeout=4_000)
+            found_selector = sel
+            break
+        except Exception:
+            for frame in page.frames:
+                if frame == page.main_frame:
+                    continue
+                try:
+                    await frame.wait_for_selector(sel, state="attached", timeout=1_500)
+                    found_selector = f"frame:{frame.url}:{sel}"
+                    break
+                except Exception:
+                    continue
+            if found_selector:
+                break
+
+    if not found_selector:
+        await _save_nav_diagnostics(page, run_id=run_id or "na", reason="tab11_verify_timeout")
+        raise Report14NavigationError(
+            f"{NAV_ERROR_MESSAGE} (wait_for_selector: Train Watering form controls not found)."
+        )
+
+    _log_report14_step("Page loaded", selector=found_selector)
+    await _capture_tab11_loaded_screenshot(page, run_id=run_id)
 
 
 async def _text_present(ctx: Page | FrameLocator, text: str) -> bool:
@@ -309,10 +461,72 @@ async def _text_present(ctx: Page | FrameLocator, text: str) -> bool:
 
 
 async def _has_watering_heading(ctx: Page | FrameLocator) -> bool:
+    """Heading must be in report content — not the always-visible sidebar label."""
+    heading_pattern = re.compile(
+        r"Train\s*Watering\s*(?:Wise\s*)?(?:Report|Complaints?)?",
+        re.I,
+    )
+    content_roots = (
+        "#content",
+        "#main",
+        ".main-content",
+        "#formArea",
+        "form",
+        "table",
+        ".card-body",
+    )
+    for root_sel in content_roots:
+        try:
+            root = ctx.locator(root_sel).first
+            if await root.count() == 0:
+                continue
+            headings = root.locator("h1,h2,h3,h4,legend,.page-title,.report-title,th")
+            hcount = min(await headings.count(), 30)
+            for i in range(hcount):
+                try:
+                    text = normalize_menu_text(await headings.nth(i).inner_text(timeout=300))
+                except Exception:
+                    continue
+                if heading_pattern.search(text) and menu_text_matches_tab11(text) is False:
+                    return True
+        except Exception:
+            continue
     for heading in FORM_HEADING_MARKERS:
-        if await _text_present(ctx, heading):
-            return True
+        try:
+            loc = ctx.locator(
+                f"h1:has-text('{heading}'), h2:has-text('{heading}'), "
+                f"h3:has-text('{heading}'), legend:has-text('{heading}')"
+            ).first
+            if await loc.count() > 0:
+                return True
+        except Exception:
+            continue
     return False
+
+
+async def _has_watering_output_select(ctx: Page | FrameLocator) -> bool:
+    """True when an Output select exposes Previous/Upcoming watering options."""
+    try:
+        return bool(
+            await ctx.evaluate(
+                """() => {
+                    const needles = ['previous watering', 'upcoming watering'];
+                    const selects = document.querySelectorAll(
+                        '#outputTypeInput, #outputInput, select[id*="output" i], select[name*="output" i]'
+                    );
+                    for (const el of selects) {
+                        if (!el.options) continue;
+                        for (const opt of el.options) {
+                            const t = (opt.text || '').toLowerCase();
+                            if (needles.some(n => t.includes(n))) return true;
+                        }
+                    }
+                    return false;
+                }"""
+            )
+        )
+    except Exception:
+        return False
 
 
 async def _has_watering_output_marker(ctx: Page | FrameLocator) -> bool:
@@ -353,20 +567,27 @@ async def _count_form_signals(ctx: Page | FrameLocator) -> tuple[int, list[str]]
 
 
 async def is_train_watering_form(ctx: Page | FrameLocator) -> tuple[bool, list[str]]:
-    """True only when the Train Watering form is present (not other MIS reports)."""
+    """True only when tab-11 Train Watering form is loaded (not sidebar/menu text)."""
     score, found = await _count_form_signals(ctx)
-    has_heading = any(f.startswith("heading:") for f in found) or await _has_watering_heading(
-        ctx
-    )
     has_output = any(f.startswith("output:") for f in found) or await _has_watering_output_marker(
         ctx
     )
-    # Require watering identity + enough shared controls.
-    if has_heading and score >= 3:
+    if not has_output:
+        has_output = await _has_watering_output_select(ctx)
+        if has_output:
+            found = [*found, "output:select_options"]
+
+    # Sidebar menu text must never satisfy this check alone.
+    if not has_output:
+        return False, found
+
+    has_heading = any(f.startswith("heading:") for f in found) or await _has_watering_heading(ctx)
+    has_core = sum(1 for label in ("Zone", "View", "Output", "Submit") if label in found) >= 2
+    has_zone_select = any("sel:#complaintZoneInput" == f or "Zone" in f for f in found)
+
+    if has_output and has_core and (has_zone_select or score >= 4):
         return True, found
-    if has_heading and has_output:
-        return True, found
-    if has_output and score >= 4:
+    if has_output and has_heading and score >= 3:
         return True, found
     return False, found
 
@@ -461,10 +682,16 @@ async def navigate_report14_via_menu(
     *,
     run_id: str = "",
 ) -> Page | FrameLocator:
-    """Always open tab 11) Train Watering Complaint only — never Inquiry Wise / other tabs.
+    """Always open tab 11) Train Watering Complaints only — never Inquiry Wise / other tabs.
 
     Menu path only (no URL-only success). Returns page/frame with the watering form.
     """
+    _log_report14_step(
+        "Opening Train Watering Complaints tab",
+        url=page.url,
+        run_id=run_id or None,
+        target_tab=TAB11_MENU_LABEL,
+    )
     log_automation_event(
         logger,
         "report14_menu_navigation_started",
@@ -473,10 +700,14 @@ async def navigate_report14_via_menu(
         target_tab=TAB11_MENU_LABEL,
     )
 
-    # Skip menu only when Train Watering form is already confirmed (re-extract).
+    # Skip menu only when tab-11 form is confirmed AND URL is report22 (not sidebar false positive).
     try:
         existing = await resolve_report14_form_context(page)
-        if existing is not None:
+        if existing is not None and url_matches_report_fragment(page.url, REPORT14_URL_FRAGMENT):
+            _log_report14_step(
+                "Train Watering form already loaded — skipping menu",
+                url=page.url,
+            )
             log_automation_event(
                 logger,
                 "report14_form_already_loaded",
@@ -485,6 +716,12 @@ async def navigate_report14_via_menu(
                 target_tab=TAB11_MENU_LABEL,
             )
             return existing
+        if existing is not None:
+            _log_report14_step(
+                "False positive form detected on wrong report URL — opening tab 11",
+                url=page.url,
+                expected_fragment=REPORT14_URL_FRAGMENT,
+            )
     except Exception:
         pass
 
@@ -504,6 +741,7 @@ async def navigate_report14_via_menu(
         ) from exc
 
     # 2) Expand MIS Reports if needed
+    _log_report14_step("Expanding MIS Reports sidebar")
     expanded = await ensure_mis_reports_expanded(page)
     if not expanded:
         await _save_nav_diagnostics(
@@ -514,10 +752,10 @@ async def navigate_report14_via_menu(
         )
 
     # 3) Click tab 11 only (with one expand+retry cycle)
-    clicked = await click_tab11_train_watering(page)
+    clicked, tab_label = await click_tab11_train_watering(page)
     if not clicked:
         await ensure_mis_reports_expanded(page)
-        clicked = await click_tab11_train_watering(page)
+        clicked, tab_label = await click_tab11_train_watering(page)
     if not clicked:
         await _save_nav_diagnostics(
             page,
@@ -527,12 +765,33 @@ async def navigate_report14_via_menu(
             tab11_clicked=False,
         )
         raise Report14NavigationError(
-            f"{NAV_ERROR_MESSAGE} (menu item '{TAB11_MENU_LABEL}' not found)."
+            f"{NAV_ERROR_MESSAGE} (menu item '{TAB11_MENU_LABEL}' not found; "
+            f"portal label may differ — expected variants: {list(TAB11_MENU_LABEL_VARIANTS)})."
+        )
+
+    _log_report14_step("Waiting for Train Watering Complaints page", tab=tab_label or TAB11_MENU_LABEL)
+
+    # Wait for portal URL to switch to report22 after the menu click.
+    for _ in range(40):
+        if url_matches_report_fragment(page.url, REPORT14_URL_FRAGMENT):
+            break
+        await page.wait_for_timeout(250)
+    else:
+        await _save_nav_diagnostics(
+            page,
+            run_id=run_id or "na",
+            reason="url_report22_timeout",
+            mis_expanded=True,
+            tab11_clicked=True,
+        )
+        raise Report14NavigationError(
+            f"{NAV_ERROR_MESSAGE} (URL never changed to '{REPORT14_URL_FRAGMENT}' after tab click)."
         )
 
     # 4) Wait for Train Watering form only (never accept a different report form)
     try:
         form_ctx = await wait_for_report14_form(page)
+        await _verify_tab11_page_loaded(page, run_id=run_id)
     except Report14NavigationError:
         await _save_nav_diagnostics(
             page,
@@ -543,11 +802,16 @@ async def navigate_report14_via_menu(
         )
         raise
 
+    _log_report14_step(
+        "Train Watering Complaints navigation succeeded",
+        url=page.url,
+        tab=tab_label or TAB11_MENU_LABEL,
+    )
     log_automation_event(
         logger,
         "report14_menu_navigation_succeeded",
         url=page.url,
         run_id=run_id,
-        target_tab=TAB11_MENU_LABEL,
+        target_tab=tab_label or TAB11_MENU_LABEL,
     )
     return form_ctx

@@ -22,6 +22,7 @@ from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, TableSty
 from app.automation.config import config
 from app.automation.date_range import date_range_for_processing
 from app.automation.formatting.artifact_titles import build_artifact_main_title
+from app.automation.formatting.excel_print import apply_uniform_center_alignment
 from app.automation.formatting.pdf_fonts import ensure_pdf_unicode_fonts, pdf_font_bold, pdf_font_regular
 from app.automation.formatting.pdf_table import SAFE_MARGIN_PT, fit_column_widths, preferred_column_widths
 from app.automation.formatting.text_pipeline import normalize_report_title
@@ -220,6 +221,8 @@ class Report18Processor:
             letter = worksheet.cell(row=2, column=col_idx).column_letter
             worksheet.column_dimensions[letter].width = 14
 
+        apply_uniform_center_alignment(worksheet)
+
         workbook.save(temp_path)
         temp_path.replace(target_path)
 
@@ -271,7 +274,8 @@ class Report18Processor:
                     ("FONTNAME", (0, 1), (-1, -1), pdf_font_regular()),
                     ("FONTSIZE", (0, 0), (-1, -1), 8),
                     ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                     ("LEFTPADDING", (0, 0), (-1, -1), 3),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 3),
                     ("TOPPADDING", (0, 0), (-1, -1), 2),

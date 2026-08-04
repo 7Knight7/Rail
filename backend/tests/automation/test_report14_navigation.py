@@ -26,6 +26,8 @@ class TestReport14MenuText:
     def test_wrapped_tab11_matches(self):
         assert menu_text_matches_tab11("11) Train Watering\nComplaint")
         assert menu_text_matches_tab11("11) Train Watering Complaint")
+        assert menu_text_matches_tab11("11) Train Watering Complaints")
+        assert menu_text_matches_tab11("11. Train Watering Complaints")
         assert not menu_text_matches_tab11("10) Zone/Train Type wise Report")
         assert not menu_text_matches_tab11("12) Suggestion Comprehensive")
         # Never treat Inquiry Wise 2 (sidebar tab 14) as Report 14 target
@@ -59,12 +61,20 @@ class TestReport14MenuNavigationOrder:
             ) as mock_expand,
             patch(
                 "app.automation.report14_navigation.click_tab11_train_watering",
-                new=AsyncMock(return_value=True),
+                new=AsyncMock(return_value=(True, "11) Train Watering Complaints")),
             ) as mock_tab,
             patch(
                 "app.automation.report14_navigation.wait_for_report14_form",
                 new=AsyncMock(return_value=page),
             ) as mock_form,
+            patch(
+                "app.automation.report14_navigation._verify_tab11_page_loaded",
+                new=AsyncMock(),
+            ),
+            patch(
+                "app.automation.report14_navigation.url_matches_report_fragment",
+                return_value=True,
+            ),
         ):
             ctx = await navigate_report14_via_menu(page, run_id="run-1")
 
@@ -84,15 +94,16 @@ class TestReport14MenuNavigationOrder:
 
         async def click_tab(_page):
             call_order.append("tab11")
-            return True
+            return True, "11) Train Watering Complaints"
 
         async def wait_form(_page, **_kw):
             call_order.append("form")
             return _page
 
         page = MagicMock()
-        page.url = "https://example"
+        page.url = "https://example/?page=/mis_reports/report22"
         page.wait_for_load_state = AsyncMock()
+        page.wait_for_timeout = AsyncMock()
         page.get_by_text = MagicMock(
             return_value=MagicMock(first=MagicMock(wait_for=AsyncMock()))
         )
@@ -110,6 +121,14 @@ class TestReport14MenuNavigationOrder:
                 "app.automation.report14_navigation.wait_for_report14_form",
                 side_effect=wait_form,
             ),
+            patch(
+                "app.automation.report14_navigation._verify_tab11_page_loaded",
+                new=AsyncMock(),
+            ),
+            patch(
+                "app.automation.report14_navigation.url_matches_report_fragment",
+                return_value=True,
+            ),
         ):
             await navigate_report14_via_menu(page, run_id="r")
 
@@ -120,6 +139,7 @@ class TestReport14MenuNavigationOrder:
         page = MagicMock()
         page.url = "https://example/?page=/mis_reports/report11"
         page.wait_for_load_state = AsyncMock()
+        page.wait_for_timeout = AsyncMock()
         page.get_by_text = MagicMock(
             return_value=MagicMock(first=MagicMock(wait_for=AsyncMock()))
         )
@@ -134,20 +154,29 @@ class TestReport14MenuNavigationOrder:
             ),
             patch(
                 "app.automation.report14_navigation.click_tab11_train_watering",
-                new=AsyncMock(return_value=True),
+                new=AsyncMock(return_value=(True, "11) Train Watering Complaints")),
             ),
             patch(
                 "app.automation.report14_navigation.wait_for_report14_form",
                 new=AsyncMock(side_effect=Report14NavigationError()),
             ),
             patch(
+                "app.automation.report14_navigation._verify_tab11_page_loaded",
+                new=AsyncMock(),
+            ),
+            patch(
                 "app.automation.report14_navigation._save_nav_diagnostics",
                 new=AsyncMock(),
+            ),
+            patch(
+                "app.automation.report14_navigation.url_matches_report_fragment",
+                return_value=False,
             ),
         ):
             with pytest.raises(Report14NavigationError) as exc:
                 await navigate_report14_via_menu(page, run_id="r")
-        assert "Train Watering Complaint form did not load" in str(exc.value)
+        assert "Train Watering Complaints form did not load" in str(exc.value)
+        assert "report22" in str(exc.value)
         assert getattr(exc.value, "stage", "") == "report14_tab11_navigation"
 
     @pytest.mark.asyncio
@@ -167,19 +196,21 @@ class TestReport14MenuNavigationOrder:
 
     @pytest.mark.asyncio
     async def test_click_tab11_uses_scroll_and_exact_label_constant(self):
-        assert TAB11_MENU_LABEL == "11) Train Watering Complaint"
+        assert TAB11_MENU_LABEL == "11) Train Watering Complaints"
         assert MIS_REPORTS_LABEL == "MIS Reports"
 
         loc = MagicMock()
         loc.scroll_into_view_if_needed = AsyncMock()
         loc.click = AsyncMock()
+        loc.inner_text = AsyncMock(return_value="11) Train Watering Complaints")
         page = MagicMock()
         with patch(
             "app.automation.report14_navigation._find_tab11_control",
             new=AsyncMock(return_value=loc),
         ):
-            ok = await click_tab11_train_watering(page)
+            ok, label = await click_tab11_train_watering(page)
         assert ok is True
+        assert "Train Watering" in label
         loc.scroll_into_view_if_needed.assert_awaited()
         loc.click.assert_awaited()
 
@@ -212,6 +243,7 @@ class TestReport14FormFrameDetection:
 
         watering_found = [
             "heading:Train Watering Wise Report",
+            "output:Previous Watering Point",
             "From Date",
             "To Date",
             "Zone",
@@ -243,15 +275,64 @@ class TestReport14FormFrameDetection:
             ),
             patch(
                 "app.automation.report14_navigation._has_watering_heading",
-                new=AsyncMock(return_value=False),
+                new=AsyncMock(return_value=True),
             ),
             patch(
                 "app.automation.report14_navigation._has_watering_output_marker",
                 new=AsyncMock(return_value=False),
             ),
+            patch(
+                "app.automation.report14_navigation._has_watering_output_select",
+                new=AsyncMock(return_value=False),
+            ),
         ):
             ok, _ = await is_train_watering_form(MagicMock())
         assert ok is False
+
+    @pytest.mark.asyncio
+    async def test_does_not_skip_menu_when_url_is_report1(self):
+        page = MagicMock()
+        page.url = "https://example/?page=/mis_reports/report1"
+        page.wait_for_load_state = AsyncMock()
+        page.wait_for_timeout = AsyncMock()
+        page.get_by_text = MagicMock(
+            return_value=MagicMock(first=MagicMock(wait_for=AsyncMock()))
+        )
+        fake_form = MagicMock()
+
+        async def click_and_navigate(_page):
+            page.url = "https://example/?page=/mis_reports/report22"
+            return True, "11) Train Watering Complaint"
+
+        with (
+            patch(
+                "app.automation.report14_navigation.resolve_report14_form_context",
+                new=AsyncMock(return_value=fake_form),
+            ),
+            patch(
+                "app.automation.report14_navigation.ensure_mis_reports_expanded",
+                new=AsyncMock(return_value=True),
+            ) as mock_expand,
+            patch(
+                "app.automation.report14_navigation.click_tab11_train_watering",
+                side_effect=click_and_navigate,
+            ),
+            patch(
+                "app.automation.report14_navigation.wait_for_report14_form",
+                new=AsyncMock(return_value=fake_form),
+            ),
+            patch(
+                "app.automation.report14_navigation._verify_tab11_page_loaded",
+                new=AsyncMock(),
+            ),
+            patch(
+                "app.automation.report14_navigation.url_matches_report_fragment",
+                side_effect=lambda url, frag: "report22" in url,
+            ),
+        ):
+            await navigate_report14_via_menu(page, run_id="r")
+
+        mock_expand.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_handler_uses_menu_navigation_not_url_nav(self):

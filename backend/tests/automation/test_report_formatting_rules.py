@@ -394,24 +394,50 @@ def test_report1_pdf_totals_match_excel(
     assert len(pdf_bytes) > 100
 
 
+_DATE_SNAPSHOT = {"date_from": "2026-07-01", "date_to": "2026-07-02"}
+
+
 def test_report2_pdf_totals_match_excel(
+    r1_inputs: tuple[Path, Path],
     r2_inputs: tuple[Path, Path],
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
+    comprehensive_r1, feedback_r1 = r1_inputs
+    _monkeypatch_outputs(monkeypatch, "app.automation.processing.report1_processor", tmp_path)
+    report1_result = Report1Processor().process(
+        source_a_path=comprehensive_r1,
+        report_slug="report1",
+        source_b_path=feedback_r1,
+    )
+    assert report1_result.success is True
+    report1_ws = load_workbook(report1_result.excel_path).active
+    report1_headers = [
+        str(report1_ws.cell(row=2, column=c).value or "")
+        for c in range(1, report1_ws.max_column + 1)
+    ]
+    report1_received = str(
+        report1_ws.cell(
+            row=report1_ws.max_row,
+            column=report1_headers.index("Received") + 1,
+        ).value
+        or ""
+    )
+
     comprehensive, feedback = r2_inputs
     _monkeypatch_outputs(monkeypatch, "app.automation.processing.report2_processor", tmp_path)
     result = Report2Processor().process(
         source_a_path=comprehensive,
         report_slug="report2",
         source_b_path=feedback,
+        column_selection=_DATE_SNAPSHOT,
     )
     assert result.success is True
     ws = load_workbook(result.excel_path).active
     headers = [str(ws.cell(row=2, column=c).value or "") for c in range(1, ws.max_column + 1)]
     received_col = headers.index("Received") + 1
     received_total = str(ws.cell(row=ws.max_row, column=received_col).value or "")
-    assert received_total == "24700"
+    assert received_total == report1_received
     assert "% Disposal" not in headers
     assert "Total" in str(ws.cell(row=ws.max_row, column=2).value or "")
     for col_idx in range(1, ws.max_column + 1):

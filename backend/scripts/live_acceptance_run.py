@@ -22,7 +22,8 @@ async def main() -> int:
         "reports_failed": result.reports_failed,
         "error": result.error,
         "error_code": result.error_code,
-        "download_all_url": result.download_all_url,
+        "download_pdf_all_url": result.download_pdf_all_url,
+        "download_excel_all_url": result.download_excel_all_url,
         "reports": [
             {
                 "slug": r.slug,
