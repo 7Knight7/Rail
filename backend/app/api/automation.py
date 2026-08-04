@@ -47,6 +47,7 @@ ALLOWED_PDF_KEYS = frozenset(
         "scr-station",
         "report9",
         "comprehensive-10-13",
+        "report14",
     }
 )
 

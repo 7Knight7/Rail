@@ -9,6 +9,7 @@ export const REPORT_DISPLAY_NAMES: Record<string, string> = {
   "scr-station": "Report 7: SCR Station Report",
   report9: "Report 9: All Zones Train/Station Cause Wise on Date",
   "comprehensive-10-13": "Report 10–13: Comprehensive Reports",
+  report14: "Report 14: Watering Complaints",
 };
 
 /** Preserved short names for client download fallbacks when server filename is absent. */
@@ -21,9 +22,10 @@ export const REPORT_DOWNLOAD_NAMES: Record<string, string> = {
   "scr-station": "SCR Station Report",
   report9: "All Zones Train/Station Cause Wise on Date",
   "comprehensive-10-13": "Report 10-13 (Comprehensive Reports)",
+  report14: "Watering Complaints",
 };
 
-/** UI list order (Report 9 before Report 10–13). */
+/** UI list order (Report 9 before Report 10–13 before Report 14). */
 export const REPORT_SLUG_ORDER = [
   "report1",
   "division",
@@ -33,6 +35,7 @@ export const REPORT_SLUG_ORDER = [
   "scr-station",
   "report9",
   "comprehensive-10-13",
+  "report14",
 ] as const;
 
 /** Automation progress UI ids → canonical slugs. */
@@ -45,6 +48,7 @@ export const AUTOMATION_ID_TO_SLUG: Record<string, string> = {
   "scr-station": "scr-station",
   report9: "report9",
   "comprehensive-10-13": "comprehensive-10-13",
+  report14: "report14",
 };
 
 export function resolveReportSlug(slugOrId: string): string {
@@ -72,6 +76,7 @@ const SLUG_TO_WORKFLOW_PATH: Record<string, string> = {
   "scr-station": "/workflows/scr-station",
   report9: "/workflows/report9",
   "comprehensive-10-13": "/workflows/comprehensive-10-13",
+  report14: "/workflows/report14",
 };
 
 export const WORKFLOW_PATHS = REPORT_SLUG_ORDER.map((slug) => ({

@@ -28,6 +28,7 @@ SUPPORTED_REPORT_IDS = frozenset(
         "report1_feedback",
         "report9",
         "comprehensive-10-13",
+        "report14",
     }
 )
 

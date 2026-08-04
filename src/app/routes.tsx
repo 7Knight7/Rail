@@ -21,6 +21,7 @@ import {
   SummaryPage,
   Report9Page,
   ComprehensivePage,
+  Report14Page,
 } from "@/features/workflows";
 import { TemplateListPage, TemplateEditorPage } from "@/features/admin/templates";
 import { PromptListPage, PromptEditorPage } from "@/features/admin/prompts";
@@ -105,6 +106,10 @@ export const router = createBrowserRouter([
                   {
                     path: "workflows/comprehensive-10-13",
                     element: <ComprehensivePage />,
+                  },
+                  {
+                    path: "workflows/report14",
+                    element: <Report14Page />,
                   },
                   {
                     path: "workflows/summary",

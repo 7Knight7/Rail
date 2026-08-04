@@ -14,6 +14,7 @@ MANUAL_REPORT_SLUGS: frozenset[str] = frozenset(
         "scr-station",
         "report9",
         "comprehensive-10-13",
+        "report14",
     }
 )
 
@@ -34,6 +35,7 @@ PAGE_ID_TO_SLUG: dict[str, str] = {
     "report6_station": "scr-station",
     "report9": "report9",
     "comprehensive-10-13": "comprehensive-10-13",
+    "report14": "report14",
 }
 
 

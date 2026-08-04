@@ -183,6 +183,7 @@ DUAL_ARTIFACT_SLUGS = frozenset(
         "types",
         "report9",
         "comprehensive-10-13",
+        "report14",
     }
 )
 
@@ -507,10 +508,11 @@ class ManualReportService:
     ) -> str:
         """Dispatch a single manual report run for the resolved canonical slug."""
         from app.automation.automation_lock import automation_lock_status
-        from app.automation.handlers.registry import get_handler
+        from app.automation.handlers.registry import HANDLER_REGISTRY
         from app.automation.service import AutomationLockBusyError
+        from app.automation.report_keys import canonicalize_report_key
 
-        if get_handler(slug) is None:
+        if canonicalize_report_key(slug) not in HANDLER_REGISTRY:
             raise HTTPException(
                 status_code=500,
                 detail={

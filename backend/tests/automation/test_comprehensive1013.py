@@ -326,13 +326,14 @@ class TestCatalogIntegrity:
         assert "scr-train" in slugs
         assert "scr-station" in slugs
 
-    def test_catalog_has_seven_reports(self):
-        assert len(catalog.reports) == 7
+    def test_catalog_has_nine_reports(self):
+        assert len(catalog.reports) == 9
 
     def test_first_report_unchanged(self):
         report = catalog.first_report()
         assert report.slug == "report1"
 
-    def test_comprehensive_is_last(self):
+    def test_report14_is_last(self):
         reports = catalog.reports
-        assert reports[-1].slug == "comprehensive-10-13"
+        assert reports[-1].slug == "report14"
+        assert reports[-2].slug == "comprehensive-10-13"

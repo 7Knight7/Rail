@@ -422,16 +422,17 @@ async def test_analytics_report_cards_include_comprehensive_1013(
 
     analytics = await DashboardAnalyticsService(test_session).analytics()
     assert len(analytics.report_cards) == len(DISPLAY_NAMES)
-    assert analytics.report_cards[-1].slug == "comprehensive-10-13"
-    assert analytics.report_cards[-1].name == "Report 10-13 (Comprehensive Reports)"
-    assert analytics.report_cards[-1].status == "success"
-    assert analytics.report_cards[-1].sections_total == 4
-    assert analytics.report_cards[-1].row_count == 12
-    assert analytics.report_cards[-1].duration_seconds == pytest.approx(26.852)
+    comp_card = next(c for c in analytics.report_cards if c.slug == "comprehensive-10-13")
+    assert comp_card.name == "Report 10-13 (Comprehensive Reports)"
+    assert comp_card.status == "success"
+    assert comp_card.sections_total == 4
+    assert comp_card.row_count == 12
+    assert comp_card.duration_seconds == pytest.approx(26.852)
 
-    files = {f.file_type: f for f in analytics.report_cards[-1].files}
+    files = {f.file_type: f for f in comp_card.files}
     assert files["pdf"].file_size_bytes == 31725
     assert files["excel"].file_size_bytes == 18432
     assert files["pdf"].download_url.startswith("/api/v1/automation/artifacts/")
     assert files["pdf"].preview_url.startswith("/api/v1/automation/artifacts/")
     assert files["excel"].download_url.startswith("/api/v1/automation/artifacts/")
+    assert analytics.report_cards[-1].slug == "report14"

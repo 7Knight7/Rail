@@ -57,11 +57,16 @@ from app.automation.processing.comprehensive_output_columns import (
     sanitize_comprehensive_sections,
     validate_comprehensive_sections,
 )
+from app.automation.processing.report14_output_columns import (
+    report14_catalog_entries,
+    report14_default_ids,
+)
 from app.automation.report_keys import canonicalize_report_key
 
 logger = logging.getLogger(__name__)
 
 COMPREHENSIVE_REPORT_SLUG = "comprehensive-10-13"
+REPORT14_SLUG = "report14"
 
 _SECTION_DISPLAY_NAMES: dict[str, str] = {
     section.section_id: section.name for section in SECTION_CONFIGS
@@ -97,6 +102,7 @@ REPORT_DEFAULT_PROJECTION_KEYS: dict[str, list[str]] = {
     "types": topn_default_ids("types"),
     "report4": topn_default_ids("types"),
     COMPREHENSIVE_REPORT_SLUG: list(COMPREHENSIVE_COLUMN_IDS),
+    REPORT14_SLUG: report14_default_ids(),
 }
 
 
@@ -720,5 +726,8 @@ def output_column_catalog(report_slug: str) -> list[dict[str, object]]:
             }
             for col_id in COMPREHENSIVE_COLUMN_IDS
         ]
+
+    if slug == REPORT14_SLUG:
+        return report14_catalog_entries()
 
     return []

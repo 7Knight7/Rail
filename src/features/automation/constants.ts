@@ -31,6 +31,7 @@ const AUTOMATION_REPORT_DEFS: Array<{
     workflowPath: "/workflows/comprehensive-10-13",
     estimatedMinutes: 4,
   },
+  { id: "report14", slug: "report14", workflowPath: "/workflows/report14", estimatedMinutes: 3 },
 ];
 
 export const AUTOMATION_REPORTS: AutomationReport[] = AUTOMATION_REPORT_DEFS.map((item) => ({

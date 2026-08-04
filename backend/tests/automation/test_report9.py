@@ -41,8 +41,8 @@ class TestReport9Registration:
     def test_report9_above_comprehensive(self):
         slugs = [r.slug for r in DEFAULT_CATALOG]
         assert slugs.index("report9") < slugs.index("comprehensive-10-13")
-        assert DEFAULT_CATALOG[-2] == REPORT_9
-        assert DEFAULT_CATALOG[-1] == REPORT_10_13_COMPREHENSIVE
+        assert DEFAULT_CATALOG[-3] == REPORT_9
+        assert DEFAULT_CATALOG[-2] == REPORT_10_13_COMPREHENSIVE
 
     def test_catalog_instance_order(self):
         slugs = [r.slug for r in catalog.reports]
@@ -55,6 +55,7 @@ class TestReport9Registration:
             "scr-station",
             "report9",
             "comprehensive-10-13",
+            "report14",
         ]
 
     def test_handler_registered(self):

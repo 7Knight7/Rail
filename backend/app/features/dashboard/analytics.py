@@ -49,6 +49,7 @@ DISPLAY_NAMES = {
     "scr-station": "SCR Station Report",
     "report9": "All Zones Train/Station Cause Wise on Date",
     "comprehensive-10-13": "Report 10-13 (Comprehensive Reports)",
+    "report14": "Watering Complaints",
 }
 
 # Recomputed only when a newer completed run appears

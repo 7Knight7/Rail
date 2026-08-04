@@ -9,6 +9,7 @@ ARTIFACT_DISPLAY_TITLES: dict[str, str] = {
     "scr-train": "Report 6: SCR Train Report",
     "scr-station": "Report 7: SCR Station Report",
     "report9": "Report 9: All Zones Train/Station Cause Wise on Date",
+    "report14": "Report 14: Watering Complaints",
 }
 
 
