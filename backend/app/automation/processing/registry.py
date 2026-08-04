@@ -16,6 +16,7 @@ from app.automation.processing.report6_processor import Report6Processor
 from app.automation.processing.comprehensive1013_processor import Comprehensive1013Processor
 from app.automation.processing.report9_processor import Report9Processor
 from app.automation.processing.report14_processor import Report14Processor
+from app.automation.processing.report18_processor import Report18Processor
 from app.automation.report_keys import canonicalize_report_key
 
 _PROCESSORS: dict[str, Any] = {
@@ -28,6 +29,7 @@ _PROCESSORS: dict[str, Any] = {
     "report9": Report9Processor(),
     "comprehensive-10-13": Comprehensive1013Processor(),
     "report14": Report14Processor(),
+    "report18": Report18Processor(),
 }
 
 

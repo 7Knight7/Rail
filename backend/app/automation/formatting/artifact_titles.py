@@ -10,6 +10,7 @@ ARTIFACT_DISPLAY_TITLES: dict[str, str] = {
     "scr-station": "Report 7: SCR Station Report",
     "report9": "Report 9: All Zones Train/Station Cause Wise on Date",
     "report14": "Report 14: Watering Complaints",
+    "report18": "Report Vande Bharat",
 }
 
 
@@ -27,6 +28,8 @@ def is_artifact_title_row(cells: list[str]) -> bool:
     if not first:
         return False
     if "Rail Madad Report" in first:
+        return True
+    if first.startswith("Report Vande Bharat"):
         return True
     return first.startswith("Report ") and ":" in first
 

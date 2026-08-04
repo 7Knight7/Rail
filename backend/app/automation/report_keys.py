@@ -24,6 +24,7 @@ CANONICAL_KEYS: frozenset[str] = frozenset(
         "report12_punctuality",
         "report13_electrical",
         "report14",
+        "report18",
     }
 )
 
@@ -78,6 +79,7 @@ def is_supported_report_key(key: str) -> bool:
         "report12_punctuality",
         "report13_electrical",
         "report14",
+        "report18",
     }
 
 

@@ -44,4 +44,5 @@ export type ReportId =
   | "scr-train"
   | "scr-station"
   | "report9"
-  | "report14";
+  | "report14"
+  | "report18";

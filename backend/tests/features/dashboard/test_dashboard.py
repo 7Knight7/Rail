@@ -435,4 +435,4 @@ async def test_analytics_report_cards_include_comprehensive_1013(
     assert files["pdf"].download_url.startswith("/api/v1/automation/artifacts/")
     assert files["pdf"].preview_url.startswith("/api/v1/automation/artifacts/")
     assert files["excel"].download_url.startswith("/api/v1/automation/artifacts/")
-    assert analytics.report_cards[-1].slug == "report14"
+    assert analytics.report_cards[-1].slug == "report18"

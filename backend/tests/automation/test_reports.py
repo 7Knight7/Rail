@@ -11,6 +11,7 @@ from app.automation.reports import (
     REPORT_9,
     REPORT_10_13_COMPREHENSIVE,
     REPORT_14,
+    REPORT_18,
     ReportCatalog,
     catalog,
 )
@@ -28,6 +29,7 @@ def test_catalog_contains_all_reports():
         "report9",
         "comprehensive-10-13",
         "report14",
+        "report18",
     ]
 
 
@@ -42,6 +44,7 @@ def test_default_catalog_order():
         REPORT_9,
         REPORT_10_13_COMPREHENSIVE,
         REPORT_14,
+        REPORT_18,
     ]
 
 

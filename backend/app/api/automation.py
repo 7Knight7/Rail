@@ -48,6 +48,7 @@ ALLOWED_PDF_KEYS = frozenset(
         "report9",
         "comprehensive-10-13",
         "report14",
+        "report18",
     }
 )
 

@@ -31,17 +31,18 @@ class TestReport14Registration:
         assert "report14" in CANONICAL_KEYS
         assert is_supported_report_key("report14")
 
-    def test_report14_in_default_catalog_last(self):
+    def test_report14_in_default_catalog_before_report18(self):
         slugs = [r.slug for r in DEFAULT_CATALOG]
         assert slugs.count("report14") == 1
-        assert slugs[-1] == "report14"
-        assert slugs[-2] == "comprehensive-10-13"
+        assert slugs[-2] == "report14"
+        assert slugs[-3] == "comprehensive-10-13"
+        assert slugs[-1] == "report18"
 
     def test_catalog_instance_order(self):
         slugs = [r.slug for r in catalog.reports]
-        assert slugs[-1] == "report14"
+        assert slugs[-2] == "report14"
         assert "report14" in slugs
-        assert len(slugs) == 9
+        assert len(slugs) == 10
 
     def test_handler_registered(self):
         assert "report14" in HANDLER_REGISTRY

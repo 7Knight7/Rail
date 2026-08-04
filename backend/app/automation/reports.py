@@ -104,6 +104,16 @@ REPORT_14 = ReportDefinition(
     url_fragment="mis_reports/report22",
 )
 
+REPORT_18 = ReportDefinition(
+    name="Report Vande Bharat",
+    slug="report18",
+    # Navigation is menu-only: MIS Reports → 18) Vande Bharat Report.
+    # Live portal path is vandebharatreport (not report18).
+    page_path="/mis_reports/vandebharatreport",
+    screenshot_filename="report18.png",
+    url_fragment="mis_reports/vandebharatreport",
+)
+
 DEFAULT_CATALOG = [
     REPORT_1,
     REPORT_2,
@@ -114,6 +124,7 @@ DEFAULT_CATALOG = [
     REPORT_9,
     REPORT_10_13_COMPREHENSIVE,
     REPORT_14,
+    REPORT_18,
 ]
 
 

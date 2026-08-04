@@ -49,6 +49,7 @@ const UI_TO_BACKEND: Record<string, string> = {
   report9: "report9",
   "comprehensive-10-13": "comprehensive-10-13",
   report14: "report14",
+  report18: "report18",
 };
 
 const BACKEND_TO_UI: Record<string, string> = Object.fromEntries(

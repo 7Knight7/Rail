@@ -32,6 +32,7 @@ const AUTOMATION_REPORT_DEFS: Array<{
     estimatedMinutes: 4,
   },
   { id: "report14", slug: "report14", workflowPath: "/workflows/report14", estimatedMinutes: 3 },
+  { id: "report18", slug: "report18", workflowPath: "/workflows/report18", estimatedMinutes: 2 },
 ];
 
 export const AUTOMATION_REPORTS: AutomationReport[] = AUTOMATION_REPORT_DEFS.map((item) => ({

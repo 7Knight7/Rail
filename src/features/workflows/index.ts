@@ -8,3 +8,4 @@ export { SummaryPage } from "./SummaryPage";
 export { Report9Page } from "./Report9Page";
 export { ComprehensivePage } from "./ComprehensivePage";
 export { Report14Page } from "./Report14Page";
+export { Report18Page } from "./Report18Page";

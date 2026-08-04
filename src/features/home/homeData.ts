@@ -50,6 +50,7 @@ export const SCHEDULED_REPORTS: ScheduledReport[] = [
   scheduledReport("report9", Layers, "~3 min", "/workflows/report9"),
   scheduledReport("comprehensive-10-13", Layers, "~4 min", "/workflows/comprehensive-10-13"),
   scheduledReport("report14", Layers, "~3 min", "/workflows/report14"),
+  scheduledReport("report18", Train, "~2 min", "/workflows/report18"),
 ];
 
 /** Icons for the live status metric cards (values come from /dashboard/summary). */

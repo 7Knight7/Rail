@@ -4,10 +4,11 @@ import { SCHEDULED_REPORTS } from "@/features/home/homeData";
 import { AUTOMATION_REPORTS } from "@/features/automation/constants";
 
 describe("Report 14 catalog registration", () => {
-  it("is 9th after comprehensive-10-13 in slug order", () => {
-    expect(REPORT_SLUG_ORDER).toHaveLength(9);
+  it("is after comprehensive-10-13 and before report18 in slug order", () => {
+    expect(REPORT_SLUG_ORDER).toHaveLength(10);
     expect(REPORT_SLUG_ORDER[7]).toBe("comprehensive-10-13");
     expect(REPORT_SLUG_ORDER[8]).toBe("report14");
+    expect(REPORT_SLUG_ORDER[9]).toBe("report18");
   });
 
   it("has display name and workflow path", () => {
@@ -16,15 +17,39 @@ describe("Report 14 catalog registration", () => {
     expect(path?.path).toBe("/workflows/report14");
   });
 
-  it("is on home scheduled reports as 9th card", () => {
-    expect(SCHEDULED_REPORTS).toHaveLength(9);
+  it("is on home scheduled reports before Report Vande Bharat", () => {
+    expect(SCHEDULED_REPORTS).toHaveLength(10);
     expect(SCHEDULED_REPORTS[8].id).toBe("report14");
     expect(SCHEDULED_REPORTS[8].path).toBe("/workflows/report14");
   });
 
-  it("is on automation reports as 9th step", () => {
-    expect(AUTOMATION_REPORTS).toHaveLength(9);
+  it("is on automation reports before Report Vande Bharat", () => {
+    expect(AUTOMATION_REPORTS).toHaveLength(10);
     expect(AUTOMATION_REPORTS[8].id).toBe("report14");
     expect(AUTOMATION_REPORTS[8].workflowPath).toBe("/workflows/report14");
+  });
+});
+
+describe("Report Vande Bharat catalog registration", () => {
+  it("is last in slug order", () => {
+    expect(REPORT_SLUG_ORDER[REPORT_SLUG_ORDER.length - 1]).toBe("report18");
+  });
+
+  it("has display name and workflow path", () => {
+    expect(getReportDisplayName("report18")).toBe("Report Vande Bharat");
+    const path = WORKFLOW_PATHS.find((w) => w.slug === "report18");
+    expect(path?.path).toBe("/workflows/report18");
+  });
+
+  it("is on home scheduled reports as last card", () => {
+    expect(SCHEDULED_REPORTS[SCHEDULED_REPORTS.length - 1].id).toBe("report18");
+    expect(SCHEDULED_REPORTS[SCHEDULED_REPORTS.length - 1].path).toBe("/workflows/report18");
+  });
+
+  it("is on automation reports as last step", () => {
+    expect(AUTOMATION_REPORTS[AUTOMATION_REPORTS.length - 1].id).toBe("report18");
+    expect(AUTOMATION_REPORTS[AUTOMATION_REPORTS.length - 1].workflowPath).toBe(
+      "/workflows/report18",
+    );
   });
 });
