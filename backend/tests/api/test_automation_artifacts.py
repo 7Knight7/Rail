@@ -169,19 +169,26 @@ async def test_artifact_preview_download_and_merged_outputs(
     assert merged_pdf.headers["content-type"].startswith("application/pdf")
     assert "RailMadad_Report_" in merged_pdf.headers.get("content-disposition", "")
     pdf_reader = PdfReader(BytesIO(merged_pdf.content))
+<<<<<<< Updated upstream
     merged_text = "".join(page.extract_text() or "" for page in pdf_reader.pages)
     assert "CRB RM Reports as on" in merged_text
     assert "TABLE OF CONTENTS" in merged_text
     assert "Division Report" in merged_text
     # Cover + TOC + report content (no divider pages)
     assert len(pdf_reader.pages) == 3
+=======
+    assert len(pdf_reader.pages) >= 4
+>>>>>>> Stashed changes
 
     merged_excel = await api_client.get(f"/api/v1/automation/runs/{run.id}/download/excel/all")
     assert merged_excel.status_code == 200
     assert merged_excel.headers["content-type"].startswith(
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+<<<<<<< Updated upstream
     assert "CRB_RM_Reports_" in merged_excel.headers.get("content-disposition", "")
+=======
+>>>>>>> Stashed changes
     merged_wb = load_workbook(BytesIO(merged_excel.content), data_only=True)
     assert "Report 2 - Division" in merged_wb.sheetnames
     assert merged_wb["Report 2 - Division"]["A1"].value == "sample"

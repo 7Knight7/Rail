@@ -22,7 +22,10 @@ from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, Spacer, 
 
 from app.automation.config import config
 from app.automation.date_range import date_range_for_processing
+<<<<<<< Updated upstream
 from app.automation.formatting.excel_print import apply_uniform_center_alignment
+=======
+>>>>>>> Stashed changes
 from app.automation.formatting.pdf_fonts import ensure_pdf_unicode_fonts, pdf_font_bold, pdf_font_regular
 from app.automation.formatting.pdf_table import SAFE_MARGIN_PT, fit_column_widths
 from app.automation.formatting.text_pipeline import normalize_report_title
@@ -600,8 +603,11 @@ class Report14Processor:
         for col_idx in range(3, col_count + 1):
             letter = worksheet.cell(row=header_row_cols, column=col_idx).column_letter
             worksheet.column_dimensions[letter].width = 14
+<<<<<<< Updated upstream
 
         apply_uniform_center_alignment(worksheet)
+=======
+>>>>>>> Stashed changes
 
         workbook.save(temp_path)
         temp_path.replace(target_path)
@@ -698,7 +704,11 @@ class Report14Processor:
             ("SPAN", (2, 0), (4, 0)),
             ("SPAN", (5, 0), (7, 0)),
             ("FONTSIZE", (0, 0), (-1, -1), 7),
+<<<<<<< Updated upstream
             ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+=======
+            ("ALIGN", (0, 0), (-1, 1), "CENTER"),
+>>>>>>> Stashed changes
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#666666")),
             ("LEFTPADDING", (0, 0), (-1, -1), 2),
