@@ -573,14 +573,11 @@ async def download_merged_pdf_all(
         )
     except MergedDownloadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-<<<<<<< Updated upstream
     except Exception as exc:
         logger.exception("Merged PDF build failed for run %s", run_id)
         raise HTTPException(
             status_code=500, detail=f"Failed to build merged PDF: {exc}"
         ) from exc
-=======
->>>>>>> Stashed changes
     try:
         from app.features.activity.emit import emit_activity
 
@@ -624,14 +621,11 @@ async def download_merged_excel_all(
         payload = build_merged_excel(artifacts)
     except MergedDownloadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-<<<<<<< Updated upstream
     except Exception as exc:
         logger.exception("Merged Excel build failed for run %s", run_id)
         raise HTTPException(
             status_code=500, detail=f"Failed to build merged Excel: {exc}"
         ) from exc
-=======
->>>>>>> Stashed changes
     try:
         from app.features.activity.emit import emit_activity
 
